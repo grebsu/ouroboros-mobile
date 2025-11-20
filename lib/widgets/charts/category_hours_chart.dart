@@ -48,8 +48,8 @@ class CategoryHoursChart extends StatelessWidget {
         dataSets: [
           RadarDataSet(
             dataEntries: orderedValues.map((value) => RadarEntry(value: value)).toList(),
-            borderColor: Colors.amber,
-            fillColor: Colors.amber.withOpacity(0.4),
+            borderColor: Colors.teal,
+            fillColor: Colors.teal.withOpacity(0.4),
             borderWidth: 2,
           ),
         ],
@@ -66,7 +66,7 @@ class CategoryHoursChart extends StatelessWidget {
         radarBorderData: const BorderSide(color: Colors.transparent),
         radarBackgroundColor: Colors.transparent,
         titlePositionPercentageOffset: 0.2,
-        titleTextStyle: const TextStyle(color: Colors.black87, fontSize: 14),
+        titleTextStyle: const TextStyle(fontSize: 14),
       ),
       swapAnimationDuration: const Duration(milliseconds: 150),
       swapAnimationCurve: Curves.linear,
@@ -135,34 +135,21 @@ class _DataLabels extends StatelessWidget {
           top: labelY,
           child: Transform.translate(
             offset: const Offset(-22, -10), // Ajuste este offset para centralizar o texto
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  titles[index], // Exibe o título da categoria
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+            child: Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                formatLabel(value),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
                 ),
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    formatLabel(value),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         );

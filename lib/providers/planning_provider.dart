@@ -17,6 +17,7 @@ class PlanningProvider with ChangeNotifier {
   int _completedCycles = 0;
   int _currentProgressMinutes = 0;
   Map<String, int> _sessionProgressMap = {};
+  Map<String, int> _extraStudyTimeBySubjectId = {}; // NOVO ESTADO
   String _studyHours = '0';
   String _weeklyQuestionsGoal = '0';
   Map<String, Map<String, double>> _subjectSettings = {};
@@ -31,6 +32,7 @@ class PlanningProvider with ChangeNotifier {
   int get completedCycles => _completedCycles;
   int get currentProgressMinutes => _currentProgressMinutes;
   Map<String, int> get sessionProgressMap => _sessionProgressMap;
+  Map<String, int> get extraStudyTimeBySubjectId => _extraStudyTimeBySubjectId; // NOVO GETTER
   String get studyHours => _studyHours;
   String get weeklyQuestionsGoal => _weeklyQuestionsGoal;
   Map<String, Map<String, double>> get subjectSettings => _subjectSettings;
@@ -56,6 +58,7 @@ class PlanningProvider with ChangeNotifier {
     _completedCycles = 0;
     _currentProgressMinutes = 0;
     _sessionProgressMap = {};
+    _extraStudyTimeBySubjectId = {}; // LIMPAR NOVO ESTADO
     _studyHours = '0';
     _weeklyQuestionsGoal = '0';
     _subjectSettings = {};
@@ -126,39 +129,80 @@ class PlanningProvider with ChangeNotifier {
   }
 
   void updateProgress(StudyRecord record) {
+    _applyProgress(record);
+    saveData();
+    notifyListeners();
+  }
+
+  void _applyProgress(StudyRecord record) {
     if (studyCycle == null || !record.count_in_planning) return;
 
-    // Encontra a primeira sessão da matéria que ainda não foi completada
-    StudySession? targetSession;
-    for (final session in studyCycle!) {
-      if (session.subjectId == record.subject_id) {
-        final progress = _sessionProgressMap[session.id] ?? 0;
-        if (progress < session.duration) {
-          targetSession = session;
-          break; // Para na primeira sessão não completada encontrada
+    int remainingStudyMinutes = (record.study_time / 60000).round();
+    if (remainingStudyMinutes <= 0) return;
+
+    // Encontra todas as sessões da matéria do registro
+    final subjectSessions = studyCycle!.where((s) => s.subjectId == record.subject_id).toList();
+
+    // Itera sobre as sessões e aplica o progresso
+    for (final session in subjectSessions) {
+      if (remainingStudyMinutes <= 0) break;
+
+      final currentProgress = _sessionProgressMap[session.id] ?? 0;
+      final timeToComplete = session.duration - currentProgress;
+
+      if (timeToComplete > 0) {
+        int timeToAdd = remainingStudyMinutes;
+        if (timeToAdd > timeToComplete) {
+          timeToAdd = timeToComplete;
         }
+
+        _sessionProgressMap[session.id] = currentProgress + timeToAdd;
+        _currentProgressMinutes += timeToAdd;
+        remainingStudyMinutes -= timeToAdd;
       }
     }
 
-    if (targetSession != null) {
-      final session = targetSession;
-      final studyTimeMinutes = record.study_time / 60000;
-
-      final currentSessionProgress = _sessionProgressMap[session.id] ?? 0;
-      _sessionProgressMap[session.id] = currentSessionProgress + studyTimeMinutes.toInt();
-
-      _currentProgressMinutes += studyTimeMinutes.toInt();
-
-      final totalCycleDuration = studyCycle!.fold<int>(0, (sum, s) => sum + s.duration);
-      if (totalCycleDuration > 0 && _currentProgressMinutes >= totalCycleDuration) {
-        _completedCycles++;
-        _currentProgressMinutes = _currentProgressMinutes % totalCycleDuration;
-        _sessionProgressMap = {}; // Reseta o progresso das sessões para o novo ciclo
-      }
-
-      saveData();
-      notifyListeners();
+    // Se ainda sobrar tempo, registra como tempo excedente
+    if (remainingStudyMinutes > 0) {
+      final currentExtraTime = _extraStudyTimeBySubjectId[record.subject_id] ?? 0;
+      _extraStudyTimeBySubjectId[record.subject_id] = currentExtraTime + remainingStudyMinutes;
+      // O tempo extra não conta para a barra de progresso total do ciclo,
+      // mas será salvo e poderá ser exibido na UI.
     }
+
+    // Lógica de conclusão do ciclo
+    final totalCycleDuration = studyCycle!.fold<int>(0, (sum, s) => sum + s.duration);
+    if (totalCycleDuration > 0 && _currentProgressMinutes >= totalCycleDuration) {
+      _completedCycles++;
+      _currentProgressMinutes -= totalCycleDuration; // Subtrai a duração para manter o excesso
+      _sessionProgressMap = {}; // Reseta para o novo ciclo
+      _extraStudyTimeBySubjectId = {}; // Reseta o tempo extra para o novo ciclo
+    }
+  }
+
+  void recalculateProgress(List<StudyRecord> allRecords) {
+    if (studyCycle == null) return;
+
+    // 1. Reset progress
+    _currentProgressMinutes = 0;
+    _completedCycles = 0;
+    _sessionProgressMap = {};
+    _extraStudyTimeBySubjectId = {}; // LIMPAR NOVO ESTADO
+
+    // 2. Filter and sort records
+    final relevantRecords = allRecords
+        .where((r) => r.count_in_planning)
+        .toList();
+    relevantRecords.sort((a, b) => DateTime.parse(a.date).compareTo(DateTime.parse(b.date)));
+
+    // 3. Apply progress for each record
+    for (final record in relevantRecords) {
+      _applyProgress(record);
+    }
+
+    // 4. Save and notify
+    saveData();
+    notifyListeners();
   }
 
   Future<void> loadData() async {
@@ -184,6 +228,13 @@ class PlanningProvider with ChangeNotifier {
       _sessionProgressMap = Map<String, int>.from(jsonDecode(sessionProgressMapString));
     } else {
       _sessionProgressMap = {};
+    }
+
+    final extraStudyTimeString = prefs.getString(_key('extraStudyTimeBySubjectId'));
+    if (extraStudyTimeString != null) {
+      _extraStudyTimeBySubjectId = Map<String, int>.from(jsonDecode(extraStudyTimeString));
+    } else {
+      _extraStudyTimeBySubjectId = {};
     }
 
     _studyHours = prefs.getString(_key('studyHours')) ?? '0';
@@ -217,6 +268,7 @@ class PlanningProvider with ChangeNotifier {
     await prefs.setInt(_key('completedCycles'), _completedCycles);
     await prefs.setInt(_key('currentProgressMinutes'), _currentProgressMinutes);
     await prefs.setString(_key('sessionProgressMap'), jsonEncode(_sessionProgressMap));
+    await prefs.setString(_key('extraStudyTimeBySubjectId'), jsonEncode(_extraStudyTimeBySubjectId)); // SALVAR NOVO ESTADO
     await prefs.setString(_key('studyHours'), _studyHours);
     await prefs.setString(_key('weeklyQuestionsGoal'), _weeklyQuestionsGoal);
     await prefs.setString(_key('subjectSettings'), jsonEncode(_subjectSettings));

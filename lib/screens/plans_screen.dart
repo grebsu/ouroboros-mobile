@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -9,7 +10,13 @@ import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/screens/plan_detail_screen.dart';
 import 'package:ouroboros_mobile/widgets/create_plan_modal.dart';
 import 'package:ouroboros_mobile/widgets/import_guide_modal.dart';
+import 'package:ouroboros_mobile/widgets/study_guide_loading_screen.dart';
+import 'package:ouroboros_mobile/models/loading_state.dart';
+import 'package:ouroboros_mobile/widgets/confirmation_modal.dart';
 import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:image/image.dart' as img;
 
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key});
@@ -21,6 +28,29 @@ class PlansScreen extends StatefulWidget {
 class _PlansScreenState extends State<PlansScreen> {
   InAppWebViewController? _webViewController;
   final Completer<InAppWebViewController> _controllerCompleter = Completer<InAppWebViewController>();
+  final ValueNotifier<LoadingState> _loadingStateNotifier = ValueNotifier<LoadingState>(
+    LoadingState(currentStatus: 'Iniciando...', progress: 0.0),
+  );
+  final ScrollController _scrollController = ScrollController();
+  WebUri? _currentNavigationUrl;
+  Completer<void>? _pageNavigationCompleter;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerCompleter.future.then((controller) {
+      _webViewController = controller;
+      // Configura o onLoadStop para completar o Completer de navegação
+
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    // _webViewController?.dispose(); // Não chamar dispose aqui, pois o controller é gerenciado pela InAppWebView
+    super.dispose();
+  }
 
   final List<String> _subjectColors = [
     '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#14b8a6',
@@ -52,15 +82,49 @@ class _PlansScreenState extends State<PlansScreen> {
     return rawName.trim();
   }
 
-  Future<Plan> _scrapeGuide(String url) async {
-    final controller = await _controllerCompleter.future.timeout(const Duration(seconds: 30), onTimeout: () {
-      throw Exception('WebView controller not ready within 30 seconds.');
+  // Helper para navegar e aguardar o carregamento completo da página da matéria
+  Future<void> _navigateToSubjectPage(InAppWebViewController controller, WebUri url) async {
+    _pageNavigationCompleter = Completer<void>();
+    _currentNavigationUrl = url;
+    await controller.loadUrl(urlRequest: URLRequest(url: url));
+    await _pageNavigationCompleter!.future.timeout(const Duration(seconds: 60), onTimeout: () {
+      throw Exception('Timeout esperando o carregamento da página da matéria: $url');
+    });
+  }
+
+  Future<Plan> _scrapeGuide(String url, ValueNotifier<LoadingState> loadingNotifier) async {
+    loadingNotifier.value = loadingNotifier.value.copyWith(currentStatus: 'Aguardando WebView...', progress: 0.05);
+    final controller = await _controllerCompleter.future.timeout(const Duration(seconds: 60), onTimeout: () {
+      throw Exception('WebView controller not ready within 60 seconds.');
     });
     print('PlansScreen: WebView controller obtido.');
     print('PlansScreen: Iniciando scraping para URL: $url');
 
+    loadingNotifier.value = loadingNotifier.value.copyWith(currentStatus: 'Extraindo cabeçalho e links de matérias...', progress: 0.1);
     final Map<String, dynamic> headerData = await _extractHeaderAndSubjectLinks(controller, url);
     print('PlansScreen: Header Data extraído: $headerData');
+
+    // Download and save the image
+    String? localIconPath;
+    if (headerData['iconUrl'] != null && headerData['iconUrl'].isNotEmpty) {
+      try {
+        final response = await http.get(Uri.parse(headerData['iconUrl']));
+        final image = img.decodeImage(response.bodyBytes);
+
+        if (image != null) {
+          final resizedImage = img.copyResize(image, width: 512, height: 512);
+          final Directory appDocDir = await getApplicationDocumentsDirectory();
+          final String appDocPath = appDocDir.path;
+          final String fileName = const Uuid().v4() + '.png';
+          final String newPath = '$appDocPath/$fileName';
+          final newImageFile = File(newPath);
+          await newImageFile.writeAsBytes(img.encodePng(resizedImage));
+          localIconPath = newImageFile.path;
+        }
+      } catch (e) {
+        print('Error downloading or processing image: $e');
+      }
+    }
 
     final List<dynamic> subjectLinksDynamic = headerData['subjectLinks'];
     print('PlansScreen: Tipo de subjectLinksDynamic: ${subjectLinksDynamic.runtimeType}');
@@ -69,31 +133,86 @@ class _PlansScreenState extends State<PlansScreen> {
     final List<Map<String, String>> subjectLinks = subjectLinksDynamic.map((item) => Map<String, String>.from(item)).toList();
     final List<Subject> finalSubjects = [];
 
+    final int totalSubjectsToScrape = subjectLinks.length;
+    int processedTopicsCount = 0; // To keep track of topics processed so far
+    // overallTotalTopics is no longer needed as we only show current subtopics.
+
+    loadingNotifier.value = loadingNotifier.value.copyWith(
+      currentStatus: 'Iniciando extração de matérias...',
+      totalSubjects: totalSubjectsToScrape,
+      progress: 0.2,
+    );
     print('PlansScreen: Iniciando extração de matérias. Total: ${subjectLinks.length}');
     for (var i = 0; i < subjectLinks.length; i++) {
       final subjectLink = subjectLinks[i];
+      loadingNotifier.value = loadingNotifier.value.copyWith(
+        currentStatus: 'Processando matéria: ${subjectLink['name']}',
+        currentSubjects: i + 1,
+        currentTopics: processedTopicsCount, // Update currentTopics here
+        progress: 0.2 + (0.7 * (i / totalSubjectsToScrape)), // Progress from 0.2 to 0.9
+      );
       print('PlansScreen: Processando matéria ${i + 1}/${subjectLinks.length}: ${subjectLink['name']} - ${subjectLink['url']}');
-      await controller.loadUrl(urlRequest: URLRequest(url: WebUri(subjectLink['url']!)));
-      final List<Topic> topics = await _extractTopics(controller);
-      print('PlansScreen: Matéria ${subjectLink['name']} - Tópicos extraídos: ${topics.length}');
-      // Adicionando log detalhado dos tópicos
-      try {
-        final topicsJson = jsonEncode(topics.map((t) => t.toMap()).toList());
-        print('PlansScreen: Tópicos para ${subjectLink['name']}: $topicsJson');
-      } catch (e) {
-        print('PlansScreen: Erro ao encodar tópicos para JSON: $e');
+      List<Topic> bestTopics = [];
+      int maxTopicsFound = 0;
+      const int maxRetries = 3;
+
+      for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        print('PlansScreen: Tentativa $attempt para extrair tópicos de ${subjectLink['name']}');
+        await _navigateToSubjectPage(controller, WebUri(subjectLink['url']!));
+        final currentTopics = await _extractTopics(controller);
+        final currentTopicCount = _calculateTotalTopicsRecursively(currentTopics);
+
+        print('PlansScreen: Tentativa $attempt - Tópicos encontrados: $currentTopicCount para ${subjectLink['name']}');
+
+        if (currentTopicCount > maxTopicsFound) {
+          maxTopicsFound = currentTopicCount;
+          bestTopics = currentTopics;
+          print('PlansScreen: Nova melhor contagem de tópicos para ${subjectLink['name']}: $maxTopicsFound');
+        }
+
+        if (attempt < maxRetries) {
+          await Future.delayed(const Duration(seconds: 2)); // Pequeno atraso antes de reententar
+        }
       }
       
+      if (bestTopics.isEmpty) {
+        print('PlansScreen: Falha ao extrair quaisquer tópicos para ${subjectLink['name']} após $maxRetries tentativas.');
+        // Considerar adicionar um tratamento de erro mais robusto aqui, como um log ou notificação ao usuário.
+      }
+
+      print('PlansScreen: Matéria ${subjectLink['name']} - Tópicos finais selecionados: ${bestTopics.length} (total calculado: $maxTopicsFound)');
+      // Adicionando log detalhado dos tópicos finais
+      try {
+        final topicsJson = jsonEncode(bestTopics.map((t) => t.toMap()).toList());
+        print('PlansScreen: Tópicos FINAIS para ${subjectLink['name']}: $topicsJson');
+      } catch (e) {
+        print('PlansScreen: Erro ao encodar tópicos finais para JSON: $e');
+      }
+      
+      final int currentSubjectTopicsCount = maxTopicsFound;
+      processedTopicsCount += currentSubjectTopicsCount;
+
       finalSubjects.add(Subject(
         id: const Uuid().v4(),
         plan_id: '', // Será preenchido depois
         subject: _cleanSubjectName(subjectLink['name']!),
         color: _subjectColors[i % _subjectColors.length],
-        topics: topics,
-        total_topics_count: topics.length, // Simplificado
+        topics: bestTopics,
+        total_topics_count: currentSubjectTopicsCount, // Use the actual count
         import_source: 'GUIDE',
       ));
     }
+
+    // After the loop, overallTotalTopics is no longer needed as we only show current subtopics.
+    // The total number of subtopics is not displayed.
+
+    loadingNotifier.value = loadingNotifier.value.copyWith(
+      currentStatus: 'Matérias e subtópicos extraídos. Finalizando...', // Updated status message
+      currentSubjects: totalSubjectsToScrape,
+      // totalTopics is intentionally not set here as per user request
+      currentTopics: processedTopicsCount, // Set current topics here
+      progress: 0.9,
+    );
 
     final planId = const Uuid().v4();
     final subjectsWithPlanId = finalSubjects.map((s) => Subject(
@@ -106,7 +225,7 @@ class _PlansScreenState extends State<PlansScreen> {
       cargo: headerData['cargo'],
       edital: headerData['edital'],
       banca: headerData['banca'],
-      iconUrl: headerData['iconUrl'],
+      iconUrl: localIconPath,
       subjects: subjectsWithPlanId,
     );
 
@@ -193,51 +312,68 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   Future<List<Topic>> _extractTopics(InAppWebViewController controller) async {
-    await _waitForSelector(controller, 'div.caderno-guia-arvore-indice ul', textConditionJs: 'document.querySelector("div.caderno-guia-arvore-indice ul li") != null');
+    await _waitForSelector(controller, 'div.caderno-guia-arvore-indice ul');
     String getTopicsJs = """ 
       (function() {
         const processLis = (ulElement) => {
             const topics = [];
-            if (!ulElement) return topics;
-            let lastTopic = null;
-
             Array.from(ulElement.children).forEach(child => {
-                if (child.tagName === 'LI') {
-                    const span = child.querySelector(':scope > span');
-                    const topicText = span?.textContent?.trim();
-                    if (!topicText) return;
+                if (child.tagName !== 'LI') return;
+                const span = child.querySelector(':scope > span');
+                const topicText = span?.textContent?.trim();
+                if (!topicText) return;
 
-                  const questionCountEl = child.querySelector('span.capitulo-questoes > span');
-                  let questionCount = 0;
-                  if (questionCountEl) {
-                      const text = questionCountEl.innerText?.trim().toLowerCase();
-                      if (text) {
-                          if (text === 'uma questão') {
-                              questionCount = 1;
-                          } else {
-                              const numberString = text.replace(/\D/g, '');
-                              if (numberString) {
-                                  questionCount = parseInt(numberString, 10);
-                              }
-                          }
-                      }
-                  }
-                    const newTopic = { 
-                        topic_text: topicText, 
-                        sub_topics: [], 
-                        question_count: questionCount, 
-                        is_grouping_topic: false
-                    };
-                    topics.push(newTopic);
-                    lastTopic = newTopic;
-                } else if (child.tagName === 'UL' && lastTopic) {
-                    lastTopic.sub_topics = processLis(child);
-                    lastTopic.is_grouping_topic = lastTopic.sub_topics.length > 0;
+                const questionCountEl = child.querySelector('span.capitulo-questoes > span');
+                let questionCount = 0;
+                if (questionCountEl) {
+                    const text = questionCountEl.textContent?.trim().toLowerCase();
+                    if (text === 'uma questão') {
+                        questionCount = 1;
+                    } else if (text) {
+                        const match = text.match(/(\d+)/);
+                        if (match) {
+                            questionCount = parseInt(match[1], 10);
+                        }
+                    }
                 }
+
+                const subUl = child.nextElementSibling;
+                if (subUl && subUl.tagName === 'UL') {
+                    const firstSubLi = subUl.querySelector(':scope > li');
+                    if (firstSubLi) {
+                        const firstSubQuestionCountEl = firstSubLi.querySelector('span.capitulo-questoes > span');
+                        let firstSubQuestionCount = 0;
+                        if (firstSubQuestionCountEl) {
+                            const text = firstSubQuestionCountEl.textContent?.trim().toLowerCase();
+                            if (text === 'uma questão') {
+                                firstSubQuestionCount = 1;
+                            } else if (text) {
+                                const match = text.match(/(\d+)/);
+                                if (match) {
+                                    firstSubQuestionCount = parseInt(match[1], 10);
+                                }
+                            }
+                        }
+                        if (questionCount > 0 && questionCount === firstSubQuestionCount) {
+                            const promotedTopics = processLis(subUl);
+                            topics.push(...promotedTopics);
+                            return;
+                        }
+                    }
+                }
+                
+                const sub_topics = (subUl && subUl.tagName === 'UL') ? processLis(subUl) : [];
+                topics.push({
+                    topic_text: topicText,
+                    sub_topics,
+                    question_count: questionCount,
+                    is_grouping_topic: sub_topics.length > 0
+                });
             });
             return topics;
         };
         const mainTreeContainer = document.querySelector('div.caderno-guia-arvore-indice ul');
+        if (!mainTreeContainer) return [];
         return processLis(mainTreeContainer);
       })();
     """;
@@ -245,14 +381,40 @@ class _PlansScreenState extends State<PlansScreen> {
     return topicsResult.map((topicMap) => Topic.fromMap(topicMap)).toList();
   }
 
-  Future<void> _waitForSelector(InAppWebViewController controller, String selector, {int timeout = 30000, String? textConditionJs}) async {
+  Future<void> _waitForSelector(InAppWebViewController controller, String selector, {int timeout = 60000, String? textConditionJs, int stabilizationDuration = 3000}) async {
     final completer = Completer<void>();
     final stopwatch = Stopwatch()..start();
+    int? lastLiCount;
+    int? lastChangeTime;
 
     Timer.periodic(const Duration(milliseconds: 100), (timer) async {
+      if (stopwatch.elapsedMilliseconds > timeout) {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          completer.completeError(Exception('Timeout esperando pelo seletor: $selector' + (textConditionJs != null ? ' com condição de texto: $textConditionJs' : '')));
+        }
+        return;
+      }
+
       final selectorExists = await controller.evaluateJavascript(source: 'document.querySelector("$selector") != null');
       bool conditionMet = selectorExists == true;
 
+      if (conditionMet && selector == 'div.caderno-guia-arvore-indice ul') {
+        // Conta todos os LI descendentes, não apenas os diretos
+        final currentLiCount = await controller.evaluateJavascript(source: 'document.querySelectorAll("$selector li").length');
+        
+        if (lastLiCount == null || currentLiCount != lastLiCount) {
+          lastLiCount = currentLiCount;
+          lastChangeTime = stopwatch.elapsedMilliseconds;
+        } else if (stopwatch.elapsedMilliseconds - lastChangeTime! > stabilizationDuration) {
+          // Li count has stabilized
+          conditionMet = true;
+        } else {
+          conditionMet = false; // Still waiting for stabilization
+        }
+      }
+      
+      // Apply additional text condition if provided and primary condition is met
       if (conditionMet && textConditionJs != null) {
         final textConditionResult = await controller.evaluateJavascript(source: textConditionJs);
         conditionMet = textConditionResult == true;
@@ -263,11 +425,6 @@ class _PlansScreenState extends State<PlansScreen> {
         if (!completer.isCompleted) {
           completer.complete();
         }
-      } else if (stopwatch.elapsedMilliseconds > timeout) {
-        timer.cancel();
-        if (!completer.isCompleted) {
-          completer.completeError(Exception('Timeout esperando pelo seletor: $selector' + (textConditionJs != null ? ' com condição de texto: $textConditionJs' : '')));
-        }
       }
     });
 
@@ -276,11 +433,29 @@ class _PlansScreenState extends State<PlansScreen> {
 
   Future<void> _handleImportGuide(String guideUrl) async {
     print('PlansScreen: _handleImportGuide chamado com URL: $guideUrl');
+    // Reset loading state
+    _loadingStateNotifier.value = LoadingState(currentStatus: 'Iniciando importação...', progress: 0.0);
+
+    // Show loading screen
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StudyGuideLoadingScreen(loadingStateNotifier: _loadingStateNotifier);
+      },
+    );
+
     try {
-      final Plan planData = await _scrapeGuide(guideUrl);
+      final Plan planData = await _scrapeGuide(guideUrl, _loadingStateNotifier); // Pass notifier
 
       final plansProvider = Provider.of<PlansProvider>(context, listen: false);
       final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
+
+      // Update status for saving data
+      _loadingStateNotifier.value = _loadingStateNotifier.value.copyWith(
+        currentStatus: 'Salvando dados do plano...',
+        progress: 0.9, // Near completion
+      );
 
       Plan? existingPlan = await plansProvider.getPlanByName(planData.name);
       String planId;
@@ -339,15 +514,29 @@ class _PlansScreenState extends State<PlansScreen> {
       await Provider.of<AllSubjectsProvider>(context, listen: false).fetchData();
       await Provider.of<PlansProvider>(context, listen: false).fetchPlans();
 
+      _loadingStateNotifier.value = _loadingStateNotifier.value.copyWith(
+        currentStatus: 'Importação concluída!',
+        progress: 1.0,
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Plano "${planData.name}" importado com sucesso!')),
       );
 
     } catch (e) {
       print('PlansScreen: Erro durante a importação do guia: $e');
+      _loadingStateNotifier.value = _loadingStateNotifier.value.copyWith(
+        currentStatus: 'Erro: ${e.toString()}',
+        progress: 0.0,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao importar o guia: $e')), 
       );
+    } finally {
+      // Dismiss loading screen
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -361,7 +550,7 @@ class _PlansScreenState extends State<PlansScreen> {
             builder: (context, provider, child) {
               print('PlansScreen Consumer: isLoading=${provider.isLoading}, plans.isEmpty=${provider.plans.isEmpty}');
               if (provider.isLoading && provider.plans.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: CircularProgressIndicator(color: Colors.teal));
               }
               if (provider.plans.isEmpty) {
                 return _buildEmptyState(context);
@@ -376,10 +565,23 @@ class _PlansScreenState extends State<PlansScreen> {
           child: Offstage(
             offstage: true,
             child: InAppWebView(
+              initialSettings: InAppWebViewSettings(
+                javaScriptCanOpenWindowsAutomatically: true,
+                javaScriptEnabled: true,
+                domStorageEnabled: true,
+                userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
+                builtInZoomControls: false,
+                supportZoom: false,
+                useWideViewPort: true,
+                initialScale: 100,
+              ),
               onWebViewCreated: (controller) {
-                print('PlansScreen: InAppWebView onWebViewCreated chamado.');
-                if (!_controllerCompleter.isCompleted) {
-                  _controllerCompleter.complete(controller);
+                _webViewController = controller;
+                _controllerCompleter.complete(controller);
+              },
+              onLoadStop: (controller, url) async {
+                if (_pageNavigationCompleter != null && !_pageNavigationCompleter!.isCompleted && url == _currentNavigationUrl) {
+                  _pageNavigationCompleter!.complete();
                 }
               },
             ),
@@ -396,11 +598,11 @@ class _PlansScreenState extends State<PlansScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.inbox_outlined, size: 80, color: Colors.grey),
+            const Icon(Icons.inbox_outlined, size: 80, color: Colors.teal),
             const SizedBox(height: 16),
             const Text(
               'Nenhum plano de estudo encontrado.',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              style: TextStyle(fontSize: 18, color: Colors.teal),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -417,10 +619,12 @@ class _PlansScreenState extends State<PlansScreen> {
               label: const Text('Crie seu primeiro plano'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
               ),
             ),
             const SizedBox(height: 24),
-            const Text('OU', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            const Text('OU', style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             Card(
               elevation: 2.0,
@@ -450,6 +654,10 @@ class _PlansScreenState extends State<PlansScreen> {
                         },
                         icon: const Icon(Icons.cloud_download),
                         label: const Text('Importar Guia'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -463,70 +671,82 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   Widget _buildPlansList(BuildContext context, List<Plan> plans) {
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
-      children: <Widget>[
-        Card(
-          elevation: 4.0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Importar Guia do Tec Concursos',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8.0),
-                const Text('Importe um plano de estudos diretamente de um guia do Tec Concursos.'),
-                const SizedBox(height: 16.0),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return ImportGuideModal(onImport: _handleImportGuide);
-                        },
-                      );
-                    },
-                    icon: const Icon(Icons.cloud_download),
-                    label: const Text('Importar Guia'),
+    final orientation = MediaQuery.of(context).orientation;
+    final crossAxisCount = orientation == Orientation.portrait ? 2 : 4;
+
+    return Scrollbar(
+      controller: _scrollController,
+      thumbVisibility: true,
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16.0),
+        children: <Widget>[
+          Card(
+            elevation: 4.0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'Importar Guia do Tec Concursos',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8.0),
+                  const Text('Importe um plano de estudos diretamente de um guia do Tec Concursos.'),
+                  const SizedBox(height: 16.0),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return ImportGuideModal(onImport: _handleImportGuide);
+                          },
+                        );
+                      },
+                      icon: const Icon(Icons.cloud_download),
+                      label: const Text('Importar Guia'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 24.0),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16.0,
-            mainAxisSpacing: 16.0,
-            childAspectRatio: 0.75,
+          const SizedBox(height: 24.0),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 16.0,
+              mainAxisSpacing: 16.0,
+              childAspectRatio: 0.7,
+            ),
+            itemCount: plans.length,
+            itemBuilder: (context, index) {
+              final plan = plans[index];
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PlanDetailScreen(plan: plan),
+                    ),
+                  );
+                },
+                child: _buildPlanCard(context, plan),
+              );
+            },
           ),
-          itemCount: plans.length,
-          itemBuilder: (context, index) {
-            final plan = plans[index];
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PlanDetailScreen(plan: plan),
-                  ),
-                );
-              },
-              child: _buildPlanCard(context, plan),
-            );
-          },
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -534,48 +754,97 @@ class _PlansScreenState extends State<PlansScreen> {
     final stats = Provider.of<PlansProvider>(context, listen: false).planStats[plan.id] ?? (subjectCount: 0, topicCount: 0);
 
     return Card(
-      elevation: 4.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            if (plan.iconUrl != null && plan.iconUrl!.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  plan.iconUrl!,
-                  height: 96,
-                  width: 96,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.assignment, size: 96, color: Colors.grey),
+      elevation: 6.0, // Aumenta a elevação para um efeito mais pronunciado
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)), // Bordas mais arredondadas
+      clipBehavior: Clip.antiAlias, // Garante que o conteúdo seja cortado pelas bordas arredondadas
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PlanDetailScreen(plan: plan),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(16.0),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0), // Padding consistente
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch, // Estica os elementos horizontalmente
+            mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribui o espaço verticalmente
+            children: <Widget>[
+              // Ícone ou imagem do plano
+              Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.1), // Fundo suave com a cor primária
+                    shape: BoxShape.circle,
+                  ),
+                  child: ClipOval(
+                    child: plan.iconUrl != null && plan.iconUrl!.isNotEmpty
+                        ? Image.file(
+                            File(plan.iconUrl!),
+                            height: 64,
+                            width: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Icon(Icons.assignment, size: 48, color: Theme.of(context).primaryColor), // Ícone padrão com cor primária
+                          )
+                        : Icon(Icons.assignment, size: 48, color: Theme.of(context).primaryColor), // Ícone padrão com cor primária
+                  ),
                 ),
-              )
-            else
-              const Icon(Icons.assignment, size: 96, color: Colors.grey),
-            Text(
-              plan.name,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            Column(
-              children: [
-                Text('Disciplinas: ${stats.subjectCount}', style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
-                Text('Tópicos: ${stats.topicCount}', style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
-              ],
-            ),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () {
-                  _showDeleteConfirmationDialog(context, plan);
-                },
               ),
-            ),
-          ],
+              const SizedBox(height: 16), // Espaçamento maior após o ícone
+
+              // Nome do plano e estatísticas
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    plan.name,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700, // Mais destaque para o nome do plano
+                          color: Theme.of(context).colorScheme.onSurface, // Cor mais escura para o texto principal
+                        ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (plan.banca != null && plan.banca!.isNotEmpty) // Exibe a banca se disponível
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0), // Espaçamento superior para a banca
+                      child: Text(
+                        plan.banca!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.primary), // Estilo para a banca
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  const SizedBox(height: 8), // Espaçamento entre nome/banca e estatísticas
+                  Text(
+                    'Disciplinas: ${stats.subjectCount}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]), // Estilo discreto
+                  ),
+                  Text(
+                    'Tópicos: ${stats.topicCount}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]), // Estilo discreto
+                  ),
+                ],
+              ),
+              // Botão de exclusão
+              Align(
+                alignment: Alignment.bottomRight,
+                child: IconButton(
+                  icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error), // Ícone de exclusão com cor de erro
+                  onPressed: () {
+                    _showDeleteConfirmationDialog(context, plan);
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -585,26 +854,29 @@ class _PlansScreenState extends State<PlansScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirmar Exclusão'),
-          content: Text('Você tem certeza que deseja excluir o plano "${plan.name}"? Esta ação não pode ser desfeita.'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-              onPressed: () {
-                Provider.of<PlansProvider>(context, listen: false).deletePlan(plan.id);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
+        return ConfirmationModal(
+          title: 'Excluir Plano',
+          message: 'Você tem certeza que deseja excluir o plano "${plan.name}"? Esta ação não pode ser desfeita.',
+          confirmText: 'Excluir',
+          onConfirm: () {
+            Provider.of<PlansProvider>(context, listen: false).deletePlan(plan.id);
+            Navigator.of(context).pop();
+          },
+          onClose: () => Navigator.of(context).pop(),
         );
       },
     );
   }
+
+
+  // Função auxiliar para calcular o número total de tópicos (replicando a lógica do desktop)
+  int _calculateTotalTopicsRecursively(List<Topic> topics) {
+    if (topics.isEmpty) {
+      return 0;
+    }
+    return topics.fold<int>(0, (previousValue, topic) {
+      return previousValue + 1 + _calculateTotalTopicsRecursively(topic.sub_topics ?? []);
+    });
+  }
+
 }

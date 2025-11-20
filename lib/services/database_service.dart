@@ -226,11 +226,20 @@ class DatabaseService {
 
   Future<int> deletePlan(String id, String userId) async {
     final db = await instance.database;
-    return db.delete(
-      'plans',
-      where: 'id = ? AND userId = ?',
-      whereArgs: [id, userId],
-    );
+    return await db.transaction((txn) async {
+      // Primeiro, deletar todas as matérias associadas a este plano
+      await txn.delete(
+        'subjects',
+        where: 'plan_id = ? AND userId = ?',
+        whereArgs: [id, userId],
+      );
+      // Em seguida, deletar o plano
+      return txn.delete(
+        'plans',
+        where: 'id = ? AND userId = ?',
+        whereArgs: [id, userId],
+      );
+    });
   }
 
   // Subject and Topic CRUD methods

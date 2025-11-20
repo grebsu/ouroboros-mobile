@@ -43,14 +43,18 @@ dependencies:
   sqflite_common_ffi: ^2.3.6
   http: ^1.5.0
   flutter_inappwebview: ^6.1.5
-  shared_preferences: ^2.2.3
+  shared_preferences: ^2.5.3
   collection: ^1.18.0
   fl_chart: ^1.1.1
-  file_picker: ^8.0.0
+  file_picker: ^10.3.6
+  flutter_svg: ^2.2.2
+  permission_handler: ^11.3.1
+  image: ^4.5.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -58,6 +62,13 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "logo/logo.png"
+  remove_alpha_ios: true
+  adaptive_icon_background: "#009688"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -15,17 +15,31 @@ class _ImportSubjectModalState extends State<ImportSubjectModal> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Importar Matéria do TEC Concursos'),
+      title: Text('Importar Matéria do TEC Concursos', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal)),
       content: TextField(
         controller: _controller,
-        decoration: const InputDecoration(
+        style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+        decoration: InputDecoration(
           labelText: 'URL da Matéria',
-          hintText: 'https://www.tecconcursos.com.br/...',
+          labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+          hintText: 'https://www.tecconcursos.com.br/materias/...',
+          hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+          ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal,
+          ),
           child: const Text('Cancelar'),
         ),
         ElevatedButton(
@@ -35,6 +49,10 @@ class _ImportSubjectModalState extends State<ImportSubjectModal> {
               Navigator.of(context).pop();
             }
           },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            foregroundColor: Colors.white,
+          ),
           child: const Text('Importar'),
         ),
       ],

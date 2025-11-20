@@ -170,6 +170,11 @@ class ScrapingService {
 
     final topicsResult = await controller.evaluateJavascript(source: getTopicsJs) as List<dynamic>;
 
+    print('ScrapingService: Raw topicsResult for subject ${_subjectLinks[_subjectIndex - 1]['name']}: $topicsResult');
+    if (topicsResult.isEmpty) {
+      print('ScrapingService: WARNING - topicsResult is empty for subject ${_subjectLinks[_subjectIndex - 1]['name']}');
+    }
+
     final subjectLink = _subjectLinks[_subjectIndex - 1];
     final List<Topic> topics = topicsResult.map((topicMap) => Topic.fromMap(topicMap)).toList();
 

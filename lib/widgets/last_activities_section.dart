@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:ouroboros_mobile/providers/history_provider.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
+import 'package:ouroboros_mobile/screens/history_screen.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 
 class LastActivitiesSection extends StatelessWidget {
@@ -33,7 +34,7 @@ class LastActivitiesSection extends StatelessWidget {
             Consumer<HistoryProvider>(
               builder: (context, historyProvider, child) {
                 if (historyProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(color: Colors.teal));
                 }
 
                 final latestActivities = (historyProvider.allStudyRecords..sort((a, b) => DateTime.parse(b.date).compareTo(DateTime.parse(a.date)))).take(2).toList();
@@ -64,7 +65,7 @@ class LastActivitiesSection extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 16.0),
                         child: TextButton(
                           onPressed: () {
-                            // TODO: Navigate to History Screen
+                            Navigator.of(context).push(MaterialPageRoute(builder: (context) => const HistoryScreen()));
                           },
                           child: Text(
                             'Ver Mais (${historyProvider.allStudyRecords.length - 2} sessões restantes)',
@@ -103,7 +104,7 @@ class ActivityCard extends StatelessWidget {
       elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: Colors.amber.shade300, width: 1),
+        side: BorderSide(color: Colors.teal, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -112,7 +113,7 @@ class ActivityCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(MaterialCommunityIcons.book_open_page_variant_outline, color: Colors.amber.shade700),
+                Icon(MaterialCommunityIcons.book_open_page_variant_outline, color: Colors.tealAccent),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

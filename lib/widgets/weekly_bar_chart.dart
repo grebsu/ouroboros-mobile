@@ -33,7 +33,7 @@ class WeeklyBarChart extends StatelessWidget {
             barRods: [
               BarChartRodData(
                 toY: weeklyData[i].inMinutes / 60.0,
-                color: Theme.of(context).primaryColor,
+                color: Colors.teal, // Use Teal for time
                 width: 16,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
               ),
@@ -53,7 +53,7 @@ class WeeklyBarChart extends StatelessWidget {
             barRods: [
               BarChartRodData(
                 toY: weeklyQuestionsData[i].toDouble(),
-                color: Theme.of(context).primaryColor,
+                color: Colors.purple, // Use Purple for questions
                 width: 16,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
               ),

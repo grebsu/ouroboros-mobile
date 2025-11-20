@@ -23,6 +23,7 @@ class DonutChart extends StatelessWidget {
       height: size,
       child: CustomPaint(
         painter: _DonutChartPainter(
+          context: context, // Pass the context here
           cycle: cycle,
           studyHours: studyHours,
           sessionProgressMap: sessionProgressMap,
@@ -36,8 +37,10 @@ class _DonutChartPainter extends CustomPainter {
   final List<StudySession> cycle;
   final String studyHours;
   final Map<String, int> sessionProgressMap;
+  final BuildContext context; // Add BuildContext here
 
   _DonutChartPainter({
+    required this.context, // Require context in the constructor
     required this.cycle,
     required this.studyHours,
     required this.sessionProgressMap,
@@ -87,9 +90,9 @@ class _DonutChartPainter extends CustomPainter {
         sessionPaint,
       );
 
-      // Progress ring (yellow if completed, transparent otherwise)
+      // Progress ring (teal if completed, transparent otherwise)
       final progressPaint = Paint()
-        ..color = isCompleted ? const Color(0xFFEAB308) : Colors.transparent
+        ..color = isCompleted ? Colors.teal : Colors.transparent
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth;
       
@@ -108,8 +111,8 @@ class _DonutChartPainter extends CustomPainter {
     final textPainter = TextPainter(
       text: TextSpan(
         text: studyHours,
-        style: const TextStyle(
-          color: Colors.black,
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),

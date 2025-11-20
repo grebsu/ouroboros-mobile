@@ -190,6 +190,14 @@ class Topic {
       import_source: import_source ?? this.import_source,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Subject && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 class StudySession {
@@ -413,6 +421,28 @@ class Plan {
       'banca': banca,
       'iconUrl': iconUrl,
     };
+  }
+
+  Plan copyWith({
+    String? id,
+    String? name,
+    String? observations,
+    String? cargo,
+    String? edital,
+    String? banca,
+    String? iconUrl,
+    List<Subject>? subjects,
+  }) {
+    return Plan(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      observations: observations ?? this.observations,
+      cargo: cargo ?? this.cargo,
+      edital: edital ?? this.edital,
+      banca: banca ?? this.banca,
+      iconUrl: iconUrl ?? this.iconUrl,
+      subjects: subjects ?? this.subjects,
+    );
   }
 }
 

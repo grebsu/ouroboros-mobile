@@ -68,7 +68,7 @@ class EditalScreen extends StatelessWidget {
       builder: (context, activePlanProvider, subjectsProvider, historyProvider, child) {
         print('EditalScreen Consumer: subjectsProvider.isLoading=${subjectsProvider.isLoading}, historyProvider.isLoading=${historyProvider.isLoading}');
         if (subjectsProvider.isLoading || historyProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: Colors.teal));
         }
 
         // Filter subjects and records based on the active plan
@@ -364,6 +364,7 @@ class _SubjectCard extends StatelessWidget {
                       onChanged: (val) {
                         onToggleCompletion(topic.originalTopic.subject_id!, topic.originalTopic.topic_text, subject.originalSubject.plan_id);
                       },
+                      activeColor: Colors.teal, // Adicionado para mudar a cor para teal
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap, // Make checkbox more compact
                     )
                   : const SizedBox.shrink(),
@@ -372,7 +373,7 @@ class _SubjectCard extends StatelessWidget {
               Row(
                 children: [
                   SizedBox(width: 20.0 * topic.level),
-                  if (topic.isGroupingTopic) const Icon(Icons.folder, color: Colors.grey, size: 18),
+                  if (topic.isGroupingTopic) const Icon(Icons.folder, color: Colors.teal, size: 18),
                   if (topic.isGroupingTopic) const SizedBox(width: 4),
                   Expanded(child: Text(topic.originalTopic.topic_text, style: TextStyle(fontWeight: topic.isGroupingTopic ? FontWeight.bold : FontWeight.normal))),
                 ],

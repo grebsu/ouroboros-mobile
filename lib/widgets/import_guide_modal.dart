@@ -51,7 +51,16 @@ class _ImportGuideModalState extends State<ImportGuideModal> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
-                decoration: const InputDecoration(labelText: 'URL do Guia'),
+                decoration: InputDecoration(
+                  labelText: 'URL do Guia',
+                  labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                  ),
+                ),
                 keyboardType: TextInputType.url,
                 onSaved: (value) => _guideUrl = value ?? '',
                 validator: (value) {
@@ -71,15 +80,22 @@ class _ImportGuideModalState extends State<ImportGuideModal> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal,
+          ),
           child: const Text('Cancelar'),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _handleImport,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            foregroundColor: Colors.white,
+          ),
           child: _isLoading
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal),
                 )
               : const Text('Importar'),
         ),

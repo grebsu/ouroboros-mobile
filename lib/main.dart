@@ -10,6 +10,8 @@ import 'package:ouroboros_mobile/widgets/study_register_modal.dart';
 import 'package:ouroboros_mobile/widgets/filter_modal.dart';
 import 'package:ouroboros_mobile/widgets/plan_selector.dart';
 import 'package:ouroboros_mobile/widgets/floating_stopwatch_button.dart';
+import 'package:ouroboros_mobile/widgets/pulsing_glowing_icon.dart';
+import 'package:ouroboros_mobile/widgets/confirmation_modal.dart';
 
 // Telas da BottomNavigationBar
 import 'package:ouroboros_mobile/screens/plans_screen.dart';
@@ -36,13 +38,15 @@ import 'package:ouroboros_mobile/providers/review_provider.dart';
 import 'package:ouroboros_mobile/providers/filter_provider.dart';
 import 'package:ouroboros_mobile/providers/reminders_provider.dart';
 import 'package:ouroboros_mobile/providers/simulados_provider.dart';
+import 'package:ouroboros_mobile/providers/navigation_provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:uuid/uuid.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
+import 'package:ouroboros_mobile/providers/stopwatch_provider.dart';
 import 'package:ouroboros_mobile/screens/login_screen.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
-
+import 'package:ouroboros_mobile/screens/splash_screen.dart'; // Import the new splash screen
 
 void main() async { // Make main async
   WidgetsFlutterBinding.ensureInitialized(); // Ensure bindings are initialized
@@ -61,14 +65,22 @@ void main() async { // Make main async
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()), // Adicionado
+        ChangeNotifierProvider(create: (context) => AuthProvider()),
+        ChangeNotifierProvider(create: (context) => NavigationProvider()),
+        ChangeNotifierProvider(create: (context) => StopwatchProvider()),
         ChangeNotifierProxyProvider<AuthProvider, PlansProvider>(
           create: (context) => PlansProvider(authProvider: Provider.of<AuthProvider>(context, listen: false)),
           update: (context, auth, previous) => PlansProvider(authProvider: auth),
         ),
-        ChangeNotifierProxyProvider<AuthProvider, AllSubjectsProvider>(
-          create: (context) => AllSubjectsProvider(authProvider: Provider.of<AuthProvider>(context, listen: false)),
-          update: (context, auth, previous) => AllSubjectsProvider(authProvider: auth),
+        ChangeNotifierProxyProvider2<AuthProvider, PlansProvider, AllSubjectsProvider>(
+          create: (context) => AllSubjectsProvider(
+            authProvider: Provider.of<AuthProvider>(context, listen: false),
+            plansProvider: Provider.of<PlansProvider>(context, listen: false),
+          ),
+          update: (context, auth, plans, previous) => AllSubjectsProvider(
+            authProvider: auth,
+            plansProvider: plans,
+          ),
         ),
         ChangeNotifierProxyProvider<AuthProvider, ActivePlanProvider>(
           create: (context) => ActivePlanProvider(authProvider: Provider.of<AuthProvider>(context, listen: false)),
@@ -86,10 +98,8 @@ void main() async { // Make main async
             Provider.of<AuthProvider>(context, listen: false),
           ),
           update: (context, auth, reviewProvider, filterProvider, previousHistory) {
-            if (previousHistory == null) {
-              return HistoryProvider(reviewProvider, filterProvider, auth);
-            }
-            return previousHistory;
+            // Sempre retorna uma nova instância ou atualiza a existente com as novas dependências
+            return HistoryProvider(reviewProvider, filterProvider, auth);
           },
         ),
         ChangeNotifierProxyProvider<AuthProvider, SubjectProvider>(
@@ -112,19 +122,43 @@ void main() async { // Make main async
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late Future<void> _tryAutoLoginFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _tryAutoLoginFuture = Provider.of<AuthProvider>(context, listen: false).tryAutoLogin();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         return MaterialApp(
-          title: 'Ouroboros Mobile',
+          title: 'Ouroboros',
           theme: ThemeData(
-            primarySwatch: createMaterialColor(const Color(0xFFF59E0B)), // gold-500
-            brightness: Brightness.light,
+            primarySwatch: Colors.teal, // Changed to teal
+            primaryColor: Colors.teal,
+            colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.teal, brightness: Brightness.light).copyWith(secondary: Colors.teal),
             scaffoldBackgroundColor: const Color(0xFFF9FAFB), // gray-50
+            cardColor: Colors.white, // Set card color to white
+            dialogBackgroundColor: Colors.white, // Explicitly set dialog background
+            cardTheme: const CardThemeData(
+              color: Colors.white, // Explicitly set card theme color
+            ),
+            textSelectionTheme: TextSelectionThemeData(
+              cursorColor: Colors.teal,
+              selectionColor: Colors.teal.withOpacity(0.4),
+              selectionHandleColor: Colors.teal,
+            ),
             textTheme: const TextTheme(
               bodyLarge: TextStyle(color: Color(0xFF1F2937)), // gray-900
               bodyMedium: TextStyle(color: Color(0xFF1F2937)),
@@ -133,24 +167,58 @@ class MyApp extends StatelessWidget {
               backgroundColor: Color(0xFFF9FAFB), // gray-50
               foregroundColor: Color(0xFF1F2937), // gray-900
             ),
-            visualDensity: VisualDensity.adaptivePlatformDensity,
-          ),
-          darkTheme: ThemeData(
-            primarySwatch: createMaterialColor(const Color(0xFFF59E0B)), // gold-500
+            inputDecorationTheme: InputDecorationTheme(
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey.shade400),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: Colors.teal, width: 2.0),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              border: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey.shade400),
+                borderRadius: BorderRadius.circular(8.0),
+                            ),            ),
+                                      visualDensity: VisualDensity.adaptivePlatformDensity,
+                                      dividerColor: Colors.grey.shade300, // Cor das linhas da tabela no modo claro
+                                    ),          darkTheme: ThemeData(
+            primarySwatch: Colors.teal, // Changed to teal
+            primaryColor: Colors.teal,
+            colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.teal, brightness: Brightness.dark).copyWith(secondary: Colors.teal),
             brightness: Brightness.dark,
-            scaffoldBackgroundColor: const Color(0xFF1F2937), // gray-900
+            scaffoldBackgroundColor: const Color(0xFF101828), // Custom dark background color
+            cardColor: const Color(0xFF1D2938), // Custom dark gray for cards in dark mode
+            dialogBackgroundColor: const Color(0xFF1D2938), // Explicitly set dialog background for dark mode
+            cardTheme: CardThemeData(
+              color: const Color(0xFF1D2938), // Explicitly set card theme color
+            ),
+            textSelectionTheme: TextSelectionThemeData(
+              cursorColor: Colors.teal,
+              selectionColor: Colors.teal.withOpacity(0.4),
+              selectionHandleColor: Colors.teal,
+            ),
             textTheme: const TextTheme(
               bodyLarge: TextStyle(color: Color(0xFFF9FAFB)), // gray-50
               bodyMedium: TextStyle(color: Color(0xFFF9FAFB)),
             ),
             appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF1F2937), // gray-900
+              backgroundColor: Color(0xFF101828), // Custom dark background color
               foregroundColor: Color(0xFFF9FAFB), // gray-50
             ),
             visualDensity: VisualDensity.adaptivePlatformDensity,
           ),
           themeMode: ThemeMode.system, // Pode ser alterado para ThemeMode.light ou ThemeMode.dark
-          home: authProvider.isLoggedIn ? const HomePage() : const LoginScreen(),
+          home: authProvider.isLoggedIn
+              ? const HomePage()
+              : FutureBuilder(
+                  future: _tryAutoLoginFuture,
+                  builder: (ctx, authResultSnapshot) =>
+                      authResultSnapshot.connectionState ==
+                              ConnectionState.waiting
+                          ? const SplashScreen()
+                          : const LoginScreen(),
+                ),
         );
       },
     );
@@ -177,6 +245,8 @@ MaterialColor createMaterialColor(Color color) {
   return MaterialColor(color.value, swatch);
 }
 
+// ... (other imports)
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -193,7 +263,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.teal)),
     );
 
     // Get providers
@@ -273,10 +343,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
-  int _selectedIndex = 5;
-
-  int _bottomNavSelectedIndex = 0; // Novo índice para a BottomNavigationBar
-
   bool _isDrawerOpen = false;
   bool _planningScreenEditMode = false;
 
@@ -347,62 +413,66 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   Future<void> _showStudyRegisterModal(BuildContext context) async {
     final activePlanProvider = Provider.of<ActivePlanProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-    final planningProvider = Provider.of<PlanningProvider>(context, listen: false); // Adicionado
+    final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
 
-    if (activePlanProvider.activePlan == null) {
+    final planId = activePlanProvider.activePlan?.id;
+
+    if (planId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Crie e selecione um plano de estudos primeiro!')),
+        const SnackBar(content: Text('Nenhum plano de estudo ativo selecionado.')),
       );
       return;
     }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => StudyRegisterModal(
-        planId: activePlanProvider.activePlan!.id,
-        onSave: (newRecord) {
-          historyProvider.addStudyRecord(newRecord);
-          planningProvider.updateProgress(newRecord); // Adicionado
-        },
-      ),
+    final initialRecord = StudyRecord(
+      id: Uuid().v4(),
+      userId: authProvider.currentUser!.name,
+      plan_id: planId,
+      date: DateTime.now().toIso8601String(),
+      subject_id: '', // Will be selected in the modal
+      topic: '', // Will be selected in the modal
+      study_time: 0,
+      category: 'teoria',
+      questions: {},
+      review_periods: [],
+      teoria_finalizada: false,
+      count_in_planning: true,
+      pages: [],
+      videos: [],
     );
+
+    if (context.mounted) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (modalCtx) => StudyRegisterModal(
+          planId: initialRecord.plan_id,
+          initialRecord: initialRecord,
+          onSave: (newRecord) {
+            historyProvider.addStudyRecord(newRecord);
+            planningProvider.updateProgress(newRecord);
+          },
+        ),
+      );
+    }
   }
 
-    void _onItemTapped(int index) {
+  void _onItemTapped(int index) {
+    context.read<NavigationProvider>().setIndex(index);
+  }
 
-      setState(() {
+  void _onDrawerItemTapped(int index) {
+    context.read<NavigationProvider>().setIndex(index);
+    Navigator.pop(context); // Fecha o Drawer
+  }
 
-        _selectedIndex = index;
+  @override
+  Widget build(BuildContext context) {
+    final navigationProvider = context.watch<NavigationProvider>();
+    final selectedIndex = navigationProvider.selectedIndex;
 
-        _bottomNavSelectedIndex = index; // Atualiza o índice da BottomNavigationBar
-
-      });
-
-    }
-
-  
-
-    void _onDrawerItemTapped(int index) {
-
-      setState(() {
-
-        _selectedIndex = index;
-
-        _bottomNavSelectedIndex = -1; // Nenhum item selecionado na BottomNavigationBar
-
-      });
-
-      Navigator.pop(context); // Fecha o Drawer
-
-    }
-
-  
-
-    @override
-
-    Widget build(BuildContext context) {
     return Consumer<PlanningProvider>(
       builder: (context, planningProvider, child) {
         final bool hasActiveCycle = planningProvider.studyCycle != null && planningProvider.studyCycle!.isNotEmpty;
@@ -419,70 +489,63 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       icon: Container(
                         padding: const EdgeInsets.all(2.0), // Aumenta o preenchimento
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1D2938) : Colors.teal.withOpacity(0.5),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                            color: Colors.teal,
                             width: 1,
                           )
                         ),
-                        child: Image.asset('logo/logo.png', height: 40, width: 40), // Aumenta o tamanho da imagem
+                        child: Image.asset(Theme.of(context).brightness == Brightness.dark ? 'logo/logo-modo-escuro.png' : 'logo/logo.png', height: 40, width: 40), // Aumenta o tamanho da imagem
                       ),
                       onPressed: () => Scaffold.of(context).openDrawer(),
                     ),
                   ),
                 ),
-                title: _isDrawerOpen ? const Text('') : Text(_allAppBarTitles.elementAt(_selectedIndex)),
+                title: _isDrawerOpen ? const Text('') : Text(_allAppBarTitles.elementAt(selectedIndex)),
                 actions: <Widget>[
-                  if (_selectedIndex == 1 && hasActiveCycle)
+                  if (selectedIndex == 1 && hasActiveCycle)
                     ElevatedButton.icon(
                       icon: const Icon(Icons.play_arrow), // Novo ícone para iniciar estudo
                       label: const Text('Iniciar Estudo Sugerido'),
                       onPressed: () => _handleGetRecommendation(context),
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: Colors.teal,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                     ),
-                  if (_selectedIndex == 1 && hasActiveCycle)
+                  if (selectedIndex == 1 && hasActiveCycle)
                     IconButton(
                       icon: Icon(_planningScreenEditMode ? Icons.check : Icons.edit),
                       onPressed: _togglePlanningScreenEditMode,
                       tooltip: _planningScreenEditMode ? 'Concluir Edição' : 'Editar Ciclo',
                     ),
-                  if (_selectedIndex == 1 && hasActiveCycle)
+                  if (selectedIndex == 1 && hasActiveCycle)
                     IconButton(
                       icon: const Icon(Icons.delete), // Ícone de lixeira
                       onPressed: () {
                         showDialog(
                           context: context,
                           builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text('Apagar Ciclo de Estudo'),
-                              content: const Text('Tem certeza de que deseja apagar o ciclo de estudo atual? Esta ação é irreversível.'),
-                              actions: <Widget>[
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Cancelar'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Provider.of<PlanningProvider>(context, listen: false).resetStudyCycle();
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: const Text('Apagar', style: TextStyle(color: Colors.red)),
-                                ),
-                              ],
+                            return ConfirmationModal(
+                              title: 'Apagar Ciclo',
+                              message: 'Tem certeza que deseja apagar o ciclo de estudo atual? Esta ação é irreversível e todo o progresso será perdido.',
+                              confirmText: 'Apagar',
+                              onConfirm: () {
+                                Provider.of<PlanningProvider>(context, listen: false).resetStudyCycle();
+                                Navigator.of(context).pop();
+                              },
+                              onClose: () => Navigator.of(context).pop(),
                             );
                           },
                         );
                       },
                       tooltip: 'Apagar Ciclo',
                     ),
-                  if (_selectedIndex == 0) // PlansScreen index
+                  if (selectedIndex == 0) // PlansScreen index
                     Builder(
                       builder: (context) => ElevatedButton.icon(
                         icon: const Icon(Icons.add),
@@ -495,9 +558,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             },
                           );
                         },
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.teal,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
                       ),
                     ),
-                  if (_selectedIndex == 5) // DashboardScreen index
+                  if (selectedIndex == 5) // DashboardScreen index
                     Builder(
                       builder: (context) => ElevatedButton.icon(
                         icon: const Icon(Icons.add_circle),
@@ -505,14 +575,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         onPressed: () => _showStudyRegisterModal(context),
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          backgroundColor: Theme.of(context).primaryColor,
+                          backgroundColor: Colors.teal,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
                       ),
                     ),
-                  if (_selectedIndex == 4) // HistoryScreen index
+                  if (selectedIndex == 4) // HistoryScreen index
                     Row(
                       children: [
                         ElevatedButton.icon(
@@ -521,7 +591,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           label: const Text('Adicionar Estudo'),
                           style: ElevatedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            backgroundColor: Theme.of(context).primaryColor,
+                            backgroundColor: Colors.teal,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -547,7 +617,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           label: const Text('Filtros'),
                           style: ElevatedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            backgroundColor: Theme.of(context).primaryColor,
+                            backgroundColor: Colors.teal,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -556,7 +626,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         const SizedBox(width: 8), // Add some spacing
                       ],
                     ),
-                  if (_selectedIndex == 8) // SimuladosScreen index
+                  if (selectedIndex == 8) // SimuladosScreen index
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.of(context).push(
@@ -569,13 +639,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       label: const Text('Novo Simulado'),
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: Colors.teal,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                     ),
-                  if (_selectedIndex == 3) // StatsScreen index
+                  if (selectedIndex == 3) // StatsScreen index
                     Row(
                       children: [
                         ElevatedButton.icon(
@@ -584,7 +654,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           label: const Text('Adicionar Estudo'),
                           style: ElevatedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            backgroundColor: Theme.of(context).primaryColor,
+                            backgroundColor: Colors.teal,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -610,7 +680,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           label: const Text('Filtros'),
                           style: ElevatedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            backgroundColor: Theme.of(context).primaryColor,
+                            backgroundColor: Colors.teal,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -619,33 +689,33 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         const SizedBox(width: 8), // Add some spacing
                       ],
                     ),
-                  if (_selectedIndex == 7) // EditalScreen index
+                  if (selectedIndex == 7) // EditalScreen index
                     ElevatedButton.icon(
                       onPressed: () { /* TODO: Implementar modal de registro de estudo */ },
                       icon: const Icon(Icons.add_circle),
                       label: const Text('Adicionar Estudo'),
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: Colors.teal,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                     ),
-                  if (_selectedIndex == 2) // RevisionsScreen index
+                  if (selectedIndex == 2) // RevisionsScreen index
                     ElevatedButton.icon(
                       onPressed: () => _showStudyRegisterModal(context),
                       icon: const Icon(Icons.add_circle),
                       label: const Text('Adicionar Estudo'),
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: Colors.teal,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                     ),
-                  if (_selectedIndex == 9) // SupportScreen index
+                  if (selectedIndex == 9) // SupportScreen index
                     IconButton(
                       icon: const Icon(Icons.share),
                       onPressed: () { /* TODO: Implementar compartilhamento */ },
@@ -653,7 +723,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     ),
                 ],
               ),
-              body: _allScreens.elementAt(_selectedIndex),
+              body: _allScreens.elementAt(selectedIndex),
               onDrawerChanged: (isOpened) {
                 setState(() {
                   _isDrawerOpen = isOpened;
@@ -663,102 +733,179 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 child: Column(
                   children: <Widget>[
                     Expanded(
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        children: <Widget>[
-                          Container(
-                            height: 120, // Altura menor
-                            color: Theme.of(context).primaryColor,
-                            padding: const EdgeInsets.all(16.0),
-                            child: Image.asset('logo/logo-marca.png'),
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.home),
-                            title: const Text('Home'),
-                            onTap: () => _onDrawerItemTapped(5), // Index da HomeScreen em _allScreens
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.book),
-                            title: const Text('Matérias'),
-                            onTap: () => _onDrawerItemTapped(6), // Index da SubjectsScreen em _allScreens
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.description),
-                            title: const Text('Edital'),
-                            onTap: () => _onDrawerItemTapped(7), // Index da EditalScreen em _allScreens
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.quiz),
-                            title: const Text('Simulados'),
-                            onTap: () => _onDrawerItemTapped(8), // Index da SimuladosScreen em _allScreens
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.psychology),
-                            title: const Text('Mentoria Algorítmica'),
-                            onTap: () => _onDrawerItemTapped(9), // Index da MentoriaScreen em _allScreens
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.favorite),
-                            title: const Text('Apoie o Projeto'),
-                            onTap: () => _onDrawerItemTapped(10), // Index da SupportScreen em _allScreens
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.backup),
-                            title: const Text('Backup'),
-                            onTap: () => _onDrawerItemTapped(11), // Index da BackupScreen em _allScreens
-                          ),
-                          const Divider(),
-                          Consumer<AuthProvider>(
-                            builder: (context, auth, child) {
-                              final userName = auth.currentUser?.name ?? '';
-                              return ListTile(
-                                leading: const Icon(Icons.logout),
-                                title: Text('Sair ($userName)'),
-                                onTap: () {
-                                  auth.logout();
-                                  Navigator.pop(context); // Fecha o Drawer
-                                },
-                              );
-                            },
-                          ),
-                        ],
+                      child: Container(
+                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1D2938) : Colors.teal, // Cor de fundo dos cards no modo escuro
+                        child: ListView(
+                          padding: EdgeInsets.zero,
+                          children: <Widget>[
+                            Container(
+                              height: 120, // Altura menor
+                              padding: const EdgeInsets.all(16.0),
+                              child: Image.asset(Theme.of(context).brightness == Brightness.dark ? 'logo/logo-marca-modo-escuro.png' : 'logo/logo-marca.png'),
+                            ),
+                            Container(
+                              decoration: selectedIndex == 5
+                                  ? BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2), // Highlight color
+                                      borderRadius: BorderRadius.circular(8),
+                                    )
+                                  : null,
+                              child: ListTile(
+                                leading: Icon(Icons.home, color: selectedIndex == 5 ? Colors.white : Colors.white.withOpacity(0.7)),
+                                title: Text('Home', style: TextStyle(color: selectedIndex == 5 ? Colors.white : Colors.white.withOpacity(0.7))),
+                                onTap: () => _onDrawerItemTapped(5), // Index da HomeScreen em _allScreens
+                              ),
+                            ),
+                            Container(
+                              decoration: selectedIndex == 6
+                                  ? BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2), // Highlight color
+                                      borderRadius: BorderRadius.circular(8),
+                                    )
+                                  : null,
+                              child: ListTile(
+                                leading: Icon(Icons.book, color: selectedIndex == 6 ? Colors.white : Colors.white.withOpacity(0.7)),
+                                title: Text('Matérias', style: TextStyle(color: selectedIndex == 6 ? Colors.white : Colors.white.withOpacity(0.7))),
+                                onTap: () => _onDrawerItemTapped(6), // Index da SubjectsScreen em _allScreens
+                              ),
+                            ),
+                            Container(
+                              decoration: selectedIndex == 7
+                                  ? BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2), // Highlight color
+                                      borderRadius: BorderRadius.circular(8),
+                                    )
+                                  : null,
+                              child: ListTile(
+                                leading: Icon(Icons.description, color: selectedIndex == 7 ? Colors.white : Colors.white.withOpacity(0.7)),
+                                title: Text('Edital', style: TextStyle(color: selectedIndex == 7 ? Colors.white : Colors.white.withOpacity(0.7))),
+                                onTap: () => _onDrawerItemTapped(7), // Index da EditalScreen em _allScreens
+                              ),
+                            ),
+                            Container(
+                              decoration: selectedIndex == 8
+                                  ? BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2), // Highlight color
+                                      borderRadius: BorderRadius.circular(8),
+                                    )
+                                  : null,
+                              child: ListTile(
+                                leading: Icon(Icons.quiz, color: selectedIndex == 8 ? Colors.white : Colors.white.withOpacity(0.7)),
+                                title: Text('Simulados', style: TextStyle(color: selectedIndex == 8 ? Colors.white : Colors.white.withOpacity(0.7))),
+                                onTap: () => _onDrawerItemTapped(8), // Index da SimuladosScreen em _allScreens
+                              ),
+                            ),
+                            Container(
+                              decoration: selectedIndex == 9
+                                  ? BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2), // Highlight color
+                                      borderRadius: BorderRadius.circular(8),
+                                    )
+                                  : null,
+                              child: ListTile(
+                                leading: Icon(Icons.psychology, color: selectedIndex == 9 ? Colors.white : Colors.white.withOpacity(0.7)),
+                                title: Text('Mentoria Algorítmica', style: TextStyle(color: selectedIndex == 9 ? Colors.white : Colors.white.withOpacity(0.7))),
+                                onTap: () => _onDrawerItemTapped(9), // Index da MentoriaScreen em _allScreens
+                              ),
+                            ),
+                            Container(
+                              decoration: selectedIndex == 10
+                                  ? BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2), // Highlight color
+                                      borderRadius: BorderRadius.circular(8),
+                                    )
+                                  : null,
+                              child: ListTile(
+                                leading: PulsingGlowingIcon(icon: Icons.favorite, color: Colors.amber),
+                                title: Text('Apoie o Projeto', style: TextStyle(color: selectedIndex == 10 ? Colors.white : Colors.white.withOpacity(0.7))),
+                                onTap: () => _onDrawerItemTapped(10), // Index da SupportScreen em _allScreens
+                              ),
+                            ),
+                            Container(
+                              decoration: selectedIndex == 11
+                                  ? BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2), // Highlight color
+                                      borderRadius: BorderRadius.circular(8),
+                                    )
+                                  : null,
+                              child: ListTile(
+                                leading: Icon(Icons.backup, color: selectedIndex == 11 ? Colors.white : Colors.white.withOpacity(0.7)),
+                                title: Text('Backup', style: TextStyle(color: selectedIndex == 11 ? Colors.white : Colors.white.withOpacity(0.7))),
+                                onTap: () => _onDrawerItemTapped(11), // Index da BackupScreen em _allScreens
+                              ),
+                            ),
+                            Consumer<AuthProvider>(
+                              builder: (context, auth, child) {
+                                return ListTile(
+                                  leading: Icon(Icons.logout, color: Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.white),
+                                  title: Text('Sair (${auth.currentUser!.name})', style: TextStyle(color: Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.white)),
+                                  onTap: () {
+                                    auth.logout();
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const ListTile(
-                      leading: Icon(Icons.folder_open),
-                      title: PlanSelector(),
+                    Container(
+                      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1D2938) : Colors.teal, // Cor de fundo dos cards no modo escuro
+                      child: ListTile(
+                        leading: Icon(Icons.folder_open, color: Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.white),
+                        title: PlanSelector(),
+                      ),
                     ),
                   ],
                 ),
               ),
-              bottomNavigationBar: BottomNavigationBar(
-                items: const <BottomNavigationBarItem>[
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.assignment),
-                    label: 'Planos',
+              bottomNavigationBar: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor, // Move background color here for rounded corners
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20.0)), // Rounded top corners
+                  border: const Border(
+                    top: BorderSide(color: Colors.teal, width: 1.0), // Teal border at the top
                   ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.calendar_today),
-                    label: 'Planejamento',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.rate_review),
-                    label: 'Revisões',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.bar_chart),
-                    label: 'Estatísticas',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.history),
-                    label: 'Histórico',
-                  ),
-                ],
-                currentIndex: _selectedIndex < 5 ? _selectedIndex : 0,
-                selectedItemColor: _selectedIndex < 5 ? Theme.of(context).primaryColor : Colors.grey,
-                unselectedItemColor: Colors.grey,
-                onTap: _onItemTapped,
-                type: BottomNavigationBarType.fixed,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                      offset: const Offset(0, -3), // Shadow above the bar
+                    ),
+                  ],
+                ),
+                child: BottomNavigationBar(
+                  backgroundColor: Colors.transparent, // Make BottomNavigationBar transparent
+                  elevation: 0, // Remove default elevation
+                  items: const <BottomNavigationBarItem>[
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.assignment),
+                      label: 'Planos',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.calendar_today),
+                      label: 'Planejamento',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.rate_review),
+                      label: 'Revisões',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.bar_chart),
+                      label: 'Estatísticas',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.history),
+                      label: 'Histórico',
+                    ),
+                  ],
+                  currentIndex: selectedIndex < 5 ? selectedIndex : 0,
+                  selectedItemColor: selectedIndex < 5 ? Colors.teal : Colors.grey,
+                  unselectedItemColor: Colors.grey,
+                  onTap: _onItemTapped,
+                  type: BottomNavigationBarType.fixed,
+                ),
               ),
             ),
             const FloatingStopwatchButton(),

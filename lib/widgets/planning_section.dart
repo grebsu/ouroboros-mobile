@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ouroboros_mobile/providers/planning_provider.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
+import 'package:ouroboros_mobile/providers/navigation_provider.dart';
 
 class PlanningSection extends StatelessWidget {
   const PlanningSection({Key? key}) : super(key: key);
@@ -83,11 +84,14 @@ class PlanningSection extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 16.0),
                         child: TextButton(
                           onPressed: () {
-                            // TODO: Navigate to Planning Screen
+                            context.read<NavigationProvider>().setIndex(1);
                           },
                           child: Text(
                             'Ver Mais (${uncompletedSessions.length - displayLimit} sessões restantes)',
-                            style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.bold
+                            ),
                           ),
                         ),
                       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
 import 'package:ouroboros_mobile/screens/register_screen.dart';
+import 'package:ouroboros_mobile/screens/splash_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -55,15 +56,25 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
-                  'logo/logo-marca.png',
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'logo/logo-marca-modo-escuro.png'
+                      : 'logo/logo-marca.png',
                   height: 80,
                 ),
                 const SizedBox(height: 40),
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Nome de Usuário',
                     border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: theme.brightness == Brightness.dark ? Colors.white : Colors.black, width: 1.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.teal, width: 2.0),
+                    ),
+                    focusColor: Colors.teal,
+                    labelStyle: TextStyle(color: Colors.teal),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -75,9 +86,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Senha',
                     border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: theme.brightness == Brightness.dark ? Colors.white : Colors.black, width: 1.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.teal, width: 2.0),
+                    ),
+                    focusColor: Colors.teal,
+                    labelStyle: TextStyle(color: Colors.teal),
                   ),
                   obscureText: true,
                   validator: (value) {
@@ -89,13 +108,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
                 if (_isLoading)
-                  const CircularProgressIndicator()
+                  const CircularProgressIndicator(color: Colors.teal)
                 else
                   ElevatedButton(
                     onPressed: _login,
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50), // Botão largo
-                      backgroundColor: theme.primaryColor,
+                      backgroundColor: Colors.teal,
                       foregroundColor: Colors.white,
                     ),
                     child: const Text('Entrar'),
@@ -107,7 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       MaterialPageRoute(builder: (context) => const RegisterScreen()),
                     );
                   },
-                  child: const Text('Não tem uma conta? Registre-se'),
+                  child: const Text(
+                    'Não tem uma conta? Registre-se',
+                    style: TextStyle(color: Colors.teal),
+                  ),
                 ),
               ],
             ),

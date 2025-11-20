@@ -48,10 +48,15 @@ class _TopicWeightsModalState extends State<TopicWeightsModal> {
         height: 400,
         child: widget.subject.topics.isEmpty
             ? const Center(child: Text('Nenhum tópico encontrado para esta matéria.'))
-            : ListView(
-                children: widget.subject.topics.map((topic) {
-                  return _buildTopicRow(topic, 0);
-                }).toList(),
+            : Scrollbar( // Adicionado Scrollbar
+                thumbVisibility: true,
+
+
+                child: ListView(
+                  children: widget.subject.topics.map((topic) {
+                    return _buildTopicRow(topic, 0);
+                  }).toList(),
+                ),
               ),
       ),
       actions: [

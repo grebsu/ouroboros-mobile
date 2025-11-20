@@ -14,6 +14,7 @@ import 'package:ouroboros_mobile/providers/plans_provider.dart';
 import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/providers/history_provider.dart';
 import 'package:ouroboros_mobile/providers/review_provider.dart';
+import 'package:ouroboros_mobile/widgets/confirmation_modal.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -101,214 +102,201 @@ class _BackupScreenState extends State<BackupScreen> {
       );
 
       if (result != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Backup exportado com sucesso para: $result'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Backup exportado com sucesso para: $result'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Exportação cancelada.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Exportação cancelada.')),
+          );
+        }
       }
 
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao exportar dados: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao exportar dados: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _handleImport() async {
-    _showConfirmationDialog(
-      title: 'Confirmar Importação',
-      content: 'A importação de um arquivo substituirá todos os dados atuais. Esta ação é irreversível. Deseja continuar?',
-      confirmText: 'Importar e Substituir',
-      onConfirm: () async {
-        if (_isLoading) return;
-
-        setState(() {
-          _isLoading = true;
-        });
-
-        try {
-          // 1. Selecionar o arquivo
-          final result = await FilePicker.platform.pickFiles(
-            type: FileType.custom,
-            allowedExtensions: ['json'],
-          );
-
-          if (result == null || result.files.single.path == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Importação cancelada.')),
-            );
-            setState(() => _isLoading = false);
-            return;
-          }
-
-          // 2. Ler e decodificar o arquivo
-          final file = File(result.files.single.path!);
-          final jsonString = await file.readAsString();
-          final backupData = BackupData.fromMap(jsonDecode(jsonString));
-
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-          final userId = authProvider.currentUser?.name;
-          if (userId == null) {
-            throw Exception('Usuário não encontrado.');
-          }
-
-          // 3. Apagar dados antigos e inserir novos
-          final db = DatabaseService.instance;
-          final prefs = await SharedPreferences.getInstance();
-          await db.deleteAllDataForUser(userId);
-          await db.importBackupData(backupData, userId);
-
-          // 4. Restaurar dados de planejamento no SharedPreferences
-          for (var entry in backupData.planningDataPerPlan.entries) {
-            final planId = entry.key;
-            final planningData = entry.value;
-            if (planningData.studyCycle != null) {
-              await prefs.setString('${userId}_studyCycle_$planId', jsonEncode(planningData.studyCycle!.map((s) => s.toJson()).toList()));
+    final BuildContext backupScreenContext = context;
+    showDialog(
+      context: backupScreenContext,
+      builder: (BuildContext dialogContext) {
+        return ConfirmationModal(
+          title: 'Confirmar Importação',
+          message: 'A importação de um arquivo substituirá todos os dados atuais. Esta ação é irreversível. Deseja continuar?',
+          confirmText: 'Importar e Substituir',
+          onConfirm: () async {
+            if (dialogContext.mounted) {
+              Navigator.of(dialogContext).pop(); // Fecha o modal de confirmação
             }
-            await prefs.setInt('${userId}_completedCycles_$planId', planningData.completedCycles);
-            await prefs.setInt('${userId}_currentProgressMinutes_$planId', planningData.currentProgressMinutes);
-            await prefs.setString('${userId}_sessionProgressMap_$planId', jsonEncode(planningData.sessionProgressMap));
-            await prefs.setString('${userId}_studyHours_$planId', planningData.studyHours);
-            await prefs.setString('${userId}_weeklyQuestionsGoal_$planId', planningData.weeklyQuestionsGoal);
-            await prefs.setString('${userId}_subjectSettings_$planId', jsonEncode(planningData.subjectSettings));
-            await prefs.setStringList('${userId}_studyDays_$planId', planningData.studyDays);
-            if (planningData.cycleGenerationTimestamp != null) {
-              await prefs.setString('${userId}_cycleGenerationTimestamp_$planId', planningData.cycleGenerationTimestamp!);
+            if (_isLoading) return;
+
+            setState(() { _isLoading = true; });
+
+            try {
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.custom,
+                allowedExtensions: ['json'],
+              );
+
+              if (result == null || result.files.single.path == null) {
+                if (backupScreenContext.mounted) {
+                  ScaffoldMessenger.of(backupScreenContext).showSnackBar(
+                    const SnackBar(content: Text('Importação cancelada.')),
+                  );
+                }
+                if (mounted) { setState(() => _isLoading = false); }
+                return;
+              }
+
+              final file = File(result.files.single.path!);
+              final jsonString = await file.readAsString();
+              final backupData = BackupData.fromMap(jsonDecode(jsonString));
+
+              final authProvider = Provider.of<AuthProvider>(backupScreenContext, listen: false);
+              final userId = authProvider.currentUser?.name;
+              if (userId == null) {
+                throw Exception('Usuário não encontrado.');
+              }
+
+              final db = DatabaseService.instance;
+              final prefs = await SharedPreferences.getInstance();
+              await db.deleteAllDataForUser(userId);
+              await db.importBackupData(backupData, userId);
+
+              for (var entry in backupData.planningDataPerPlan.entries) {
+                final planId = entry.key;
+                final planningData = entry.value;
+                if (planningData.studyCycle != null) {
+                  await prefs.setString('${userId}_studyCycle_$planId', jsonEncode(planningData.studyCycle!.map((s) => s.toJson()).toList()));
+                }
+                await prefs.setInt('${userId}_completedCycles_$planId', planningData.completedCycles);
+                await prefs.setInt('${userId}_currentProgressMinutes_$planId', planningData.currentProgressMinutes);
+                await prefs.setString('${userId}_sessionProgressMap_$planId', jsonEncode(planningData.sessionProgressMap));
+                await prefs.setString('${userId}_studyHours_$planId', planningData.studyHours);
+                await prefs.setString('${userId}_weeklyQuestionsGoal_$planId', planningData.weeklyQuestionsGoal);
+                await prefs.setString('${userId}_subjectSettings_$planId', jsonEncode(planningData.subjectSettings));
+                await prefs.setStringList('${userId}_studyDays_$planId', planningData.studyDays);
+                if (planningData.cycleGenerationTimestamp != null) {
+                  await prefs.setString('${userId}_cycleGenerationTimestamp_$planId', planningData.cycleGenerationTimestamp!);
+                }
+              }
+
+              await Provider.of<PlansProvider>(backupScreenContext, listen: false).fetchPlans();
+              await Provider.of<AllSubjectsProvider>(backupScreenContext, listen: false).fetchData();
+              await Provider.of<HistoryProvider>(backupScreenContext, listen: false).fetchHistory();
+              await Provider.of<ReviewProvider>(backupScreenContext, listen: false).fetchReviews();
+              await Provider.of<PlanningProvider>(backupScreenContext, listen: false).loadData();
+
+              if (backupScreenContext.mounted) {
+                ScaffoldMessenger.of(backupScreenContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Dados importados com sucesso!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+
+            } catch (e) {
+              if (backupScreenContext.mounted) {
+                ScaffoldMessenger.of(backupScreenContext).showSnackBar(
+                  SnackBar(
+                    content: Text('Erro ao importar dados: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } finally {
+              if (mounted) { setState(() { _isLoading = false; }); }
             }
-          }
-
-          // 5. Atualizar providers
-          await Provider.of<PlansProvider>(context, listen: false).fetchPlans();
-          await Provider.of<AllSubjectsProvider>(context, listen: false).fetchData();
-          await Provider.of<HistoryProvider>(context, listen: false).fetchHistory();
-          await Provider.of<ReviewProvider>(context, listen: false).fetchReviews();
-          await Provider.of<PlanningProvider>(context, listen: false).loadData();
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Dados importados com sucesso!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao importar dados: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        } finally {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+          },
+          onClose: () => Navigator.of(dialogContext).pop(),
+        );
       },
     );
   }
 
   void _handleDeleteAll() {
-    // Lógica de placeholder para apagar tudo
-    _showConfirmationDialog(
-      title: 'Apagar Todos os Dados?',
-      content: 'ATENÇÃO: Esta ação é irreversível e apagará permanentemente todos os seus dados. Use com extrema cautela.',
-      confirmText: 'Apagar Tudo',
-      confirmButtonColor: Colors.red,
-      onConfirm: () async {
-        setState(() {
-          _isLoading = true;
-        });
+    final BuildContext backupScreenContext = context;
+    showDialog(
+      context: backupScreenContext,
+      builder: (BuildContext dialogContext) {
+        return ConfirmationModal(
+          title: 'Apagar Todos os Dados?',
+          message: 'ATENÇÃO: Esta ação é irreversível e apagará permanentemente todos os seus dados. Use com extrema cautela.',
+          confirmText: 'Apagar Tudo',
+          onConfirm: () async {
+            if (dialogContext.mounted) {
+              Navigator.of(dialogContext).pop(); // Fecha o modal antes de iniciar
+            }
+            setState(() { _isLoading = true; });
 
-        try {
-          // 1. Deletar o banco de dados
-          await DatabaseService.instance.deleteAllData();
+            try {
+              final authProvider = Provider.of<AuthProvider>(backupScreenContext, listen: false);
+              final userId = authProvider.currentUser?.name;
+              if (userId == null) {
+                throw Exception('Usuário não encontrado.');
+              }
+              await DatabaseService.instance.deleteAllDataForUser(userId);
+              await Provider.of<PlanningProvider>(backupScreenContext, listen: false).clearAllData();
 
-          // 2. Limpar SharedPreferences
-          await Provider.of<PlanningProvider>(context, listen: false).clearAllData();
+              Provider.of<ActivePlanProvider>(backupScreenContext, listen: false).clearActivePlan();
+              await Provider.of<PlansProvider>(backupScreenContext, listen: false).fetchPlans();
+              await Provider.of<AllSubjectsProvider>(backupScreenContext, listen: false).fetchData();
+              await Provider.of<HistoryProvider>(backupScreenContext, listen: false).fetchHistory();
+              await Provider.of<ReviewProvider>(backupScreenContext, listen: false).fetchReviews();
+              
+              if (backupScreenContext.mounted) {
+                ScaffoldMessenger.of(backupScreenContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Todos os dados foram apagados com sucesso.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
 
-          // 3. Limpar o estado dos providers em memória e forçar recarga
-          Provider.of<ActivePlanProvider>(context, listen: false).clearActivePlan();
-          await Provider.of<PlansProvider>(context, listen: false).fetchPlans();
-          await Provider.of<AllSubjectsProvider>(context, listen: false).fetchData();
-          await Provider.of<HistoryProvider>(context, listen: false).fetchHistory();
-          await Provider.of<ReviewProvider>(context, listen: false).fetchReviews();
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Todos os dados foram apagados com sucesso.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Ocorreu um erro ao apagar os dados: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        } finally {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      },
-    );
-  }
-
-  Future<void> _showConfirmationDialog({
-    required String title,
-    required String content,
-    required String confirmText,
-    required VoidCallback onConfirm,
-    Color confirmButtonColor = Colors.blue,
-  }) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // User must tap button!
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                Text(content),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: confirmButtonColor),
-              onPressed: () {
-                Navigator.of(context).pop();
-                onConfirm();
-              },
-              child: Text(confirmText),
-            ),
-          ],
+            } catch (e) {
+              if (backupScreenContext.mounted) {
+                ScaffoldMessenger.of(backupScreenContext).showSnackBar(
+                  SnackBar(
+                    content: Text('Ocorreu um erro ao apagar os dados: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } finally {
+              if (mounted) { // Usamos o contexto original da tela para o setState
+                setState(() { _isLoading = false; });
+              }
+            }
+          },
+          onClose: () => Navigator.of(dialogContext).pop(),
         );
       },
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -333,12 +321,16 @@ class _BackupScreenState extends State<BackupScreen> {
   Widget _buildExportCard(BuildContext context) {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: const BorderSide(color: Colors.teal, width: 2),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildCardTitle(context, Icons.download, 'Exportar Dados', Theme.of(context).primaryColor),
+            _buildCardTitle(context, Icons.download, 'Exportar Dados', Colors.teal),
             const SizedBox(height: 8),
             Text(
               'Crie um backup de todos os seus dados. Salve este arquivo em um local seguro.',
@@ -350,6 +342,8 @@ class _BackupScreenState extends State<BackupScreen> {
               icon: const Icon(Icons.download),
               label: const Text('Exportar para Arquivo'),
               style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 40),
               ),
             ),
@@ -362,12 +356,16 @@ class _BackupScreenState extends State<BackupScreen> {
   Widget _buildImportCard(BuildContext context) {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: const BorderSide(color: Colors.teal, width: 2),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildCardTitle(context, Icons.upload, 'Importar Dados', Theme.of(context).primaryColor),
+            _buildCardTitle(context, Icons.upload, 'Importar Dados', Colors.teal),
             const SizedBox(height: 16),
             _buildWarningBox(
               title: 'Atenção!',
@@ -377,9 +375,11 @@ class _BackupScreenState extends State<BackupScreen> {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _isLoading ? null : _handleImport,
-              icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.upload),
+              icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal)) : const Icon(Icons.upload),
               label: Text(_isLoading ? 'Importando...' : 'Importar de Arquivo'),
               style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 40),
               ),
             ),
@@ -392,6 +392,10 @@ class _BackupScreenState extends State<BackupScreen> {
   Widget _buildDeleteCard(BuildContext context) {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: const BorderSide(color: Colors.redAccent, width: 2),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -407,7 +411,7 @@ class _BackupScreenState extends State<BackupScreen> {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _isLoading ? null : _handleDeleteAll,
-              icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.delete_forever),
+              icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal)) : const Icon(Icons.delete_forever),
               label: Text(_isLoading ? 'Apagando Dados...' : 'Começar do Zero'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

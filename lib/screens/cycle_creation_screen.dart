@@ -6,14 +6,14 @@ import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/providers/planning_provider.dart';
 import 'package:ouroboros_mobile/widgets/topic_weights_modal.dart';
 
-class CycleCreationModal extends StatefulWidget {
-  const CycleCreationModal({Key? key}) : super(key: key);
+class CycleCreationScreen extends StatefulWidget {
+  const CycleCreationScreen({Key? key}) : super(key: key);
 
   @override
-  _CycleCreationModalState createState() => _CycleCreationModalState();
+  _CycleCreationScreenState createState() => _CycleCreationScreenState();
 }
 
-class _CycleCreationModalState extends State<CycleCreationModal> {
+class _CycleCreationScreenState extends State<CycleCreationScreen> {
   final _stepperKey = GlobalKey();
   final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
   int _currentStep = 0;
@@ -80,7 +80,7 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
     {
       'level': 'Intermediário',
       'range': '300 a 500 questões',
-      'description': 'Equilíbrio entre a leitura da teoria e a prática; questões por assunto para diagnóstico.',
+      'description': 'Equilíbrio entre a teoria e a prática; questões por assunto para diagnóstico.',
       'value': 400,
       'icon': Icons.looks_two,
     },
@@ -140,7 +140,7 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                     padding: EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        Icon(Icons.auto_awesome, size: 40, color: Colors.amber),
+                        Icon(Icons.auto_awesome, size: 40, color: Colors.teal),
                         SizedBox(height: 10),
                         Text('Modo Guiado', style: TextStyle(fontWeight: FontWeight.bold)),
                         SizedBox(height: 5),
@@ -158,7 +158,7 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                     padding: EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        Icon(Icons.build, size: 40, color: Colors.amber),
+                        Icon(Icons.build_outlined , size: 40, color: Colors.teal),
                         SizedBox(height: 10),
                         Text('Modo Manual', style: TextStyle(fontWeight: FontWeight.bold)),
                         SizedBox(height: 5),
@@ -251,11 +251,14 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
     } else {
       return [
         Step(
-          title: const Text('Matérias'),
+          title: const Text(''),
           content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text('Matérias', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
               Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
+                padding: const EdgeInsets.only(bottom: 8.0, top: 8.0),
                 child: TextField(
                   controller: _subjectSearchController,
                   decoration: InputDecoration(
@@ -279,6 +282,7 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                 title: const Text('Selecionar Todas'),
                 value: _selectedSubjects.length == filteredSubjects.length &&
                     filteredSubjects.isNotEmpty,
+                activeColor: Colors.teal,
                 onChanged: (bool? value) {
                   setState(() {
                     if (value == true) {
@@ -291,66 +295,69 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
               ),
               const Divider(),
               SizedBox(
-                height: 300,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 3 / 1.2,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemCount: filteredSubjects.length,
-                  itemBuilder: (context, index) {
-                    final subject = filteredSubjects[index];
-                    final isSelected = _selectedSubjects.contains(subject.id);
-                    return InkWell(
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            _selectedSubjects.remove(subject.id);
-                          } else {
-                            _selectedSubjects.add(subject.id);
-                          }
-                        });
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Card(
-                        elevation: isSelected ? 4 : 1,
-                        color: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : null,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: isSelected
-                              ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
-                              : BorderSide(color: Colors.grey.shade300, width: 1),
-                        ),
-                        child: Stack(
-                          children: [
-                            Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  subject.subject,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                height: 420, // Adjust height as needed
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 3 / 1.2,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: filteredSubjects.length,
+                    itemBuilder: (context, index) {
+                      final subject = filteredSubjects[index];
+                      final isSelected = _selectedSubjects.contains(subject.id);
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            if (isSelected) {
+                              _selectedSubjects.remove(subject.id);
+                            } else {
+                              _selectedSubjects.add(subject.id);
+                            }
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Card(
+                          elevation: isSelected ? 4 : 1,
+                          color: isSelected ? Colors.teal.withOpacity(0.1) : null,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: isSelected
+                                ? const BorderSide(color: Colors.teal, width: 2)
+                                : BorderSide(color: Colors.grey.shade300, width: 1),
+                          ),
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    subject.subject,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      color: isSelected ? Colors.teal : null,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
-                            if (isSelected)
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 16),
-                              ),
-                          ],
+                              if (isSelected)
+                                const Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Icon(Icons.check_circle, color: Colors.teal, size: 16),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ],
@@ -358,11 +365,14 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
           isActive: _currentStep >= 0,
         ),
         Step(
-          title: const Text('Pesos'),
+          title: const Text(''),
           content: SizedBox(
-            height: 450, // Adjust height as needed
+            height: 600, // Adjust height as needed
             child: Column(
-              children: [
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Pesos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
                 Builder(
                   builder: (BuildContext buttonContext) {
                     return ElevatedButton.icon(
@@ -398,97 +408,107 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                       },
                       icon: const Icon(Icons.auto_awesome),
                       label: const Text('Calcular Pesos por Banca'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                      ),
                     );
                   }
                 ),
                 const SizedBox(height: 10),
-                Expanded(
-                  child: GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      childAspectRatio: 1 / 1.6, // Even taller
-                    ),
-                    itemCount: _selectedSubjects.length,
-                    itemBuilder: (context, index) {
-                      final subjectId = _selectedSubjects.elementAt(index);
-                      final subject = allSubjectsProvider.subjects.cast<Subject?>().firstWhere(
-                            (s) => s?.id == subjectId,
-                            orElse: () => null,
-                          );
+                              Expanded(
+                                child: Scrollbar(
+                                  thumbVisibility: true,
+                
+                                  child: GridView.builder(                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 1 / 1.1, // Even taller
+                      ),
+                      itemCount: _selectedSubjects.length,
+                      itemBuilder: (context, index) {
+                        final subjectId = _selectedSubjects.elementAt(index);
+                        final subject = allSubjectsProvider.subjects.cast<Subject?>().firstWhere(
+                              (s) => s?.id == subjectId,
+                              orElse: () => null,
+                            );
 
-                      if (subject == null) {
-                        // Subject not found, maybe log this or handle it gracefully
-                        return const SizedBox.shrink(); // Render nothing
-                      }
+                        if (subject == null) {
+                          // Subject not found, maybe log this or handle it gracefully
+                          return const SizedBox.shrink(); // Render nothing
+                        }
 
-                      _subjectSettings.putIfAbsent(subjectId, () => {'importance': 3, 'knowledge': 3});
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(subject.subject, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.tune),
-                                    tooltip: 'Ajustar Tópicos',
-                                    onPressed: () {
-                                      // Adicionando log para depuração
-                                      final subjectDataForDebug = {
-                                        'id': subject.id,
-                                        'name': subject.subject,
-                                        'topics': subject.topics.map((t) => t.toMap()).toList(),
-                                      };
-                                      print('Abrindo modal de pesos para a matéria: ${jsonEncode(subjectDataForDebug)}');
+                        _subjectSettings.putIfAbsent(subjectId, () => {'importance': 3, 'knowledge': 3});
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8.0),
+                          color: Color(int.parse(subject.color.replaceFirst('#', '0xFF'))).withOpacity(0.2), // Usar a cor da matéria com opacidade
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(subject.subject, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.tune, color: Colors.teal),
+                                      tooltip: 'Ajustar Tópicos',
+                                      onPressed: () {
+                                        // Adicionando log para depuração
+                                        final subjectDataForDebug = {
+                                          'id': subject.id,
+                                          'name': subject.subject,
+                                          'topics': subject.topics.map((t) => t.toMap()).toList(),
+                                        };
+                                        print('Abrindo modal de pesos para a matéria: ${jsonEncode(subjectDataForDebug)}');
 
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => TopicWeightsModal(subject: subject),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              const Text('Importância'),
-                              Slider(
-                                value: _subjectSettings[subjectId]!['importance']!,
-                                min: 1,
-                                max: 5,
-                                divisions: 4,
-                                label: _subjectSettings[subjectId]!['importance']!.round().toString(),
-                                onChanged: (double value) {
-                                  setState(() {
-                                    _subjectSettings[subjectId]!['importance'] = value;
-                                  });
-                                },
-                              ),
-                              const Text('Conhecimento'),
-                              Slider(
-                                value: _subjectSettings[subjectId]!['knowledge']!,
-                                min: 1,
-                                max: 5,
-                                divisions: 4,
-                                label: _subjectSettings[subjectId]!['knowledge']!.round().toString(),
-                                onChanged: (double value) {
-                                  setState(() {
-                                    _subjectSettings[subjectId]!['knowledge'] = value;
-                                  });
-                                },
-                              ),
-                            ],
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => TopicWeightsModal(subject: subject),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                const Text('Importância'),
+                                Slider(
+                                  value: _subjectSettings[subjectId]!['importance']!,
+                                  min: 1,
+                                  max: 5,
+                                  divisions: 4,
+                                  label: _subjectSettings[subjectId]!['importance']!.round().toString(),
+                                  activeColor: Colors.teal,
+                                  onChanged: (double value) {
+                                    setState(() {
+                                      _subjectSettings[subjectId]!['importance'] = value;
+                                    });
+                                  },
+                                ),
+                                const Text('Conhecimento'),
+                                Slider(
+                                  value: _subjectSettings[subjectId]!['knowledge']!,
+                                  min: 1,
+                                  max: 5,
+                                  divisions: 4,
+                                  label: _subjectSettings[subjectId]!['knowledge']!.round().toString(),
+                                  activeColor: Colors.teal,
+                                  onChanged: (double value) {
+                                    setState(() {
+                                      _subjectSettings[subjectId]!['knowledge'] = value;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -497,9 +517,12 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
           isActive: _currentStep >= 1,
         ),
         Step(
-          title: const Text('Carga Horária'),
+          title: const Text(''),
           content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text('Carga Horária', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start, // Align cards to the top
                 children: workloadLevels.map((level) {
@@ -511,7 +534,7 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: isSelected
-                            ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+                            ? const BorderSide(color: Colors.teal, width: 2)
                             : BorderSide.none,
                       ),
                       child: InkWell(
@@ -527,14 +550,14 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(level['icon'], size: 32, color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
+                              Icon(level['icon'], size: 32, color: isSelected ? Colors.teal : Colors.grey.shade700),
                               const SizedBox(height: 8),
                               Text(
                                 level['level'],
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                                  color: isSelected ? Colors.teal : null,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -557,12 +580,12 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: _selectedWorkloadLevel == 'Manual'
-                      ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+                      ? const BorderSide(color: Colors.teal, width: 2)
                       : BorderSide.none,
                 ),
                 child: ListTile(
-                  leading: Icon(Icons.edit, color: _selectedWorkloadLevel == 'Manual' ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
-                  title: Text('Manual', style: TextStyle(fontWeight: FontWeight.bold, color: _selectedWorkloadLevel == 'Manual' ? Theme.of(context).colorScheme.primary : null)),
+                  leading: Icon(Icons.edit, color: _selectedWorkloadLevel == 'Manual' ? Colors.teal : Colors.grey.shade700),
+                  title: Text('Manual', style: TextStyle(fontWeight: FontWeight.bold, color: _selectedWorkloadLevel == 'Manual' ? Colors.teal : null)),
                   subtitle: Text('Digite as horas manualmente'),
                   onTap: () {
                     setState(() {
@@ -588,9 +611,12 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
           isActive: _currentStep >= 2,
         ),
         Step(
-          title: const Text('Meta de Questões'),
+          title: const Text(''),
           content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text('Meta de Questões', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: questionsLevels.map((level) {
@@ -602,7 +628,7 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: isSelected
-                            ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+                            ? const BorderSide(color: Colors.teal, width: 2)
                             : BorderSide.none,
                       ),
                       child: InkWell(
@@ -618,14 +644,14 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(level['icon'], size: 32, color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
+                              Icon(level['icon'], size: 32, color: isSelected ? Colors.teal : Colors.grey.shade700),
                               const SizedBox(height: 8),
                               Text(
                                 level['level'],
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                                  color: isSelected ? Colors.teal : null,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -648,12 +674,12 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: _selectedQuestionsLevel == 'Manual'
-                      ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+                      ? const BorderSide(color: Colors.teal, width: 2)
                       : BorderSide.none,
                 ),
                 child: ListTile(
-                  leading: Icon(Icons.edit, color: _selectedQuestionsLevel == 'Manual' ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
-                  title: Text('Manual', style: TextStyle(fontWeight: FontWeight.bold, color: _selectedQuestionsLevel == 'Manual' ? Theme.of(context).colorScheme.primary : null)),
+                  leading: Icon(Icons.edit, color: _selectedQuestionsLevel == 'Manual' ? Colors.teal : Colors.grey.shade700),
+                  title: Text('Manual', style: TextStyle(fontWeight: FontWeight.bold, color: _selectedQuestionsLevel == 'Manual' ? Colors.teal : null)),
                   subtitle: Text('Digite a meta manualmente'),
                   onTap: () {
                     setState(() {
@@ -679,9 +705,12 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
           isActive: _currentStep >= 3,
         ),
         Step(
-          title: const Text('Duração das Sessões'),
+          title: const Text(''),
           content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text('Duração das Sessões', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: sessionLevels.map((level) {
@@ -693,7 +722,7 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: isSelected
-                            ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+                            ? const BorderSide(color: Colors.teal, width: 2)
                             : BorderSide.none,
                       ),
                       child: InkWell(
@@ -709,14 +738,14 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(level['icon'], size: 32, color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
+                              Icon(level['icon'], size: 32, color: isSelected ? Colors.teal : Colors.grey.shade700),
                               const SizedBox(height: 8),
                               Text(
                                 level['level'],
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                                  color: isSelected ? Colors.teal : null,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -739,12 +768,12 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: _selectedSessionLevel == 'Manual'
-                      ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+                      ? const BorderSide(color: Colors.teal, width: 2)
                       : BorderSide.none,
                 ),
                 child: ListTile(
-                  leading: Icon(Icons.edit, color: _selectedSessionLevel == 'Manual' ? Theme.of(context).colorScheme.primary : Colors.grey.shade700),
-                  title: Text('Manual', style: TextStyle(fontWeight: FontWeight.bold, color: _selectedSessionLevel == 'Manual' ? Theme.of(context).colorScheme.primary : null)),
+                  leading: Icon(Icons.edit, color: _selectedSessionLevel == 'Manual' ? Colors.teal : Colors.grey.shade700),
+                  title: Text('Manual', style: TextStyle(fontWeight: FontWeight.bold, color: _selectedSessionLevel == 'Manual' ? Colors.teal : null)),
                   subtitle: Text('Digite a duração em minutos'),
                   onTap: () {
                     setState(() {
@@ -770,32 +799,42 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
           isActive: _currentStep >= 4,
         ),
         Step(
-          title: const Text('Dias de Estudo'),
-          content: Wrap(
-            spacing: 8.0,
-            children: _daysOfWeek.map((day) {
-              return FilterChip(
-                label: Text(day.substring(0, 3)),
-                selected: _selectedDays.contains(day),
-                onSelected: (bool selected) {
-                  setState(() {
-                    if (selected) {
-                      _selectedDays.add(day);
-                    } else {
-                      _selectedDays.remove(day);
-                    }
-                  });
-                },
-              );
-            }).toList(),
+          title: const Text(''),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Dias de Estudo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8.0,
+                children: _daysOfWeek.map((day) {
+                  return FilterChip(
+                    label: Text(day.substring(0, 3)),
+                    selected: _selectedDays.contains(day),
+                    selectedColor: Colors.teal,
+                    onSelected: (bool selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedDays.add(day);
+                        } else {
+                          _selectedDays.remove(day);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
           ),
           isActive: _currentStep >= 5,
         ),
         Step(
-          title: const Text('Gerar Ciclo'),
+          title: const Text(''),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text('Gerar Ciclo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
               const Text('Resumo do seu Planejamento', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 10),
               Text('Matérias: ${_selectedSubjects.length}'),
@@ -813,104 +852,261 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return AlertDialog(
-      title: Text(_isManualMode == null ? 'Criar Novo Ciclo' : _isManualMode! ? 'Criação Manual do Ciclo' : 'Modo Guiado'),
-      contentPadding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 0.0),
-      content: SizedBox(
-        width: screenWidth * 0.95,
-        height: screenHeight * 0.75,
-        child: ScaffoldMessenger(
-          key: _scaffoldMessengerKey,
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            body: Consumer<AllSubjectsProvider>(
-              builder: (context, allSubjectsProvider, child) {
-              if (_isManualMode == null) {
-                return _buildModeSelection();
-              }
-              if (_isManualMode!) {
-                return _buildManualMode(allSubjectsProvider);
-              }
-              // Guided Mode Stepper
-              return Stepper(
-                key: _stepperKey,
-                currentStep: _currentStep,
-                onStepContinue: () {
-                  if (_currentStep < _getSteps(context, allSubjectsProvider).length - 1) {
-                    setState(() { _currentStep += 1; });
-                  } else {
-                    _saveGuidedCycle(allSubjectsProvider);
-                  }
-                },
-                onStepCancel: () {
-                  setState(() {
-                    if (_currentStep > 0) {
-                      _currentStep -= 1;
-                    } else {
-                      _isManualMode = null;
-                    }
-                  });
-                },
-                steps: _getSteps(context, allSubjectsProvider),
-              );
-            },
+    return ScaffoldMessenger(
+      key: _scaffoldMessengerKey,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            _isManualMode == null ? 'Criar Novo Ciclo' : _isManualMode! ? 'Criação Manual do Ciclo' : 'Modo Guiado',
           ),
         ),
-       ), // Closes ScaffoldMessenger
+        body: Consumer<AllSubjectsProvider>(
+          builder: (context, allSubjectsProvider, child) {
+            if (_isManualMode == null) {
+              return _buildModeSelection();
+            }
+            if (_isManualMode!) {
+              return _buildManualMode(allSubjectsProvider);
+            }
+            // Guided Mode Stepper
+            final isLightMode = Theme.of(context).brightness == Brightness.light;
+
+            return Theme(
+              data: Theme.of(context).copyWith(
+                canvasColor: isLightMode ? Colors.white : Colors.teal[400],
+                colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: Colors.teal,
+                  secondary: Colors.teal,
+                ),
+                scrollbarTheme: ScrollbarThemeData(
+                  thumbColor: MaterialStateProperty.all(Colors.teal),
+                  thumbVisibility: MaterialStateProperty.all(true),
+                  radius: const Radius.circular(8.0), // Adiciona bordas arredondadas
+                  crossAxisMargin: -14, // Adiciona margem à direita do scrollbar
+                ),
+              ),
+              child: Stepper(
+                key: _stepperKey,
+                currentStep: _currentStep,
+                type: StepperType.horizontal,
+                margin: EdgeInsets.zero,
+
+                steps: _getSteps(context, allSubjectsProvider),
+                controlsBuilder: (BuildContext context, ControlsDetails details) {
+                  return Container();
+                },
+              ),
+            );
+          },
+        ),
+        persistentFooterButtons: _isManualMode == null
+            ? null
+            : (_isManualMode!
+                ? [
+                    TextButton(
+                      onPressed: () => setState(() {
+                        _isManualMode = null;
+                      }),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.teal, // Definir a cor do texto como teal
+                      ),
+                      child: const Text('Voltar'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _saveManualCycle,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Salvar Ciclo'),
+                    ),
+                  ]
+                : [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: <Widget>[
+                          if (_currentStep > 0)
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  if (_currentStep > 0) {
+                                    _currentStep -= 1;
+                                  }
+                                });
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.teal, // Definir a cor do texto como teal
+                              ),
+                              child: const Text('Voltar'),
+                            ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              final allSubjectsProvider =
+                                  Provider.of<AllSubjectsProvider>(context, listen: false);
+                              // Validation for step 0 (Subjects)
+                              if (_currentStep == 0 && _selectedSubjects.isEmpty) {
+                                _scaffoldMessengerKey.currentState?.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'Por favor, selecione pelo menos uma matéria para continuar.'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Validation for step 2 (Workload)
+                              if (_currentStep == 2) {
+                                final isWorkloadNotSet = _selectedWorkloadLevel == null;
+                                final isManualWorkloadEmpty =
+                                    _selectedWorkloadLevel == 'Manual' &&
+                                        _manualWorkloadController.text.isEmpty;
+
+                                if (isWorkloadNotSet || isManualWorkloadEmpty) {
+                                  _scaffoldMessengerKey.currentState?.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Por favor, defina a carga horária para continuar.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                              }
+
+                              // Validation for step 3 (Questions Goal)
+                              if (_currentStep == 3) {
+                                final isQuestionsLevelNotSet =
+                                    _selectedQuestionsLevel == null;
+                                final isManualQuestionsGoalEmpty =
+                                    _selectedQuestionsLevel == 'Manual' &&
+                                        _manualGuidedQuestionsGoalController.text.isEmpty;
+
+                                if (isQuestionsLevelNotSet ||
+                                    isManualQuestionsGoalEmpty) {
+                                  _scaffoldMessengerKey.currentState?.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Por favor, defina a meta de questões para continuar.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                              }
+
+                              // Validation for step 4 (Session Duration)
+                              if (_currentStep == 4) {
+                                final isSessionLevelNotSet =
+                                    _selectedSessionLevel == null;
+                                final isManualSessionDurationEmpty =
+                                    _selectedSessionLevel == 'Manual' &&
+                                        _manualSessionDurationController.text.isEmpty;
+
+                                if (isSessionLevelNotSet ||
+                                    isManualSessionDurationEmpty) {
+                                  _scaffoldMessengerKey.currentState?.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Por favor, defina a duração das sessões para continuar.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                              }
+
+                              // Validation for step 5 (Study Days)
+                              if (_currentStep == 5) {
+                                if (_selectedDays.isEmpty) {
+                                  _scaffoldMessengerKey.currentState?.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Por favor, selecione pelo menos um dia de estudo para continuar.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                              }
+
+                              // If validation passes, proceed
+                              if (_currentStep <
+                                  _getSteps(context, allSubjectsProvider).length - 1) {
+                                setState(() {
+                                  _currentStep += 1;
+                                });
+                              } else {
+                                _saveGuidedCycle(allSubjectsProvider);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Text(_currentStep ==
+                                    _getSteps(
+                                                context,
+                                                Provider.of<AllSubjectsProvider>(context,
+                                                    listen: false))
+                                            .length -
+                                        1
+                                ? 'Gerar'
+                                : 'Continuar'),
+                          ),
+                        ],
+                      ),
+                    )
+                  ]),
       ),
-      actions: _isManualMode == true ? [
-        TextButton(
-          onPressed: () => setState(() { _isManualMode = null; }),
-          child: const Text('Voltar'),
-        ),
-        ElevatedButton(
-          onPressed: _saveManualCycle,
-          child: const Text('Salvar Ciclo'),
-        ),
-      ] : null,
     );
   }
 
   // Métodos de construção da UI e lógica de salvamento adicionados
 
   Widget _buildModeSelection() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Como você prefere criar seu ciclo?',
-          style: Theme.of(context).textTheme.titleLarge,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 24),
-        Row(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: _buildModeCard(
-                context: context,
-                title: 'Modo Guiado',
-                description: 'Responda algumas perguntas e nós montamos o ciclo para você.',
-                icon: Icons.auto_awesome,
-                onTap: () => setState(() { _isManualMode = false; _currentStep = 0; }),
-              ),
+            Text(
+              'Como você prefere criar seu ciclo?',
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildModeCard(
-                context: context,
-                title: 'Modo Manual',
-                description: 'Adicione sessões de estudo uma a uma, com total controle.',
-                icon: Icons.build,
-                onTap: () => setState(() { _isManualMode = true; _currentStep = 0; _manualDurationController.text = '60'; }),
-              ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModeCard(
+                    context: context,
+                    title: 'Modo Guiado',
+                    description: 'Responda algumas perguntas e nós montamos o ciclo para você.',
+                    icon: Icons.auto_awesome,
+                    onTap: () => setState(() { _isManualMode = false; _currentStep = 0; }),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildModeCard(
+                    context: context,
+                    title: 'Modo Manual',
+                    description: 'Adicione sessões de estudo uma a uma, com total controle.',
+                    icon: Icons.build,
+                    onTap: () => setState(() { _isManualMode = true; _currentStep = 0; _manualDurationController.text = '60'; }),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -932,7 +1128,7 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
+              Icon(icon, size: 48, color: Colors.teal),
               const SizedBox(height: 16),
               Text(
                 title,
@@ -969,7 +1165,19 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
             DropdownButtonFormField<Subject>(
               isExpanded: true,
               value: _manualSelectedSubject,
-              hint: const Text('Selecione uma matéria'),
+              hint: Text('Selecione uma matéria', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.grey[600])),
+              dropdownColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.white,
+              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+              decoration: InputDecoration(
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                ),
+              ),
               onChanged: (Subject? newValue) => setState(() => _manualSelectedSubject = newValue),
               items: allSubjectsProvider.uniqueSubjectsByName.map<DropdownMenuItem<Subject>>((subject) {
                 return DropdownMenuItem<Subject>(
@@ -982,7 +1190,17 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
             const Text('Duração (min)', style: TextStyle(fontWeight: FontWeight.bold)),
             TextField(
               controller: _manualDurationController,
-              decoration: const InputDecoration(border: OutlineInputBorder()),
+              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+              decoration: InputDecoration(
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                ),
+              ),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
@@ -1007,6 +1225,10 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Adicionar Sessão'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ),
             const Divider(height: 32),
@@ -1018,20 +1240,24 @@ class _CycleCreationModalState extends State<CycleCreationModal> {
                   )
                 : SizedBox(
                     height: 150,
-                    child: ListView.builder(
-                      itemCount: _manualStudySessions.length,
-                      itemBuilder: (context, index) {
-                        final session = _manualStudySessions[index];
-                        return ListTile(
-                          leading: CircleAvatar(backgroundColor: Color(int.parse(session.color.replaceFirst('#', '0xFF')))),
-                          title: Text(session.subject),
-                          subtitle: Text('${session.duration} min'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                            onPressed: () => setState(() => _manualStudySessions.removeAt(index)),
-                          ),
-                        );
-                      },
+                    child: Scrollbar( // Adicionado Scrollbar
+                      thumbVisibility: true,
+
+                      child: ListView.builder(
+                        itemCount: _manualStudySessions.length,
+                        itemBuilder: (context, index) {
+                          final session = _manualStudySessions[index];
+                          return ListTile(
+                            leading: CircleAvatar(backgroundColor: Color(int.parse(session.color.replaceFirst('#', '0xFF')))),
+                            title: Text(session.subject),
+                            subtitle: Text('${session.duration} min'),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                              onPressed: () => setState(() => _manualStudySessions.removeAt(index)),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
             const Divider(height: 32),

@@ -61,7 +61,7 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
                   const SizedBox(height: 8),
                   Text(
                     simulados.length.toString(),
-                    style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+                    style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.teal),
                   ),
                 ],
               ),
@@ -126,6 +126,11 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
                     });
                   },
                   borderRadius: BorderRadius.circular(8),
+                  selectedColor: Colors.white, // Texto branco para o selecionado
+                  fillColor: Colors.teal, // Fundo teal para o selecionado
+                  color: Colors.teal, // Texto teal para o não selecionado
+                  borderColor: Colors.teal, // Borda teal para o não selecionado
+                  selectedBorderColor: Colors.teal, // Borda teal para o selecionado
                   children: const [
                     Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('Desempenho')),
                     Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('Pontuação')),
@@ -165,6 +170,10 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Registrar Novo Simulado'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ],
           ),

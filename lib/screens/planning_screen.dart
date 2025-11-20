@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ouroboros_mobile/providers/planning_provider.dart';
-import 'package:ouroboros_mobile/widgets/cycle_creation_modal.dart';
+import 'package:ouroboros_mobile/screens/cycle_creation_screen.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:ouroboros_mobile/widgets/donut_chart.dart';
 import 'package:ouroboros_mobile/widgets/study_session_list.dart';
@@ -12,6 +12,8 @@ import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/providers/active_plan_provider.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:ouroboros_mobile/providers/stopwatch_provider.dart';
+import 'package:collection/collection.dart';
 
 class PlanningScreen extends StatefulWidget {
   final bool isEditMode;
@@ -28,10 +30,25 @@ class _PlanningScreenState extends State<PlanningScreen> {
   Subject? _subjectToAdd;
   final TextEditingController _durationToAddController = TextEditingController();
 
-  void _onStartStudy(BuildContext context, StudySession session) async { // Make async
+  Topic? _findTopicByText(List<Topic> topics, String text) {
+    for (var topic in topics) {
+      if (topic.topic_text == text) {
+        return topic;
+      }
+      if (topic.sub_topics != null) {
+        final found = _findTopicByText(topic.sub_topics!, text);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
+
+  void _onStartStudy(BuildContext context, StudySession session) async {
     final activePlanProvider = Provider.of<ActivePlanProvider>(context, listen: false);
-    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-    final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
+    final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
     final planId = activePlanProvider.activePlan?.id;
 
     if (planId == null) {
@@ -41,26 +58,21 @@ class _PlanningScreenState extends State<PlanningScreen> {
       return;
     }
 
-    // Await the result from the StopwatchModal
-    final result = await showDialog<Map<String, dynamic>?>(
-      context: context,
-      builder: (ctx) => StopwatchModal(
-        planId: planId,
-        initialSubjectId: session.subjectId,
-        initialTopic: session.subject,
-        initialDurationMinutes: session.duration,
-        // The onSaveAndClose will now just pop with a value
-        onSaveAndClose: (time, subjectId, topic) {
-          Navigator.of(ctx).pop({
-            'time': time,
-            'subjectId': subjectId,
-            'topic': topic,
-          });
-        },
-      ),
+    final subject = allSubjectsProvider.subjects.firstWhereOrNull((s) => s.id == session.subjectId);
+    final topic = subject != null ? _findTopicByText(subject.topics, session.subject) : null;
+
+    stopwatchProvider.setContext(
+      planId: planId,
+      subjectId: session.subjectId,
+      topic: topic,
+      durationMinutes: session.duration,
     );
 
-    // Handle the result after the dialog is closed
+    final result = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder: (ctx) => const StopwatchModal(),
+    );
+
     if (result != null) {
       final int time = result['time'];
       final String? subjectId = result['subjectId'];
@@ -74,8 +86,8 @@ class _PlanningScreenState extends State<PlanningScreen> {
           plan_id: activePlanProvider.activePlan!.id,
           date: DateTime.now().toIso8601String(),
           subject_id: subjectId,
-          topic: topic.topic_text,
-          study_time: 0,
+          topic: '', // Deixar o tópico vazio para seleção manual
+          study_time: time,
           category: 'teoria',
           questions: {},
           review_periods: [],
@@ -85,7 +97,6 @@ class _PlanningScreenState extends State<PlanningScreen> {
           videos: [],
         );
 
-        // Use the PlanningScreen's context to show the next modal
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
@@ -93,10 +104,8 @@ class _PlanningScreenState extends State<PlanningScreen> {
             planId: newRecord.plan_id,
             initialRecord: newRecord,
             onSave: (record) {
-              historyProvider.addStudyRecord(record);
-              if (record.count_in_planning) {
-                planningProvider.updateProgress(record);
-              }
+              Provider.of<HistoryProvider>(context, listen: false).addStudyRecord(record);
+              Provider.of<PlanningProvider>(context, listen: false).updateProgress(record);
             },
           ),
         );
@@ -107,7 +116,6 @@ class _PlanningScreenState extends State<PlanningScreen> {
   void _onRegisterStudy(BuildContext context, StudySession session) {
     final activePlanProvider = Provider.of<ActivePlanProvider>(context, listen: false);
     final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-    final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final planId = activePlanProvider.activePlan?.id;
 
@@ -123,9 +131,9 @@ class _PlanningScreenState extends State<PlanningScreen> {
       userId: authProvider.currentUser!.name,
       plan_id: planId,
       date: DateTime.now().toIso8601String().split('T')[0],
-      study_time: session.duration * 60 * 1000, // Convert minutes to milliseconds
+      study_time: session.duration * 60 * 1000,
       subject_id: session.subjectId,
-      topic: session.subject,
+      topic: '', // Deixar o tópico vazio para seleção manual
       category: 'teoria',
       questions: {},
       review_periods: [],
@@ -143,9 +151,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
         initialRecord: newRecord,
         onSave: (record) {
           historyProvider.addStudyRecord(record);
-          if (record.count_in_planning) {
-            planningProvider.updateProgress(record);
-          }
+          Provider.of<PlanningProvider>(context, listen: false).updateProgress(record);
         },
       ),
     );
@@ -172,7 +178,8 @@ class _PlanningScreenState extends State<PlanningScreen> {
 
   void _onReorderSessions(int oldIndex, int newIndex) {
     final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
-    final reorderedCycle = List<StudySession>.from(planningProvider.studyCycle!);    if (oldIndex < newIndex) {
+    final reorderedCycle = List<StudySession>.from(planningProvider.studyCycle!);
+    if (oldIndex < newIndex) {
       newIndex -= 1;
     }
     final item = reorderedCycle.removeAt(oldIndex);
@@ -197,11 +204,11 @@ class _PlanningScreenState extends State<PlanningScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.info_outline, size: 80, color: Colors.grey),
+                  Icon(Icons.info_outline, size: 80, color: Colors.teal),
                   SizedBox(height: 16),
                   Text(
                     'Selecione um plano de estudos para visualizar o planejamento.',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                    style: TextStyle(fontSize: 18, color: Colors.teal),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -239,9 +246,10 @@ class _PlanningScreenState extends State<PlanningScreen> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => const CycleCreationModal(),
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const CycleCreationScreen(),
+                  ),
                 );
               },
               icon: const Icon(Icons.add),
@@ -252,6 +260,8 @@ class _PlanningScreenState extends State<PlanningScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
               ),
             ),
           ],
@@ -283,12 +293,13 @@ class _PlanningScreenState extends State<PlanningScreen> {
                       children: [
                         Expanded(
                           child: Card(
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.teal[700] : Colors.teal,
                             child: Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
                                 children: [
-                                  const Text('Ciclos Completos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                  Text(planningProvider.completedCycles.toString(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.amber)),
+                                  const Text('Ciclos Completos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  Text(planningProvider.completedCycles.toString(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                                 ],
                               ),
                             ),
@@ -297,19 +308,25 @@ class _PlanningScreenState extends State<PlanningScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: Card(
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.teal[700] : Colors.teal,
                             child: Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Progresso da Semana', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                  const Text('Progresso no Ciclo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                                   const SizedBox(height: 10),
-                                  LinearProgressIndicator(
-                                    value: totalCycleDuration == 0 ? 0 : planningProvider.currentProgressMinutes / totalCycleDuration,
-                                    minHeight: 10,
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(5.0), // Half of minHeight
+                                    child: LinearProgressIndicator(
+                                      value: totalCycleDuration == 0 ? 0 : planningProvider.currentProgressMinutes / totalCycleDuration,
+                                      minHeight: 10,
+                                      color: Colors.white,
+                                      backgroundColor: Colors.white.withOpacity(0.3),
+                                    ),
                                   ),
                                   const SizedBox(height: 10),
-                                  Text('${_formatDuration(planningProvider.currentProgressMinutes)} / ${_formatDuration(totalCycleDuration)}'),
+                                  Text('${_formatDuration(planningProvider.currentProgressMinutes)} / ${_formatDuration(totalCycleDuration)}', style: const TextStyle(color: Colors.white)),
                                 ],
                               ),
                             ),
@@ -320,7 +337,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
                     const SizedBox(height: 16),
                     DonutChart(
                       cycle: planningProvider.studyCycle!,
-                      studyHours: planningProvider.studyHours,
+                      studyHours: _formatDuration(totalCycleDuration - planningProvider.currentProgressMinutes),
                       sessionProgressMap: planningProvider.sessionProgressMap,
                     ),
                     const SizedBox(height: 20),
@@ -330,14 +347,28 @@ class _PlanningScreenState extends State<PlanningScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Adicionar Nova Sessão', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            const Text('Adicionar Nova Sessão', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal)),
                             const SizedBox(height: 10),
                             Consumer<AllSubjectsProvider>(
                               builder: (context, allSubjectsProvider, child) {
                                 return DropdownButtonFormField<Subject>(
                                   isExpanded: true,
                                   value: _subjectToAdd,
-                                  hint: const Text('Selecione uma matéria'),
+                                  hint: Text('Selecione uma matéria', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.grey[600])),
+                                  dropdownColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.white,
+                                  style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+                                  decoration: InputDecoration(
+                                    labelText: 'Matéria',
+                                    labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                                    ),
+                                  ),
                                   onChanged: (Subject? newValue) {
                                     setState(() {
                                       _subjectToAdd = newValue;
@@ -355,9 +386,18 @@ class _PlanningScreenState extends State<PlanningScreen> {
                             const SizedBox(height: 10),
                             TextField(
                               controller: _durationToAddController,
-                              decoration: const InputDecoration(
+                              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+                              decoration: InputDecoration(
                                 labelText: 'Duração (min)',
-                                border: OutlineInputBorder(),
+                                labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                                ),
                               ),
                               keyboardType: TextInputType.number,
                             ),
@@ -381,6 +421,10 @@ class _PlanningScreenState extends State<PlanningScreen> {
                                   });
                                 }
                               },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal,
+                                foregroundColor: Colors.white,
+                              ),
                               child: const Text('Adicionar Sessão'),
                             ),
                           ],
@@ -394,8 +438,12 @@ class _PlanningScreenState extends State<PlanningScreen> {
               pinned: true,
               floating: true,
               automaticallyImplyLeading: false, // Remove back button from SliverAppBar
-              title: const TabBar(
-                tabs: [
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Usa a cor de fundo do Scaffold
+              title: TabBar(
+                labelColor: Colors.teal == Brightness.dark ? Colors.teal : Colors.teal,
+                unselectedLabelColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey,
+                indicatorColor: Colors.teal == Brightness.dark ? Colors.teal : Colors.teal,
+                tabs: const [
                   Tab(text: 'Sequência de Estudos'),
                   Tab(text: 'Estudos Concluídos'),
                 ],
@@ -455,6 +503,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
                         onReorder: _onReorderSessions,
                         emptyListMessage: 'Nenhuma sessão concluída ainda.',
                         sessionProgressMap: planningProvider.sessionProgressMap,
+                        extraStudyTimeBySubjectId: planningProvider.extraStudyTimeBySubjectId, // Passando os dados aqui
                       ),
                     ),
                   ],

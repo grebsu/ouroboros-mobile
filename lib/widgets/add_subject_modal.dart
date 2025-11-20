@@ -121,9 +121,30 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.initialSubjectData == null ? 'Nova Disciplina' : 'Editar Disciplina'),
-      content: SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: Theme.of(context).cardColor,
+      appBar: AppBar(
+        title: Text(widget.initialSubjectData == null ? 'Nova Disciplina' : 'Editar Disciplina'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: _handleSave,
+              child: const Text('Salvar'),
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
@@ -132,15 +153,21 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Nome da Disciplina',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                  ),
                 ),
                 validator: (value) => (value == null || value.isEmpty) ? 'Campo obrigatório' : null,
               ),
-              const SizedBox(height: 20),
-              const Text('Selecione uma Cor', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
+              Text('Selecione uma Cor', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 8.0,
                 runSpacing: 8.0,
@@ -153,34 +180,41 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                       decoration: BoxDecoration(
                         color: Color(int.parse(color.replaceFirst('#', '0xFF'))),
                         shape: BoxShape.circle,
-                        border: _selectedColor == color 
-                          ? Border.all(color: Theme.of(context).indicatorColor, width: 3) 
-                          : null,
+                        border: _selectedColor == color
+                            ? Border.all(color: Theme.of(context).primaryColor, width: 3)
+                            : null,
                       ),
                     ),
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _topicsController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Tópicos',
                   hintText: 'Ex:\n* Direito Administrativo\n  Origem, Conceito e Fontes\n  * Regime Jurídico\n    Princípios expressos',
                   helperText: "Use 2 espaços para subtópicos e '*' para agrupar.",
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                  ),
+                  helperStyle: const TextStyle(color: Colors.grey),
+                  hintStyle: const TextStyle(color: Colors.grey),
                 ),
-                maxLines: 12,
-                style: const TextStyle(fontFamily: 'monospace'),
+                maxLines: 8,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
               ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        ElevatedButton(onPressed: _handleSave, child: const Text('Salvar')),
-      ],
     );
   }
 }

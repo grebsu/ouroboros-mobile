@@ -13,7 +13,7 @@ class SubjectsScreen extends StatelessWidget {
       body: Consumer<AllSubjectsProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: Colors.teal));
           }
 
           if (provider.subjects.isEmpty) {
@@ -24,6 +24,14 @@ class SubjectsScreen extends StatelessWidget {
               ),
             );
           }
+
+          final orientation = MediaQuery.of(context).orientation;
+          final crossAxisCount = orientation == Orientation.portrait ? 1 : 3;
+          final childAspectRatio = orientation == Orientation.portrait ? 1.4 : 1.0;
+
+          final totalStudyHours = provider.getTotalStudyHours();
+          final totalQuestions = provider.getTotalQuestions();
+          final overallPerformance = provider.getOverallPerformance();
 
           return ListView(
             padding: const EdgeInsets.all(16.0),
@@ -49,8 +57,9 @@ class SubjectsScreen extends StatelessWidget {
                 ),
               ),
 
-              // Overall Stats Card (Placeholder for now)
+              // Overall Stats Card
               Card(
+                color: Colors.teal,
                 elevation: 4.0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                 child: Padding(
@@ -58,9 +67,9 @@ class SubjectsScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: <Widget>[
-                      _buildOverallStat(context, Icons.book, '0h 0m', 'Total de Horas'),
-                      _buildOverallStat(context, Icons.quiz, '0', 'Total de Questões'),
-                      _buildOverallStat(context, Icons.bar_chart, '0%', 'Desempenho Geral'),
+                      _buildOverallStat(context, Icons.book, totalStudyHours, 'Total de Horas'),
+                      _buildOverallStat(context, Icons.quiz, totalQuestions.toString(), 'Total de Questões'),
+                      _buildOverallStat(context, Icons.bar_chart, '${overallPerformance.toStringAsFixed(0)}%', 'Desempenho Geral'),
                     ],
                   ),
                 ),
@@ -72,19 +81,16 @@ class SubjectsScreen extends StatelessWidget {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // 2 colunas
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
                   crossAxisSpacing: 8.0,
                   mainAxisSpacing: 8.0,
-                  childAspectRatio: 1.0, // Ajuste conforme necessário para o tamanho do card
+                  childAspectRatio: childAspectRatio,
                 ),
                 itemCount: provider.subjects.length,
                 itemBuilder: (context, index) {
                   final subject = provider.subjects[index];
-                  final planNames = provider.subjects
-                      .where((s) => s.id == subject.id) // Filter for the current subject
-                      .map((s) => provider.plansMap[s.plan_id]?.name ?? 'Plano Desconhecido')
-                      .toList();
+                  final planName = provider.plansMap[subject.plan_id]?.name ?? 'Plano Desconhecido';
 
                   final studyHours = provider.getStudyHoursForSubject(subject.id);
                   final questions = provider.getQuestionsForSubject(subject.id);
@@ -99,7 +105,7 @@ class SubjectsScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    child: _buildSubjectCard(context, subject, studyHours, questions.toString(), performance, planNames),
+                    child: _buildSubjectCard(context, subject, studyHours, questions.toString(), '${performance.toStringAsFixed(0)}%', [planName]),
                   );
                 },
               ),
@@ -113,16 +119,23 @@ class SubjectsScreen extends StatelessWidget {
   Widget _buildOverallStat(BuildContext context, IconData icon, String value, String label) {
     return Column(
       children: <Widget>[
-        Icon(icon, size: 24, color: Colors.amber),
+        Container(
+          padding: const EdgeInsets.all(8.0),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+                      child: Icon(icon, size: 42, color: Colors.teal),        ),
         const SizedBox(height: 4.0),
-        Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12)),
+        Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, color: Colors.white), textAlign: TextAlign.center),
       ],
     );
   }
 
   Widget _buildSubjectCard(BuildContext context, Subject subject, String studyHours, String questions, String performance, List<String> plans) {
     return Card(
+      color: Color(int.parse(subject.color.replaceFirst('#', '0xFF'))),
       elevation: 4.0,
       shape: RoundedRectangleBorder(
         side: BorderSide(color: Color(int.parse(subject.color.replaceFirst('#', '0xFF'))), width: 2), // Use subject color
@@ -131,33 +144,35 @@ class SubjectsScreen extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             Text(
               subject.subject,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 16),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center, // Centralize the subject title
             ),
             const SizedBox(height: 8.0),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                _buildOverallStat(context, Icons.timer, studyHours, 'Horas'),
+                Expanded(child: _buildOverallStat(context, Icons.timer, studyHours, 'Horas')),
                 const SizedBox(width: 8.0),
-                _buildOverallStat(context, Icons.check_circle, questions, 'Questões'),
+                Expanded(child: _buildOverallStat(context, Icons.check_circle, questions, 'Questões')),
                 const SizedBox(width: 8.0),
-                _buildOverallStat(context, Icons.trending_up, performance, 'Desempenho'),
+                Expanded(child: _buildOverallStat(context, Icons.trending_up, performance, 'Desempenho')),
               ],
             ),
             const SizedBox(height: 8.0),
-            Text('Presente nos Planos:', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 12)),
+            Text('Presente nos Planos:', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
             const SizedBox(height: 4.0),
-            Wrap(
-              spacing: 4.0,
-              runSpacing: 2.0,
-              children: plans.map((plan) => Chip(label: Text(plan, style: const TextStyle(fontSize: 10)), visualDensity: VisualDensity.compact, padding: EdgeInsets.zero)).toList(),
-            ),
+            SingleChildScrollView(
+                child: Wrap(
+                  spacing: 4.0,
+                  runSpacing: 2.0,
+                  children: plans.map((plan) => Chip(label: Text(plan, style: const TextStyle(fontSize: 10)), visualDensity: VisualDensity.compact, padding: EdgeInsets.zero)).toList(),
+                ),
+              ),
           ],
         ),
       ),

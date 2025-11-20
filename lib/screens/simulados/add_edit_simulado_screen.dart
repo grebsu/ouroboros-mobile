@@ -244,6 +244,17 @@ class _AddEditSimuladoScreenState extends State<AddEditSimuladoScreen> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
+        headingRowColor: MaterialStateProperty.resolveWith(
+          (states) => Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey.shade800 // Cor do cabeçalho no modo escuro
+              : Colors.grey.shade200, // Cor do cabeçalho no modo claro
+        ),
+        headingTextStyle: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white // Cor do texto do cabeçalho no modo escuro
+              : Colors.black, // Cor do texto do cabeçalho no modo claro
+        ),
         dataRowHeight: 70.0,
         columnSpacing: 8.0, // Reduzido de 20.0 para 8.0
         columns: _buildColumns(isLandscape),
@@ -278,10 +289,24 @@ class _AddEditSimuladoScreenState extends State<AddEditSimuladoScreen> {
   }
 
   List<DataRow> _buildRows(bool isLandscape) {
-    return _subjects.map((subject) {
+    return _subjects.asMap().entries.map((entry) {
+      final index = entry.key;
+      final subject = entry.value;
+
+      final rowColor = Theme.of(context).brightness == Brightness.dark
+          ? (index.isOdd ? Colors.grey.shade900 : Colors.grey.shade800) // Cores para o modo escuro
+          : (index.isOdd ? Colors.grey.withOpacity(0.05) : Colors.transparent); // Cores para o modo claro
+
+      final borderColor = Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey.shade700 // Cor da borda no modo escuro
+          : Colors.grey.shade300; // Cor da borda no modo claro
+
       final cells = <DataCell>[
         // Matéria com cor
-        DataCell(SizedBox(
+        DataCell(Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+          ),
           width: isLandscape ? 220 : 150, // Largura condicional para a coluna da matéria
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -303,85 +328,122 @@ class _AddEditSimuladoScreenState extends State<AddEditSimuladoScreen> {
         )),
 
         // Peso
-        DataCell(NumberField<num>(
-          notifier: subject.weight,
-          onDecrease: () => subject.weight.value = (subject.weight.value - 1).clamp(0, double.infinity),
-          onIncrease: () => subject.weight.value = (subject.weight.value + 1).clamp(0, double.infinity),
-          onChanged: (v) => subject.weight.value = num.tryParse(v) ?? 1,
-          width: 100,
+        DataCell(Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+          ),
+          child: Center(
+            child: NumberField<num>(
+              notifier: subject.weight,
+              onDecrease: () => subject.weight.value = (subject.weight.value - 1).clamp(0, double.infinity),
+              onIncrease: () => subject.weight.value = (subject.weight.value + 1).clamp(0, double.infinity),
+              onChanged: (v) => subject.weight.value = num.tryParse(v) ?? 1,
+              width: 100,
+            ),
+          ),
         )),
 
         // Total de Questões
-        DataCell(NumberField<int>(
-          notifier: subject.totalQuestions,
-          onDecrease: () => subject.totalQuestions.value = (subject.totalQuestions.value - 1).clamp(0, 999),
-          onIncrease: () => subject.totalQuestions.value = (subject.totalQuestions.value + 1).clamp(0, 999),
-          onChanged: (v) => subject.totalQuestions.value = int.tryParse(v) ?? 0,
-          width: 100,
-          isInt: true,
+        DataCell(Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+          ),
+          child: Center(
+            child: NumberField<int>(
+              notifier: subject.totalQuestions,
+              onDecrease: () => subject.totalQuestions.value = (subject.totalQuestions.value - 1).clamp(0, 999),
+              onIncrease: () => subject.totalQuestions.value = (subject.totalQuestions.value + 1).clamp(0, 999),
+              onChanged: (v) => subject.totalQuestions.value = int.tryParse(v) ?? 0,
+              width: 100,
+              isInt: true,
+            ),
+          ),
         )),
 
         // Corretas
-        DataCell(NumberField<int>(
-          notifier: subject.correct,
-          onDecrease: () => subject.correct.value = (subject.correct.value - 1).clamp(0, 999),
-          onIncrease: () {
-            if (subject.correct.value + subject.incorrect.value < subject.totalQuestions.value) {
-              subject.correct.value = (subject.correct.value + 1).clamp(0, 999);
-            }
-          },
-          onChanged: (v) {
-            final value = int.tryParse(v) ?? 0;
-            if (value + subject.incorrect.value <= subject.totalQuestions.value) {
-              subject.correct.value = value;
-            }
-          },
-          width: 100,
-          isInt: true,
+        DataCell(Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+          ),
+          child: Center(
+            child: NumberField<int>(
+              notifier: subject.correct,
+              onDecrease: () => subject.correct.value = (subject.correct.value - 1).clamp(0, 999),
+              onIncrease: () {
+                if (subject.correct.value + subject.incorrect.value < subject.totalQuestions.value) {
+                  subject.correct.value = (subject.correct.value + 1).clamp(0, 999);
+                }
+              },
+              onChanged: (v) {
+                final value = int.tryParse(v) ?? 0;
+                if (value + subject.incorrect.value <= subject.totalQuestions.value) {
+                  subject.correct.value = value;
+                }
+              },
+              width: 100,
+              isInt: true,
+            ),
+          ),
         )),
 
         // Incorretas
-        DataCell(NumberField<int>(
-          notifier: subject.incorrect,
-          onDecrease: () => subject.incorrect.value = (subject.incorrect.value - 1).clamp(0, 999),
-          onIncrease: () {
-            if (subject.correct.value + subject.incorrect.value < subject.totalQuestions.value) {
-              subject.incorrect.value = (subject.incorrect.value + 1).clamp(0, 999);
-            }
-          },
-          onChanged: (v) {
-            final value = int.tryParse(v) ?? 0;
-            if (value + subject.correct.value <= subject.totalQuestions.value) {
-              subject.incorrect.value = value;
-            }
-          },
-          width: 100,
-          isInt: true,
+        DataCell(Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+          ),
+          child: Center(
+            child: NumberField<int>(
+              notifier: subject.incorrect,
+              onDecrease: () => subject.incorrect.value = (subject.incorrect.value - 1).clamp(0, 999),
+              onIncrease: () {
+                if (subject.correct.value + subject.incorrect.value < subject.totalQuestions.value) {
+                  subject.incorrect.value = (subject.incorrect.value + 1).clamp(0, 999);
+                }
+              },
+              onChanged: (v) {
+                final value = int.tryParse(v) ?? 0;
+                if (value + subject.correct.value <= subject.totalQuestions.value) {
+                  subject.incorrect.value = value;
+                }
+              },
+              width: 100,
+              isInt: true,
+            ),
+          ),
         )),
       ];
 
       if (isLandscape) {
         cells.addAll([
-          DataCell(
-            ListenableBuilder(
+          DataCell(Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+            ),
+            child: ListenableBuilder(
               listenable: Listenable.merge([subject.totalQuestions, subject.correct, subject.incorrect]),
               builder: (context) {
                 final blank = subject.totalQuestions.value - subject.correct.value - subject.incorrect.value;
                 return Center(child: Text(blank.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)));
               },
             ),
-          ),
-          DataCell(
-            ListenableBuilder(
+          )),
+          DataCell(Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+            ),
+            child: ListenableBuilder(
               listenable: Listenable.merge([subject.correct, subject.weight]),
               builder: (context) {
                 final points = subject.correct.value * subject.weight.value;
                 return Center(child: Text(points.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)));
               },
             ),
-          ),
-          DataCell(
-            ListenableBuilder(
+          )),
+          DataCell(Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+            ),
+            child: ListenableBuilder(
               listenable: Listenable.merge([subject.correct, subject.totalQuestions]),
               builder: (context) {
                 final performance = subject.totalQuestions.value > 0
@@ -390,16 +452,24 @@ class _AddEditSimuladoScreenState extends State<AddEditSimuladoScreen> {
                 return Center(child: Text('$performance%', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)));
               },
             ),
-          ),
+          )),
         ]);
       }
 
-      cells.add(DataCell(IconButton(
-        icon: const Icon(Icons.delete, color: Colors.red),
-        onPressed: () => setState(() => _subjects.remove(subject)),
+      cells.add(DataCell(Container(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.delete, color: Colors.red),
+          onPressed: () => setState(() => _subjects.remove(subject)),
+        ),
       )));
 
-      return DataRow(cells: cells);
+      return DataRow(
+        color: MaterialStateProperty.resolveWith((states) => rowColor),
+        cells: cells,
+      );
     }).toList();
   }
 
@@ -517,7 +587,7 @@ class _NumberFieldState<T extends num> extends State<NumberField<T>> {
         keyboardType: TextInputType.number,
         onChanged: widget.onChanged,
         decoration: InputDecoration(
-          border: const OutlineInputBorder(),
+          border: InputBorder.none,
           contentPadding: const EdgeInsets.only(left: 8, right: 4, top: 8, bottom: 8),
           suffixIcon: ClipRRect(
             borderRadius: const BorderRadius.only(topLeft: Radius.circular(12.0), bottomLeft: Radius.circular(12.0)),
@@ -533,7 +603,7 @@ class _NumberFieldState<T extends num> extends State<NumberField<T>> {
                     heroTag: null,
                     onPressed: widget.onIncrease,
                     mini: true,
-                    backgroundColor: Colors.amber,
+                    backgroundColor: Colors.teal,
                     shape: const RoundedRectangleBorder(),
                     child: const Icon(Icons.add, size: 16),
                   ),
@@ -545,7 +615,7 @@ class _NumberFieldState<T extends num> extends State<NumberField<T>> {
                     heroTag: null,
                     onPressed: widget.onDecrease,
                     mini: true,
-                    backgroundColor: Colors.amber.shade200,
+                    backgroundColor: Colors.teal.shade200,
                     shape: const RoundedRectangleBorder(),
                     child: const Icon(Icons.remove, size: 16),
                   ),

@@ -34,6 +34,14 @@ class _FilterModalState extends State<FilterModal> {
   List<String> _selectedSubjects = [];
   List<String> _selectedTopics = [];
 
+  final Map<String, IconData> _categoryIcons = {
+    'Jurisprudência': Icons.gavel_rounded,
+    'Leitura de lei': Icons.menu_book,
+    'Questões': Icons.quiz,
+    'Revisão': Icons.refresh,
+    'Teoria': Icons.book_rounded, // Changed from Icons.edit_note
+  };
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +101,25 @@ class _FilterModalState extends State<FilterModal> {
       initialDate: isStartDate ? (_startDate ?? DateTime.now()) : (_endDate ?? _startDate ?? DateTime.now()),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.fromSwatch(
+              primarySwatch: Colors.teal,
+              brightness: Theme.of(context).brightness,
+            ).copyWith(
+              onPrimary: Colors.white,
+              onSurface: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.teal,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -114,9 +141,9 @@ class _FilterModalState extends State<FilterModal> {
       builder: (_, controller) {
         return Material(
           child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: Theme.of(context).dialogBackgroundColor,
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
               ),
@@ -129,9 +156,9 @@ class _FilterModalState extends State<FilterModal> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Filtros Avançados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text('Filtros Avançados', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close, color: Theme.of(context).iconTheme.color),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -151,7 +178,10 @@ class _FilterModalState extends State<FilterModal> {
                           child: InkWell(
                             onTap: () => _selectDate(context, true),
                             child: InputDecorator(
-                              decoration: const InputDecoration(labelText: 'Data de Início'),
+                              decoration: const InputDecoration(
+                                labelText: 'Data de Início',
+                                labelStyle: TextStyle(color: Colors.teal),
+                              ),
                               child: Text(_startDate != null ? DateFormat('dd/MM/yyyy').format(_startDate!) : 'Selecione'),
                             ),
                           ),
@@ -161,7 +191,10 @@ class _FilterModalState extends State<FilterModal> {
                           child: InkWell(
                             onTap: () => _selectDate(context, false),
                             child: InputDecorator(
-                              decoration: const InputDecoration(labelText: 'Data de Fim'),
+                              decoration: const InputDecoration(
+                                labelText: 'Data de Fim',
+                                labelStyle: TextStyle(color: Colors.teal),
+                              ),
                               child: Text(_endDate != null ? DateFormat('dd/MM/yyyy').format(_endDate!) : 'Selecione'),
                             ),
                           ),
@@ -188,23 +221,38 @@ class _FilterModalState extends State<FilterModal> {
                     ),
                     const SizedBox(height: 24),
                     _buildSectionTitle('Categoria'),
-                    Wrap(
-                      spacing: 8.0,
-                      children: widget.availableCategories.map((category) {
-                        return FilterChip(
-                          label: Text(category),
-                          selected: _selectedCategories.contains(category),
-                          onSelected: (selected) {
-                            setState(() {
-                              if (selected) {
-                                _selectedCategories.add(category);
-                              } else {
-                                _selectedCategories.remove(category);
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
+                    Center(
+                      child: Wrap(
+                        spacing: 12.0, // Increased horizontal spacing
+                        runSpacing: 12.0, // Added vertical spacing
+                        children: widget.availableCategories.map((category) {
+                                                  return FilterChip(
+                                                    avatar: Icon(_categoryIcons[category] ?? Icons.category, color: Colors.teal),
+                                                    label: Text(
+                                                      category,
+                                                      style: TextStyle(
+                                                        fontSize: _selectedCategories.contains(category) ? 20 : 18, // Larger when selected
+                                                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                                                      ),
+                                                    ),
+                                                    selected: _selectedCategories.contains(category),
+                                                    backgroundColor: Colors.teal.withOpacity(0.1),
+                                                    selectedColor: Colors.teal.withOpacity(0.2),
+                                                    showCheckmark: false, // Remove checkmark
+                                                    padding: _selectedCategories.contains(category)
+                                                        ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12) // Larger padding when selected
+                                                        : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                                    onSelected: (selected) {
+                                                      setState(() {
+                                                        if (selected) {
+                                                          _selectedCategories.add(category);
+                                                        } else {
+                                                          _selectedCategories.remove(category);
+                                                        }
+                                                      });
+                                                    },
+                                                  );                        }).toList(),
+                      ),
                     ),
                     const SizedBox(height: 24),
                     _buildSectionTitle('Disciplina e Tópico'),
@@ -241,11 +289,16 @@ class _FilterModalState extends State<FilterModal> {
                   children: [
                     TextButton(
                       onPressed: _clearFilters,
+                      style: TextButton.styleFrom(foregroundColor: Colors.teal),
                       child: const Text('Limpar'),
                     ),
                     const SizedBox(width: 16),
                     ElevatedButton(
                       onPressed: _applyFilters,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                      ),
                       child: const Text('Aplicar'),
                     ),
                   ],
@@ -261,7 +314,7 @@ class _FilterModalState extends State<FilterModal> {
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -271,7 +324,13 @@ class _FilterModalState extends State<FilterModal> {
       keyboardType: TextInputType.number,
       decoration: InputDecoration(
         labelText: label,
-        border: const OutlineInputBorder(),
+        labelStyle: TextStyle(color: Theme.of(context).colorScheme.primary),
+        border: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.teal),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.teal, width: 2.0),
+        ),
       ),
     );
   }

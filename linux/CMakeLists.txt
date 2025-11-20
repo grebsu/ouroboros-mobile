@@ -73,7 +73,6 @@ set_target_properties(${BINARY_NAME}
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
 include(flutter/generated_plugins.cmake)
-target_include_directories(${BINARY_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/flutter/ephemeral/plugins/flutter_inappwebview/linux/include")
 
 
 # === Installation ===

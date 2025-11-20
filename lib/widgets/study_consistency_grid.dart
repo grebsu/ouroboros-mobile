@@ -10,13 +10,13 @@ class StudyConsistencyGrid extends StatelessWidget {
     if (!(day['active'] as bool)) return Colors.grey.shade200;
     switch (day['status']) {
       case 'studied':
-        return Colors.amber.shade500;
+        return Colors.teal;
       case 'not_studied':
-        return Colors.grey.shade300;
+        return Colors.redAccent;
       case 'rest_day':
-        return Colors.green.shade400;
+        return Colors.blueAccent;
       default:
-        return Colors.grey.shade200;
+        return Colors.grey;
     }
   }
 

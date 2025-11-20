@@ -21,16 +21,17 @@ class HistoryProvider with ChangeNotifier {
   List<StudyRecord> _allStudyRecords = [];
   Map<String, Subject> _allSubjectsMap = {};
   bool _isLoading = false;
+  bool _isDisposed = false;
 
   List<StudyRecord> get records => _records;
   List<StudyRecord> get allStudyRecords => _allStudyRecords;
   List<String> get availableCategories {
     final List<String> categories = [
-      'Jurisprudência',
-      'Leitura de lei',
-      'Questões',
-      'Revisão',
       'Teoria',
+      'Revisão',
+      'Questões',
+      'Leitura de lei',
+      'Jurisprudência',
     ];
     return categories;
   }
@@ -39,13 +40,16 @@ class HistoryProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _filterProvider.removeListener(fetchHistory);
     super.dispose();
   }
 
   void _setLoading(bool value) {
     _isLoading = value;
-    notifyListeners();
+    if (!_isDisposed) {
+      notifyListeners();
+    }
   }
 
   Future<void> fetchHistory() async {
@@ -117,97 +121,110 @@ class HistoryProvider with ChangeNotifier {
   Future<void> addStudyRecord(StudyRecord record) async {
     if (_authProvider?.currentUser == null) return;
     _setLoading(true);
-    final recordWithUser = record.copyWith(userId: _authProvider!.currentUser!.name);
-    await _dbService.createStudyRecord(recordWithUser);
+    try {
+      final recordWithUser = record.copyWith(userId: _authProvider!.currentUser!.name);
+      await _dbService.createStudyRecord(recordWithUser);
 
-    final newReviewRecords = _generateReviewRecords(recordWithUser);
-    for (var review in newReviewRecords) {
-      await _reviewProvider.addReview(review);
+      final newReviewRecords = _generateReviewRecords(recordWithUser);
+      for (var review in newReviewRecords) {
+        await _reviewProvider.addReview(review);
+      }
+    } finally {
+      await fetchHistory(); // Refresh the list
     }
-
-    await fetchHistory(); // Refresh the list
   }
 
   Future<void> updateStudyRecord(StudyRecord record) async {
     if (_authProvider?.currentUser == null) return;
     _setLoading(true);
+    try {
+      // 1. Obter e excluir os ReviewRecords antigos associados a este StudyRecord
+      final oldReviewRecords = await _dbService.readReviewRecordsForStudyRecord(record.id, _authProvider!.currentUser!.name);
+      for (var oldReview in oldReviewRecords) {
+        await _reviewProvider.deleteReview(oldReview.id);
+      }
 
-    // 1. Obter e excluir os ReviewRecords antigos associados a este StudyRecord
-    final oldReviewRecords = await _dbService.readReviewRecordsForStudyRecord(record.id, _authProvider!.currentUser!.name);
-    for (var oldReview in oldReviewRecords) {
-      await _reviewProvider.deleteReview(oldReview.id);
+      final recordWithUser = record.copyWith(userId: _authProvider!.currentUser!.name);
+      await _dbService.updateStudyRecord(recordWithUser);
+
+      // 2. Gerar e adicionar os novos ReviewRecords
+      final newReviewRecords = _generateReviewRecords(recordWithUser);
+      for (var review in newReviewRecords) {
+        await _reviewProvider.addReview(review);
+      }
+    } finally {
+      await fetchHistory(); // Refresh the list
     }
-
-    final recordWithUser = record.copyWith(userId: _authProvider!.currentUser!.name);
-    await _dbService.updateStudyRecord(recordWithUser);
-
-    // 2. Gerar e adicionar os novos ReviewRecords
-    final newReviewRecords = _generateReviewRecords(recordWithUser);
-    for (var review in newReviewRecords) {
-      await _reviewProvider.addReview(review);
-    }
-
-    await fetchHistory(); // Refresh the list
   }
 
   Future<void> toggleTopicCompletion({required String subjectId, required String topicText, required String planId}) async {
     if (_authProvider?.currentUser == null) return;
     _setLoading(true);
-    final allRecords = await _dbService.readStudyRecordsForUser(_authProvider!.currentUser!.name);
-    StudyRecord? existingRecord;
     try {
-      existingRecord = allRecords.firstWhere((r) => r.subject_id == subjectId && r.topic == topicText);
-    } catch (e) {
-      existingRecord = null;
-    }
+      final allRecords = await _dbService.readStudyRecordsForUser(_authProvider!.currentUser!.name);
+      StudyRecord? existingRecord;
+      try {
+        existingRecord = allRecords.firstWhere((r) => r.subject_id == subjectId && r.topic == topicText);
+      } catch (e) {
+        existingRecord = null;
+      }
 
-    if (existingRecord != null) {
-      final recordToSave = StudyRecord(
-        id: existingRecord.id,
-        userId: _authProvider!.currentUser!.name,
-        plan_id: existingRecord.plan_id,
-        date: existingRecord.date,
-        subject_id: existingRecord.subject_id,
-        topic: existingRecord.topic,
-        category: existingRecord.category,
-        study_time: existingRecord.study_time,
-        questions: existingRecord.questions,
-        material: existingRecord.material,
-        notes: existingRecord.notes,
-        review_periods: existingRecord.review_periods,
-        teoria_finalizada: !existingRecord.teoria_finalizada,
-        count_in_planning: existingRecord.count_in_planning,
-        pages: existingRecord.pages,
-        videos: existingRecord.videos,
-      );
-      await _dbService.updateStudyRecord(recordToSave);
-    } else {
-      final newRecord = StudyRecord(
-        id: Uuid().v4(),
-        userId: _authProvider!.currentUser!.name,
-        plan_id: planId, // Requires a planId, which is a challenge from the global Edital screen
-        date: DateTime.now().toIso8601String(),
-        subject_id: subjectId,
-        topic: topicText,
-        category: 'teoria',
-        study_time: 0,
-        questions: {'correct': 0, 'total': 0},
-        review_periods: [],
-        teoria_finalizada: true,
-        count_in_planning: false,
-        pages: [],
-        videos: [],
-      );
-      await _dbService.createStudyRecord(newRecord);
+      if (existingRecord != null) {
+        final recordToSave = StudyRecord(
+          id: existingRecord.id,
+          userId: _authProvider!.currentUser!.name,
+          plan_id: existingRecord.plan_id,
+          date: existingRecord.date,
+          subject_id: existingRecord.subject_id,
+          topic: existingRecord.topic,
+          category: existingRecord.category,
+          study_time: existingRecord.study_time,
+          questions: existingRecord.questions,
+          material: existingRecord.material,
+          notes: existingRecord.notes,
+          review_periods: existingRecord.review_periods,
+          teoria_finalizada: !existingRecord.teoria_finalizada,
+          count_in_planning: existingRecord.count_in_planning,
+          pages: existingRecord.pages,
+          videos: existingRecord.videos,
+        );
+        await _dbService.updateStudyRecord(recordToSave);
+      } else {
+        final newRecord = StudyRecord(
+          id: Uuid().v4(),
+          userId: _authProvider!.currentUser!.name,
+          plan_id: planId, // Requires a planId, which is a challenge from the global Edital screen
+          date: DateTime.now().toIso8601String(),
+          subject_id: subjectId,
+          topic: topicText,
+          category: 'teoria',
+          study_time: 0,
+          questions: {'correct': 0, 'total': 0},
+          review_periods: [],
+          teoria_finalizada: true,
+          count_in_planning: false,
+          pages: [],
+          videos: [],
+        );
+        await _dbService.createStudyRecord(newRecord);
+      }
+    } finally {
+      await fetchHistory();
     }
-
-    await fetchHistory();
   }
 
   Future<void> deleteStudyRecord(String id) async {
+    if (_authProvider?.currentUser == null) return;
     _setLoading(true);
-    await _dbService.deleteStudyRecord(id);
-    await fetchHistory(); // Refresh the list
+    try {
+      // 1. Excluir os ReviewRecords associados
+      await _reviewProvider.deleteReviewsForStudyRecord(id);
+
+      // 2. Excluir o StudyRecord
+      await _dbService.deleteStudyRecord(id);
+    } finally {
+      await fetchHistory(); // Refresh the list
+    }
   }
 
   List<ReviewRecord> _generateReviewRecords(StudyRecord studyRecord) {

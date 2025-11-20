@@ -22,7 +22,7 @@ class GeralPerformanceChart extends StatelessWidget {
         children: [
           PieChart(
             PieChartData(
-              sections: _generateSections(),
+              sections: _generateSections(context),
               centerSpaceRadius: 60,
               sectionsSpace: 2,
               pieTouchData: PieTouchData(enabled: true),
@@ -33,7 +33,7 @@ class GeralPerformanceChart extends StatelessWidget {
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.amber,
+              color: Colors.teal,
             ),
           ),
         ],
@@ -41,25 +41,25 @@ class GeralPerformanceChart extends StatelessWidget {
     );
   }
 
-  List<PieChartSectionData> _generateSections() {
+  List<PieChartSectionData> _generateSections(BuildContext context) {
     final incorrectQuestions = totalQuestions - totalCorrectQuestions;
     final correctPercentageValue = totalQuestions > 0 ? (totalCorrectQuestions / totalQuestions) * 100 : 0;
     final incorrectPercentageValue = totalQuestions > 0 ? (incorrectQuestions / totalQuestions) * 100 : 0;
 
     return [
       PieChartSectionData(
-        color: Colors.amber,
+        color: Colors.teal,
         value: correctPercentageValue.toDouble(),
         title: '$totalCorrectQuestions Acertos',
         radius: 20,
-        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black),
+        titleStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodySmall?.color),
       ),
       PieChartSectionData(
         color: Colors.red,
         value: incorrectPercentageValue.toDouble(),
         title: '$incorrectQuestions Erros',
         radius: 20,
-        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black),
+        titleStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodySmall?.color),
       ),
     ];
   }

@@ -94,65 +94,93 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
   }
 
   Widget _buildHeader() {
+    final theme = Theme.of(context);
     return Container(
-      color: Colors.amber.shade50,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.1),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(8.0)),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2), width: 1),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(flex: 5, child: Text('Disciplina/Tópico', style: TextStyle(fontWeight: FontWeight.bold))),
-          Expanded(flex: 2, child: Text('Acertos', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-          Expanded(flex: 2, child: Text('Erros', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-          Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-          Expanded(flex: 3, child: Text('Desempenho', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
+          Expanded(flex: 5, child: Text('Disciplina/Tópico', style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
+          Expanded(flex: 2, child: Text('Acertos', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
+          Expanded(flex: 2, child: Text('Erros', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
+          Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
+          Expanded(flex: 3, child: Text('Desempenho', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
         ],
       ),
     );
   }
 
   Widget _buildRow(HierarchicalPerformanceNode node) {
+    final theme = Theme.of(context);
     final hasChildren = node.children.isNotEmpty;
     final isExpanded = _expandedNodes.contains(node.id);
+    final isEvenRow = _flattenedData.indexOf(node) % 2 == 0;
 
-    return InkWell(
-      onTap: hasChildren ? () => _toggleNode(node.id) : null,
-      child: Container(
-        color: node.isGroupingTopic ? Colors.grey.shade100 : Colors.transparent,
-        padding: EdgeInsets.only(left: 8.0 + (node.level * 16.0), right: 8.0, top: 12.0, bottom: 12.0),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 5,
-              child: Row(
-                children: [
-                  if (hasChildren)
-                    Icon(isExpanded ? Icons.expand_more : Icons.chevron_right, size: 18)
-                  else
-                    const SizedBox(width: 18),
-                  const SizedBox(width: 4),
-                  Expanded(
+    Color? rowBackgroundColor = node.isGroupingTopic
+        ? theme.colorScheme.primary.withOpacity(0.05)
+        : (isEvenRow ? theme.colorScheme.surfaceVariant.withOpacity(0.1) : Colors.transparent);
+
+    Color performanceColor;
+    if (node.percentualAcerto >= 70) {
+      performanceColor = Colors.green.shade700;
+    } else if (node.percentualAcerto >= 50) {
+      performanceColor = Colors.orange.shade700;
+    } else {
+      performanceColor = Colors.red.shade700;
+    }
+
+    return Column(
+      children: [
+        InkWell(
+          onTap: hasChildren ? () => _toggleNode(node.id) : null,
+          child: Container(
+            color: rowBackgroundColor,
+            padding: EdgeInsets.only(left: 8.0 + (node.level * 16.0), right: 8.0, top: 12.0, bottom: 12.0),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Row(
+                    children: [
+                      if (hasChildren)
+                        Icon(isExpanded ? Icons.expand_more : Icons.chevron_right, size: 18, color: theme.textTheme.bodyLarge?.color)
+                      else
+                        const SizedBox(width: 18),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          node.name,
+                          style: TextStyle(
+                            fontWeight: node.isGroupingTopic ? FontWeight.bold : FontWeight.normal,
+                            color: theme.textTheme.bodyLarge?.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(flex: 2, child: Text('${node.acertos}', textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodyLarge?.color))),
+                Expanded(flex: 2, child: Text('${node.erros}', textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodyLarge?.color))),
+                Expanded(flex: 2, child: Text('${node.total}', textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodyLarge?.color))),
+                Expanded(
+                  flex: 3,
+                  child: Center(
                     child: Text(
-                      node.name,
-                      style: TextStyle(fontWeight: node.isGroupingTopic ? FontWeight.bold : FontWeight.normal),
+                      '${node.percentualAcerto.toStringAsFixed(1)}%',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: performanceColor),
                     ),
                   ),
-                ],
-              ),
-            ),
-            Expanded(flex: 2, child: Text('${node.acertos}', textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text('${node.erros}', textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text('${node.total}', textAlign: TextAlign.center)),
-            Expanded(
-              flex: 3,
-              child: Center(
-                child: Text(
-                  '${node.percentualAcerto.toStringAsFixed(1)}%',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        Divider(height: 1, thickness: 0.5, color: theme.dividerColor.withOpacity(0.5)),
+      ],
     );
   }
 }

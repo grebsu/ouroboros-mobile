@@ -44,8 +44,8 @@ class MentoriaProvider with ChangeNotifier {
 
   void _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    _sequentialTopics = prefs.getBool('sequentialTopics') ?? false;
-    _useHitRate = prefs.getBool('useHitRate') ?? true;
+    _sequentialTopics = prefs.getBool('sequentialTopics') ?? true;
+    _useHitRate = prefs.getBool('useHitRate') ?? false;
     _prioritizeLessStudiedTime = prefs.getBool('prioritizeLessStudiedTime') ?? false;
     _prioritizeMoreStudiedTime = prefs.getBool('prioritizeMoreStudiedTime') ?? false;
     _prioritizeMostErrors = prefs.getBool('prioritizeMostErrors') ?? false;
@@ -151,6 +151,9 @@ class MentoriaScreen extends StatelessWidget {
                 title: const Text('Recomendar tópicos em ordem sequencial'),
                 subtitle: const Text('Ideal para quem está começando em uma matéria e prefere seguir a ordem do edital.'),
                 value: provider.sequentialTopics,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: (value) {
                   provider.setSequentialTopics(value);
                 },
@@ -167,30 +170,45 @@ class MentoriaScreen extends StatelessWidget {
                 title: const Text('Taxa de Acertos'),
                 subtitle: const Text('Prioriza tópicos com menor percentual de acertos.'),
                 value: provider.useHitRate,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: provider.sequentialTopics ? null : (value) => provider.setUseHitRate(value),
               ),
               SwitchListTile(
                 title: const Text('Menos tempo estudado'),
                 subtitle: const Text('Prioriza tópicos com menor tempo de estudo acumulado.'),
                 value: provider.prioritizeLessStudiedTime,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeLessStudiedTime(value),
               ),
               SwitchListTile(
                 title: const Text('Mais tempo estudado'),
                 subtitle: const Text('Prioriza tópicos com maior tempo de estudo acumulado.'),
                 value: provider.prioritizeMoreStudiedTime,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeMoreStudiedTime(value),
               ),
               SwitchListTile(
                 title: const Text('Maior número de erros'),
                 subtitle: const Text('Prioriza tópicos com maior quantidade de erros em questões.'),
                 value: provider.prioritizeMostErrors,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeMostErrors(value),
               ),
               SwitchListTile(
                 title: const Text('Menor quantidade de questões feitas'),
                 subtitle: const Text('Prioriza tópicos com poucas questões respondidas.'),
                 value: provider.prioritizeLeastQuestions,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeLeastQuestions(value),
               ),
               const Divider(),
@@ -205,12 +223,18 @@ class MentoriaScreen extends StatelessWidget {
                 title: const Text('Revisões Pendentes'),
                 subtitle: const Text('Prioriza tópicos com revisões próximas ou atrasadas.'),
                 value: provider.prioritizePendingReviews,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizePendingReviews(value),
               ),
               SwitchListTile(
                 title: const Text('Tópicos Mais Revisados'),
                 subtitle: const Text('Prioriza tópicos que foram mais revisados.'),
                 value: provider.prioritizeMostReviewed,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeMostReviewed(value),
               ),
               const Divider(),
@@ -225,12 +249,18 @@ class MentoriaScreen extends StatelessWidget {
                 title: const Text('Adicionados Recentemente'),
                 subtitle: const Text('Prioriza tópicos novos no plano de estudos.'),
                 value: provider.prioritizeRecentlyAdded,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeRecentlyAdded(value),
               ),
               SwitchListTile(
                 title: const Text('Não estudados há um tempo'),
                 subtitle: const Text('Prioriza tópicos não estudados em um período específico.'),
                 value: provider.prioritizeNotStudiedInTimeWindow,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
                 onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeNotStudiedInTimeWindow(value),
               ),
               if (provider.prioritizeNotStudiedInTimeWindow)
@@ -247,6 +277,9 @@ class MentoriaScreen extends StatelessWidget {
                           max: 90,
                           divisions: 89,
                           label: provider.notStudiedInDays.toString(),
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          // Slider NÃO tem inactiveThumbColor ou inactiveTrackColor
+                          inactiveColor: Colors.grey[300], // Cor da trilha quando inativo
                           onChanged: provider.sequentialTopics ? null : (value) => provider.setNotStudiedInDays(value.toInt()),
                         ),
                       ),

@@ -101,7 +101,7 @@ class _StatsScreenState extends State<StatsScreen> {
           body: Consumer2<HistoryProvider, AllSubjectsProvider>(
             builder: (context, historyProvider, allSubjectsProvider, child) {
               if (historyProvider.isLoading || allSubjectsProvider.isLoading) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: CircularProgressIndicator(color: Colors.teal));
               }
 
               final filteredRecords = historyProvider.allStudyRecords.where((record) {
@@ -787,115 +787,123 @@ class _StatsScreenState extends State<StatsScreen> {
 
                                   // Linha 1
 
-                                  Row(
+                                                                    IntrinsicHeight(
 
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                      child: Row(
 
-                                    children: [
+                                                                        crossAxisAlignment: CrossAxisAlignment.start,
 
-                                      Expanded(
+                                                                        children: [
 
-                                        child: Card(
+                                                                          Expanded(
 
-                                          elevation: 2,
+                                                                            child: Card(
 
-                                          child: Padding(
+                                                                              elevation: 2,
 
-                                            padding: const EdgeInsets.all(16.0),
+                                                                              child: Padding(
 
-                                            child: Column(
+                                                                                padding: const EdgeInsets.all(16.0),
 
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                child: Column(
 
-                                              children: [
+                                                                                  crossAxisAlignment: CrossAxisAlignment.start,
 
-                                                const Text('Desempenho Geral', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                                                                  children: [
 
-                                                const SizedBox(height: 16),
+                                                                                    const Text('Desempenho Geral', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
 
-                                                GeralPerformanceChart(
+                                                                                    const SizedBox(height: 16),
 
-                                                  correctPercentage: totalQuestions > 0 ? (totalCorrectQuestions / totalQuestions) * 100 : 0,
+                                                                                    GeralPerformanceChart(
 
-                                                  totalCorrectQuestions: totalCorrectQuestions,
+                                                                                      correctPercentage: totalQuestions > 0 ? (totalCorrectQuestions / totalQuestions) * 100 : 0,
 
-                                                  totalQuestions: totalQuestions,
+                                                                                      totalCorrectQuestions: totalCorrectQuestions,
 
-                                                ),
+                                                                                      totalQuestions: totalQuestions,
 
-                                              ],
+                                                                                    ),
 
-                                            ),
+                                                                                  ],
 
-                                          ),
+                                                                                ),
 
-                                        ),
+                                                                              ),
 
-                                      ),
+                                                                            ),
 
-                                      const SizedBox(width: 16),
+                                                                          ),
 
-                                      Expanded(
+                                                                          const SizedBox(width: 16),
 
-                                        child: _buildSummaryCard(
+                                                                          Expanded(
 
-                                          title: 'Tempo Total de Estudo',
+                                                                            child: _buildSummaryCard(
 
-                                          value: formatTime(totalStudyTime),
+                                                                              title: 'Tempo Total de Estudo',
 
-                                          subtitle1: '${formatTime(uniqueStudyDays > 0 ? (totalStudyTime / uniqueStudyDays).round() : 0)} por dia estudado (média)',
+                                                                              value: formatTime(totalStudyTime),
 
-                                          subtitle2: 'Total de $uniqueStudyDays dias estudados',
+                                                                              subtitle1: '${formatTime(uniqueStudyDays > 0 ? (totalStudyTime / uniqueStudyDays).round() : 0)} por dia estudado (média)',
 
-                                        ),
+                                                                              subtitle2: 'Total de $uniqueStudyDays dias estudados',
 
-                                      ),
+                                                                            ),
 
-                                    ],
+                                                                          ),
 
-                                  ),
+                                                                        ],
+
+                                                                      ),
+
+                                                                    ),
 
                                   const SizedBox(height: 16),
 
                                   // Linha 2
 
-                                  Row(
+                                                                    IntrinsicHeight(
 
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                      child: Row(
 
-                                    children: [
+                                                                        crossAxisAlignment: CrossAxisAlignment.start,
 
-                                      Expanded(
+                                                                        children: [
 
-                                        child: _buildSummaryCard(
+                                                                          Expanded(
 
-                                          title: 'Páginas Lidas',
+                                                                            child: _buildSummaryCard(
 
-                                          value: totalPagesRead.toString(),
+                                                                              title: 'Páginas Lidas',
 
-                                          subtitle1: '${(totalPagesRead / (totalStudyTime > 0 ? totalStudyTime / 3600000 : 1)).toStringAsFixed(1)} páginas/hora',
+                                                                              value: totalPagesRead.toString(),
 
-                                        ),
+                                                                              subtitle1: '${(totalPagesRead / (totalStudyTime > 0 ? totalStudyTime / 3600000 : 1)).toStringAsFixed(1)} páginas/hora',
 
-                                      ),
+                                                                            ),
 
-                                      const SizedBox(width: 16),
+                                                                          ),
 
-                                      Expanded(
+                                                                          const SizedBox(width: 16),
 
-                                        child: _buildSummaryCard(
+                                                                          Expanded(
 
-                                          title: 'Tempo Total de Videoaulas',
+                                                                            child: _buildSummaryCard(
 
-                                          value: formatTime(totalVideoTime),
+                                                                              title: 'Tempo Total de Videoaulas',
 
-                                        ),
+                                                                              value: formatTime(totalVideoTime),
 
-                                      ),
+                                                                            ),
 
-                                    ],
+                                                                          ),
 
-                                  ),
+                                                                        ],
+
+                                                                      ),
+
+                                                                    ),
 
                                   const SizedBox(height: 16),
 
@@ -979,178 +987,178 @@ class _StatsScreenState extends State<StatsScreen> {
 
                     children: [
 
-                      Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                                            Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
 
-                      const SizedBox(height: 8),
+                                            const SizedBox(height: 8),
 
-                      Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.amber)),
+                                            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal)),
 
-                      if (subtitle1 != null) Text(subtitle1, style: TextStyle(color: Colors.grey[600])),
+                                            if (subtitle1 != null) Text(subtitle1, style: TextStyle(color: Colors.grey[600])),
 
-                      if (subtitle2 != null) Text(subtitle2, style: TextStyle(color: Colors.grey[600])),
+                                            if (subtitle2 != null) Text(subtitle2, style: TextStyle(color: Colors.grey[600])),
 
-                    ],
+                                          ],
 
-                  ),
+                                        ),
 
-                ),
+                                      ),
 
-              );
+                                    );
 
-            }
+                                  }
 
-          
+                      
 
-            Widget _buildChartCard(String title, String chartPlaceholderText) {
+                                  Widget _buildChartCard(String title, String chartPlaceholderText) {
 
-              return Card(
+                                    return Card(
 
-                elevation: 2,
+                                      elevation: 2,
 
-                child: Padding(
+                                      child: Padding(
 
-                  padding: const EdgeInsets.all(16.0),
+                                        padding: const EdgeInsets.all(16.0),
 
-                  child: Column(
+                                        child: Column(
 
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
 
-                    children: [
+                                          children: [
 
-                      Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
 
-                      const SizedBox(height: 16),
+                                            const SizedBox(height: 16),
 
-                      Container(
+                                            Container(
 
-                        height: 200,
+                                              height: 200,
 
-                        color: Colors.grey[200],
+                                              color: Colors.grey[200],
 
-                        child: Center(child: Text(chartPlaceholderText)),
+                                              child: Center(child: Text(chartPlaceholderText)),
 
-                      ),
+                                            ),
 
-                    ],
+                                          ],
 
-                  ),
+                                        ),
 
-                ),
+                                      ),
 
-              );
+                                    );
 
-            }
+                                  }
 
-          
+                      
 
-            Widget _buildSubjectHoursAndCategoryChart(BuildContext context, Map<Subject, double> subjectHours, Map<String, double> categoryHours) {
+                                  Widget _buildSubjectHoursAndCategoryChart(BuildContext context, Map<Subject, double> subjectHours, Map<String, double> categoryHours) {
 
-              return Column(
+                                    return Column(
 
-                children: [
+                                      children: [
 
-                  Card(
+                                        Card(
 
-                      elevation: 2,
+                                            elevation: 2,
 
-                      child: Padding(
+                                            child: Padding(
 
-                        padding: const EdgeInsets.all(16.0),
+                                              padding: const EdgeInsets.all(16.0),
 
-                        child: Column(
+                                              child: Column(
 
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
 
-                          children: [
+                                                children: [
 
-                            Row(
+                                                  Row(
 
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
-                              children: [
+                                                    children: [
 
-                                const Expanded(
+                                                      const Expanded(
 
-                                  child: Text('DISCIPLINAS x HORAS DE ESTUDO', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                                        child: Text('DISCIPLINAS x HORAS DE ESTUDO', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
 
-                                ),
+                                                      ),
 
-                                Row(
+                                                      Row(
 
-                                  children: [
+                                                        children: [
 
-                                    IconButton(
+                                                          IconButton(
 
-                                      icon: const Icon(Icons.arrow_downward),
+                                                            icon: const Icon(Icons.arrow_downward),
 
-                                      onPressed: () => setState(() => _subjectSortOrder = 'desc'),
+                                                            onPressed: () => setState(() => _subjectSortOrder = 'desc'),
 
-                                      color: _subjectSortOrder == 'desc' ? Colors.amber : Colors.grey,
+                                                            color: _subjectSortOrder == 'desc' ? Colors.teal : Colors.grey,
 
-                                    ),
+                                                          ),
 
-                                    IconButton(
+                                                          IconButton(
 
-                                      icon: const Icon(Icons.arrow_upward),
+                                                            icon: const Icon(Icons.arrow_upward),
 
-                                      onPressed: () => setState(() => _subjectSortOrder = 'asc'),
+                                                            onPressed: () => setState(() => _subjectSortOrder = 'asc'),
 
-                                      color: _subjectSortOrder == 'asc' ? Colors.amber : Colors.grey,
+                                                            color: _subjectSortOrder == 'asc' ? Colors.teal : Colors.grey,
 
-                                    ),
+                                                          ),
 
-                                    IconButton(
+                                                          IconButton(
 
-                                      icon: const Icon(Icons.sort_by_alpha),
+                                                            icon: const Icon(Icons.sort_by_alpha),
 
-                                      onPressed: () => setState(() => _subjectSortOrder = 'alpha'),
+                                                            onPressed: () => setState(() => _subjectSortOrder = 'alpha'),
 
-                                      color: _subjectSortOrder == 'alpha' ? Colors.amber : Colors.grey,
+                                                            color: _subjectSortOrder == 'alpha' ? Colors.teal : Colors.grey,
 
-                                    ),
+                                                          ),
 
-                                  ],
+                                                        ],
 
-                                ),
+                                                      ),
 
-                              ],
+                                                    ],
 
-                            ),
+                                                  ),
 
-                            const SizedBox(height: 16),
+                                                  const SizedBox(height: 16),
 
-                            DisciplinasHorasChart(subjectHours: subjectHours, sortOrder: _subjectSortOrder),
+                                                  DisciplinasHorasChart(subjectHours: subjectHours, sortOrder: _subjectSortOrder),
 
-                          ],
+                                                ],
 
-                        ),
+                                              ),
 
-                      ),
+                                            ),
 
-                    ),
+                                          ),
 
-                  const SizedBox(height: 16),
+                                        const SizedBox(height: 16),
 
-                  Card(
+                                        Card(
 
-                    elevation: 2,
+                                          elevation: 2,
 
-                    child: Padding(
+                                          child: Padding(
 
-                      padding: const EdgeInsets.all(16.0),
+                                            padding: const EdgeInsets.all(16.0),
 
-                      child: CategoryHoursChart(categoryHours: categoryHours),
+                                            child: CategoryHoursChart(categoryHours: categoryHours),
 
-                    ),
+                                          ),
 
-                  ),
+                                        ),
 
-                ],
+                                      ],
 
-              );
+                                    );
 
-            }
+                                  }
 
-          }
+                                }
 
           

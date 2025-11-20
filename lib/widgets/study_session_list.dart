@@ -20,6 +20,7 @@ class StudySessionList extends StatefulWidget {
   final Function(int oldIndex, int newIndex) onReorder;
   final String emptyListMessage;
   final Map<String, int> sessionProgressMap;
+  final Map<String, int> extraStudyTimeBySubjectId; // Novo campo
 
   const StudySessionList({
     Key? key,
@@ -33,6 +34,7 @@ class StudySessionList extends StatefulWidget {
     required this.onReorder,
     required this.emptyListMessage,
     required this.sessionProgressMap,
+    this.extraStudyTimeBySubjectId = const {}, // Novo campo com valor padrão
   }) : super(key: key);
 
   @override
@@ -62,6 +64,7 @@ class _StudySessionListState extends State<StudySessionList> {
       final currentProgress = sessionProgressMap[session.id] ?? 0;
       final isCompleted = currentProgress >= session.duration;
       final progressPercentage = session.duration > 0 ? currentProgress / session.duration : 0.0;
+      final extraTime = widget.extraStudyTimeBySubjectId[session.subjectId] ?? 0;
 
       return Card(
         key: ValueKey(session.id),
@@ -87,6 +90,20 @@ class _StudySessionListState extends State<StudySessionList> {
                   valueColor: AlwaysStoppedAnimation<Color>(Color(int.parse(session.color.replaceFirst('#', '0xFF')))),
                 ),
               ),
+              if (isCompleted && extraTime > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Chip(
+                    label: Text(
+                      '+ ${_formatDuration(extraTime)} (Extra)',
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                    backgroundColor: Colors.indigo.shade400,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
             ],
           ),
           trailing: widget.isEditMode

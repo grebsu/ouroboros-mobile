@@ -51,7 +51,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Criar Conta')),
+      appBar: AppBar(
+        title: const Text('Criar Conta'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32.0),
@@ -60,13 +64,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome de Usuário',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
+                // Adiciona o logo da aplicação
+                Image.asset(
+                  MediaQuery.of(context).platformBrightness == Brightness.dark
+                      ? 'logo/logo-marca-modo-escuro.png'
+                      : 'logo/logo-marca.png',
+                  height: 100, // Ajuste a altura conforme necessário
+                ),
+                const SizedBox(height: 32), // Espaçamento abaixo do logo
+
+                                  TextFormField(
+                                  controller: _nameController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Nome de Usuário',
+                                    border: OutlineInputBorder(),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black, width: 1.0),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(color: Colors.teal, width: 2.0),
+                                    ),
+                                    focusColor: Colors.teal,
+                                    labelStyle: TextStyle(color: Colors.teal),
+                                  ),                  validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor, insira seu nome de usuário';
                     }
@@ -76,9 +96,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Senha',
                     border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black, width: 1.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.teal, width: 2.0),
+                    ),
+                    focusColor: Colors.teal,
+                    labelStyle: TextStyle(color: Colors.teal),
                   ),
                   obscureText: true,
                   validator: (value) {
@@ -94,9 +122,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _confirmPasswordController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Confirmar Senha',
                     border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black, width: 1.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.teal, width: 2.0),
+                    ),
+                    focusColor: Colors.teal,
+                    labelStyle: TextStyle(color: Colors.teal),
                   ),
                   obscureText: true,
                   validator: (value) {
@@ -111,13 +147,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 24),
                 if (_isLoading)
-                  const CircularProgressIndicator()
+                  const CircularProgressIndicator(color: Colors.teal)
                 else
                   ElevatedButton(
                     onPressed: _register,
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50),
-                      backgroundColor: Theme.of(context).primaryColor,
+                      backgroundColor: Colors.teal,
                       foregroundColor: Colors.white,
                     ),
                     child: const Text('Registrar'),

@@ -3,16 +3,19 @@ import 'dart:math';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:ouroboros_mobile/services/database_service.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
+import 'package:ouroboros_mobile/providers/plans_provider.dart';
 
 class AllSubjectsProvider with ChangeNotifier {
   final DatabaseService _dbService = DatabaseService.instance;
   final AuthProvider? _authProvider;
+  final PlansProvider? _plansProvider;
 
   List<Subject> _subjects = [];
   Map<String, Plan> _plansMap = {};
   List<StudyRecord> _studyRecords = [];
   List<SimuladoRecord> _simuladoRecords = [];
   bool _isLoading = false;
+  bool _isDisposed = false;
 
   List<Subject> get subjects => _subjects;
   List<Subject> get uniqueSubjectsByName {
@@ -37,13 +40,31 @@ class AllSubjectsProvider with ChangeNotifier {
   Map<String, Plan> get plansMap => _plansMap;
   bool get isLoading => _isLoading;
 
-  AllSubjectsProvider({AuthProvider? authProvider}) : _authProvider = authProvider {
+  AllSubjectsProvider({AuthProvider? authProvider, PlansProvider? plansProvider})
+      : _authProvider = authProvider,
+        _plansProvider = plansProvider {
     fetchData();
+    _plansProvider?.addListener(_onPlansProviderChanged);
+  }
+
+  void _onPlansProviderChanged() {
+    print('AllSubjectsProvider: PlansProvider mudou, recarregando dados internos.');
+    _internalRefreshData();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _plansProvider?.removeListener(_onPlansProviderChanged);
+    _isDisposed = true;
+    super.dispose();
   }
 
   void _setLoading(bool value) {
     _isLoading = value;
-    notifyListeners();
+    if (!_isDisposed) {
+      notifyListeners();
+    }
   }
 
   // New private method to refresh data without notifying about loading state
@@ -53,6 +74,9 @@ class AllSubjectsProvider with ChangeNotifier {
     _subjects = await _dbService.readAllSubjects(_authProvider!.currentUser!.name);
     final allPlans = await _dbService.readAllPlans(_authProvider!.currentUser!.name);
     _plansMap = { for (var plan in allPlans) plan.id: plan };
+
+    // Filtrar matérias para incluir apenas aquelas com planos existentes
+    _subjects = _subjects.where((subject) => _plansMap.containsKey(subject.plan_id)).toList();
     _studyRecords = await _dbService.readStudyRecordsForUser(_authProvider!.currentUser!.name);
     _simuladoRecords = [];
     for (final plan in allPlans) {
@@ -91,7 +115,7 @@ class AllSubjectsProvider with ChangeNotifier {
     return studyQuestions + simuladoQuestions;
   }
 
-  String getPerformanceForSubject(String subjectId) {
+  double getPerformanceForSubject(String subjectId) {
     int totalCorrect = 0;
     int totalQuestions = 0;
 
@@ -112,11 +136,50 @@ class AllSubjectsProvider with ChangeNotifier {
     }
 
     if (totalQuestions == 0) {
-      return '0%';
+      return 0.0;
     }
 
     final percentage = (totalCorrect / totalQuestions) * 100;
-    return '${percentage.toStringAsFixed(0)}%';
+    return percentage;
+  }
+
+  String getTotalStudyHours() {
+    final totalMilliseconds = _studyRecords.fold<int>(0, (sum, record) => sum + record.study_time);
+    final totalMinutes = totalMilliseconds / 60000;
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    return '${hours.floor()}h ${minutes.round()}m';
+  }
+
+  int getTotalQuestions() {
+    final studyQuestions = _studyRecords.fold<int>(0, (sum, record) => sum + (record.questions['total'] ?? 0));
+    final simuladoQuestions = _simuladoRecords
+        .expand((record) => record.subjects)
+        .fold<int>(0, (sum, subject) => sum + subject.total_questions);
+    return studyQuestions + simuladoQuestions;
+  }
+
+  double getOverallPerformance() {
+    int totalCorrect = 0;
+    int totalQuestions = 0;
+
+    for (final record in _studyRecords) {
+      totalCorrect += record.questions['correct'] ?? 0;
+      totalQuestions += record.questions['total'] ?? 0;
+    }
+
+    for (final record in _simuladoRecords) {
+      for (final subject in record.subjects) {
+        totalCorrect += subject.correct;
+        totalQuestions += subject.total_questions;
+      }
+    }
+
+    if (totalQuestions == 0) {
+      return 0.0;
+    }
+
+    return (totalCorrect / totalQuestions) * 100;
   }
 
   Future<void> addSubject(Subject subject) async {

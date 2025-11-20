@@ -62,6 +62,15 @@ class ReviewProvider with ChangeNotifier {
     await fetchReviews();
   }
 
+  Future<void> deleteReviewsForStudyRecord(String studyRecordId) async {
+    if (_authProvider?.currentUser == null) return;
+    final reviewsToDelete = await _dbService.readReviewRecordsForStudyRecord(studyRecordId, _authProvider!.currentUser!.name);
+    for (var review in reviewsToDelete) {
+      await _dbService.deleteReviewRecord(review.id, _authProvider!.currentUser!.name);
+    }
+    await fetchReviews();
+  }
+
   Future<void> markReviewAsCompleted(ReviewRecord record) async {
     if (_authProvider?.currentUser == null) return;
     final updatedRecord = record.copyWith(

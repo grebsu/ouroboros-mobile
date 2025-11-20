@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:ouroboros_mobile/screens/cycle_creation_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:ouroboros_mobile/providers/subject_provider.dart';
@@ -9,12 +11,15 @@ import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/providers/plans_provider.dart';
 import 'package:ouroboros_mobile/providers/history_provider.dart';
 import 'package:ouroboros_mobile/widgets/add_subject_modal.dart';
-import 'package:ouroboros_mobile/widgets/cycle_creation_modal.dart';
+import 'package:ouroboros_mobile/widgets/create_plan_modal.dart'; // Import CreatePlanModal
 import 'package:ouroboros_mobile/widgets/import_subject_modal.dart';
 import 'package:ouroboros_mobile/widgets/stopwatch_modal.dart';
 import 'package:ouroboros_mobile/widgets/study_register_modal.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:ouroboros_mobile/screens/subject_detail_screen.dart';
+import 'package:collection/collection.dart';
+import 'package:ouroboros_mobile/providers/stopwatch_provider.dart';
 
 class PlanDetailScreen extends StatelessWidget {
   final Plan plan;
@@ -75,7 +80,7 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
   }
 
   String _cleanSubjectName(String rawName) {
-    final stopWords = [' (', ' - ']; // Ordem importa: '(' antes de '-'
+    final stopWords = [' (', ' - '];
     int? firstStopIndex;
 
     for (final word in stopWords) {
@@ -156,7 +161,6 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
                 currentLevelTopics.push(newTopic);
               }
             } else if (child.classList.contains('assunto-filho')) {
-              // Se o elemento anterior era um subassunto, este 'assunto-filho' pertence a ele
               if (currentLevelTopics.length > 0) {
                 const lastTopic = currentLevelTopics[currentLevelTopics.length - 1];
                 lastTopic.sub_topics = processSubassuntos(child);
@@ -179,14 +183,11 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
     final controller = await _controllerCompleter.future.timeout(const Duration(seconds: 30), onTimeout: () {
       throw Exception('WebView controller not ready within 30 seconds.');
     });
-    print('PlanDetailScreen: Iniciando scraping para URL: $url');
-
     await controller.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
 
     final subjectName = await _extractSubjectName(controller);
     final List<Topic> rawTopics = await _extractSubjectTopics(controller);
 
-    // Normalização da contagem de questões
     int maxQuestionsInSubject = 0;
     for (final topic in rawTopics) {
       if (topic.question_count != null && topic.question_count! > maxQuestionsInSubject) {
@@ -198,7 +199,6 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
     for (final topic in rawTopics) {
       int normalizedCount = 0;
       if (maxQuestionsInSubject > 0 && topic.question_count != null) {
-        // Escala para um valor entre 0 e 1000 (exemplo de fator de escala)
         normalizedCount = ((topic.question_count! / maxQuestionsInSubject) * 1000).round();
       }
       normalizedTopics.add(topic.copyWith(question_count: normalizedCount));
@@ -208,46 +208,40 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
       id: const Uuid().v4(),
       plan_id: widget.plan.id,
       subject: subjectName,
-      color: _subjectColors[0], // Cor padrão, pode ser melhorado
+      color: _subjectColors[0],
       topics: rawTopics,
       total_topics_count: rawTopics.length,
       import_source: 'INDIVIDUAL',
     );
 
-    print('PlanDetailScreen: Matéria final montada: ${newSubject.subject} com ${newSubject.topics.length} tópicos.');
     return newSubject;
   }
 
   Future<void> _handleImportSubject(String subjectUrl) async {
-    print('PlanDetailScreen: _handleImportSubject chamado com URL: $subjectUrl');
     try {
       final Subject newSubject = await _scrapeSubject(subjectUrl);
 
       final subjectProvider = Provider.of<SubjectProvider>(context, listen: false);
       final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
 
-      // Verificar se já existe uma matéria com o mesmo nome neste plano
       Subject? existingSubject = await allSubjectsProvider.getSubjectByNameAndPlanId(newSubject.subject, widget.plan.id);
 
       if (existingSubject != null) {
-        // Se existir, atualizar
         final updatedSubject = newSubject.copyWith(id: existingSubject.id, color: existingSubject.color);
         await subjectProvider.updateSubject(updatedSubject);
       } else {
-        // Se não existir, adicionar
         await subjectProvider.addSubject(newSubject);
       }
 
-      await allSubjectsProvider.fetchData(); // Recarregar todas as matérias
-      await subjectProvider.fetchSubjects(widget.plan.id); // Recarregar matérias do plano atual
-      await Provider.of<PlansProvider>(context, listen: false).fetchPlans(); // Adicionado para atualizar a tela de planos
+      await allSubjectsProvider.fetchData();
+      await subjectProvider.fetchSubjects(widget.plan.id);
+      await Provider.of<PlansProvider>(context, listen: false).fetchPlans();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Matéria "${newSubject.subject}" importada com sucesso!')),
       );
 
     } catch (e) {
-      print('PlanDetailScreen: Erro durante a importação da matéria: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao importar a matéria: $e')), 
       );
@@ -255,74 +249,118 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
   }
 
   void _openAddSubjectModal(BuildContext context, {Subject? subjectToEdit}) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (_) {
-        return AddSubjectModal(
-          initialSubjectData: subjectToEdit,
-          onSave: (subjectName, topics, color) async {
-              final provider = Provider.of<SubjectProvider>(context, listen: false);
-              if (subjectToEdit != null) {
-                final updatedSubject = Subject(
-                  id: subjectToEdit.id,
-                  plan_id: subjectToEdit.plan_id,
-                  subject: subjectName,
-                  topics: topics,
-                  color: color,
-                );
-                await provider.updateSubject(updatedSubject);
-              } else {
-                final newSubject = Subject(
-                  id: const Uuid().v4(),
-                  plan_id: widget.plan.id,
-                  subject: subjectName,
-                  topics: topics,
-                  color: color,
-                );
-                await provider.addSubject(newSubject);
-              }
-              // Atualiza o PlansProvider para refletir as mudanças na tela de planos
-              if (mounted) {
-                await Provider.of<PlansProvider>(context, listen: false).fetchPlans();
-              }
-          },
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      builder: (context) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              surfaceTint: Colors.transparent,
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+            ),
+            child: AddSubjectModal(
+              initialSubjectData: subjectToEdit,
+              onSave: (subjectName, topics, color) async {
+                final provider = Provider.of<SubjectProvider>(context, listen: false);
+                if (subjectToEdit != null) {
+                  final updatedSubject = Subject(
+                    id: subjectToEdit.id,
+                    plan_id: subjectToEdit.plan_id,
+                    subject: subjectName,
+                    topics: topics,
+                    color: color,
+                  );
+                  await provider.updateSubject(updatedSubject);
+                } else {
+                  final newSubject = Subject(
+                    id: const Uuid().v4(),
+                    plan_id: widget.plan.id,
+                    subject: subjectName,
+                    topics: topics,
+                    color: color,
+                  );
+                  await provider.addSubject(newSubject);
+                }
+                if (mounted) {
+                  await Provider.of<PlansProvider>(context, listen: false).fetchPlans();
+                }
+              },
+            ),
+          ),
         );
       },
     );
   }
 
-  void _onStartStudy(BuildContext context, StudySession session) {
-    showDialog(
-      context: context,
-      builder: (context) => StopwatchModal(
-        planId: widget.plan.id,
-        onSaveAndClose: (int time, String? subjectId, Topic? topic) {
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-          final record = StudyRecord(
-            id: Uuid().v4(),
-            userId: authProvider.currentUser!.name,
-            plan_id: widget.plan.id,
-            date: DateTime.now().toIso8601String(),
-            subject_id: subjectId!,
-            topic: topic?.topic_text ?? '',
-            study_time: time,
-            category: 'teoria',
-            questions: {},
-            review_periods: [],
-            teoria_finalizada: false,
-            count_in_planning: true,
-            pages: [],
-            videos: [],
-          );
-          Provider.of<HistoryProvider>(context, listen: false).addStudyRecord(record);
-          if (record.count_in_planning) {
-            Provider.of<PlanningProvider>(context, listen: false).updateProgress(record);
-          }
-        },
-        initialSubjectId: session.subjectId,
-        initialTopic: session.subject,
-      ),
+  Topic? _findTopicByText(List<Topic> topics, String text) {
+    for (var topic in topics) {
+      if (topic.topic_text == text) {
+        return topic;
+      }
+      if (topic.sub_topics != null) {
+        final found = _findTopicByText(topic.sub_topics!, text);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
+
+  void _onStartStudy(BuildContext context, StudySession session) async {
+    final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
+
+    final subject = allSubjectsProvider.subjects.firstWhereOrNull((s) => s.id == session.subjectId);
+    final topic = subject != null ? _findTopicByText(subject.topics, session.subject) : null;
+
+    stopwatchProvider.setContext(
+      planId: widget.plan.id,
+      subjectId: session.subjectId,
+      topic: topic,
     );
+
+    final result = await showDialog<Map<String, dynamic>?>( // Capturar o resultado
+      context: context,
+      builder: (context) => const StopwatchModal(), // Não passa onSaveAndClose
+    );
+
+    if (result != null) { // Se o usuário salvou
+      final int time = result['time'];
+      final String? subjectId = result['subjectId'];
+      final Topic? topic = result['topic'];
+      
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final record = StudyRecord(
+        id: Uuid().v4(),
+        userId: authProvider.currentUser!.name,
+        plan_id: widget.plan.id,
+        date: DateTime.now().toIso8601String(),
+        subject_id: subjectId!,
+        topic: topic?.topic_text ?? '',
+        study_time: time,
+        category: 'teoria',
+        questions: {},
+        review_periods: [],
+        teoria_finalizada: false,
+        count_in_planning: true,
+        pages: [],
+        videos: [],
+      );
+      Provider.of<HistoryProvider>(context, listen: false).addStudyRecord(record);
+      if (record.count_in_planning) {
+        Provider.of<PlanningProvider>(context, listen: false).updateProgress(record);
+      }
+    }
   }
 
   void _onRegisterStudy(BuildContext context, StudySession session) {
@@ -365,14 +403,20 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
 
   @override
   Widget build(BuildContext context) {
-    print('PlanDetailScreen: build chamado.');
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.plan.name),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () { /* TODO: Edit Plan Details */ },
+            icon: Icon(Icons.edit, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return CreatePlanModal(initialPlan: widget.plan);
+                },
+              );
+            },
           ),
         ],
       ),
@@ -380,7 +424,6 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
         children: [
           Consumer<SubjectProvider>(
             builder: (context, provider, child) {
-              print('PlanDetailScreen Consumer: isLoading=${provider.isLoading}, subjects.isEmpty=${provider.subjects.isEmpty}');
               return ListView(
                 padding: const EdgeInsets.all(16.0),
                 children: <Widget>[
@@ -399,8 +442,17 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
             child: Offstage(
               offstage: true,
               child: InAppWebView(
+                initialSettings: InAppWebViewSettings(
+                  javaScriptCanOpenWindowsAutomatically: true,
+                  javaScriptEnabled: true,
+                  domStorageEnabled: true,
+                  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
+                  builtInZoomControls: false,
+                  supportZoom: false,
+                useWideViewPort: true,
+                initialScale: 100,
+                ),
                 onWebViewCreated: (controller) {
-                  print('PlanDetailScreen: InAppWebView onWebViewCreated chamado.');
                   if (!_controllerCompleter.isCompleted) {
                     _controllerCompleter.complete(controller);
                   }
@@ -414,11 +466,13 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
         onPressed: () {
           showDialog(
             context: context,
-            builder: (context) => const CycleCreationModal(),
+            builder: (context) => const CycleCreationScreen(),
           );
         },
         label: const Text('Criar Ciclo'),
         icon: const Icon(Icons.add),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
       ),
     );
   }
@@ -437,13 +491,13 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
           child: (widget.plan.iconUrl != null && widget.plan.iconUrl!.isNotEmpty)
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
-                  child: Image.network(
-                    widget.plan.iconUrl!,
+                  child: Image.file(
+                    File(widget.plan.iconUrl!),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => const Icon(Icons.assignment, size: 60, color: Colors.grey),
                   ),
                 )
-              : const Icon(Icons.assignment, size: 60, color: Colors.grey),
+              : const Icon(Icons.assignment, size: 60, color: Colors.teal),
         ),
         const SizedBox(width: 16.0),
         Expanded(
@@ -469,28 +523,27 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
   Widget _buildStatsCard(BuildContext context) {
     return Card(
       elevation: 4.0,
+      color: Colors.teal,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
-            _buildStatColumn(context, '0h 0m', 'Horas Estudadas'),
-            _buildStatColumn(context, '0', 'Questões Resolvidas'),
-            _buildStatColumn(context, '0%', 'Desempenho'),
+            Expanded(child: _buildStatColumn(context, '0h 0m', 'Horas Estudadas')),
+            Expanded(child: _buildStatColumn(context, '0', 'Questões Resolvidas')),
+            Expanded(child: _buildStatColumn(context, '0%', 'Desempenho')),
           ],
         ),
       ),
     );
   }
 
-
-
   Widget _buildStatColumn(BuildContext context, String value, String label) {
     return Column(
       children: <Widget>[
-        Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-        Text(label),
+        Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(label, style: const TextStyle(color: Colors.white), textAlign: TextAlign.center),
       ],
     );
   }
@@ -520,8 +573,8 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.secondary,
-                    foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -529,6 +582,10 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
                   icon: const Icon(Icons.add),
                   label: const Text('Nova'),
                   onPressed: () => _openAddSubjectModal(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -536,7 +593,7 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
         ),
         const SizedBox(height: 16.0),
         if (provider.isLoading)
-          const Center(child: CircularProgressIndicator())
+          const Center(child: CircularProgressIndicator(color: Colors.teal))
         else if (provider.subjects.isEmpty)
           const Center(child: Padding(padding: EdgeInsets.all(32.0), child: Text('Nenhuma disciplina adicionada.')))
         else
@@ -566,7 +623,7 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
           children: <Widget>[
             Container(
               width: 8,
-              height: 80, // Adjust height to fit new info
+              height: 80,
               decoration: BoxDecoration(
                 color: Color(int.parse(subject.color.replaceFirst('#', '0xFF'))),
                 borderRadius: BorderRadius.circular(4),
@@ -587,40 +644,54 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
                 ],
               ),
             ),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'edit') {
-                  _openAddSubjectModal(context, subjectToEdit: subject);
-                } else if (value == 'delete') {
-                  // TODO: Add confirmation dialog
-                  provider.deleteSubject(subject.id, widget.plan.id);
-                } else if (value == 'view') {
-                  // TODO: Navigate to a new screen to view topics
-                }
-              },
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'view',
-                  child: ListTile(
-                    leading: Icon(Icons.visibility),
-                    title: Text('Visualizar Tópicos'),
-                  ),
+            Theme(
+              data: Theme.of(context).copyWith(
+                canvasColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.white,
+                colorScheme: Theme.of(context).colorScheme.copyWith(
+                  surface: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.white,
                 ),
-                const PopupMenuItem<String>(
-                  value: 'edit',
-                  child: ListTile(
-                    leading: Icon(Icons.edit),
-                    title: Text('Editar Disciplina'),
-                  ),
+                popupMenuTheme: PopupMenuThemeData(
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.white,
                 ),
-                const PopupMenuItem<String>(
-                  value: 'delete',
-                  child: ListTile(
-                    leading: Icon(Icons.delete, color: Colors.red),
-                    title: Text('Excluir Disciplina', style: TextStyle(color: Colors.red)),
+              ),
+              child: PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _openAddSubjectModal(context, subjectToEdit: subject);
+                  } else if (value == 'delete') {
+                    provider.deleteSubject(subject.id, widget.plan.id);
+                  } else if (value == 'view') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (ctx) => SubjectDetailScreen(subject: subject),
+                      ),
+                    );
+                  }
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(
+                    value: 'view',
+                    child: ListTile(
+                      leading: Icon(Icons.visibility),
+                      title: Text('Visualizar Tópicos'),
+                    ),
                   ),
-                ),
-              ],
+                  const PopupMenuItem<String>(
+                    value: 'edit',
+                    child: ListTile(
+                      leading: Icon(Icons.edit),
+                      title: Text('Editar Disciplina'),
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'delete',
+                    child: ListTile(
+                      leading: Icon(Icons.delete, color: Colors.red),
+                      title: Text('Excluir Disciplina', style: TextStyle(color: Colors.red)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

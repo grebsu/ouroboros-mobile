@@ -1,8 +1,10 @@
+import 'dart:io'; // Importar dart:io para operações de arquivo
 import 'package:flutter/material.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:ouroboros_mobile/services/database_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
+import 'package:path_provider/path_provider.dart'; // Importar path_provider
 
 class PlansProvider with ChangeNotifier {
   final DatabaseService _dbService = DatabaseService.instance;
@@ -91,6 +93,7 @@ class PlansProvider with ChangeNotifier {
     
     _setLoading(true);
     await _dbService.createPlan(newPlan, _authProvider!.currentUser!.name);
+    await fetchPlans(); // Atualiza a lista de planos após a criação
     _setLoading(false);
     return newPlan;
   }
@@ -105,6 +108,22 @@ class PlansProvider with ChangeNotifier {
   Future<void> deletePlan(String id) async {
     if (_authProvider?.currentUser == null) return;
     _setLoading(true);
+
+    // Retrieve the plan to get its iconUrl before deleting from DB
+    final planToDelete = _plans.firstWhere((plan) => plan.id == id);
+    if (planToDelete.iconUrl != null && planToDelete.iconUrl!.isNotEmpty) {
+      try {
+        final file = File(planToDelete.iconUrl!);
+        if (await file.exists()) {
+          await file.delete();
+          print('PlansProvider: Imagem ${planToDelete.iconUrl} deletada com sucesso.');
+        }
+      } catch (e) {
+        print('PlansProvider: Erro ao deletar imagem ${planToDelete.iconUrl}: $e');
+        // Decide how to handle the error (e.g., log it, show a message, or ignore if not critical)
+      }
+    }
+
     await _dbService.deletePlan(id, _authProvider!.currentUser!.name);
     await fetchPlans(); // Refresh the list and stats
   }

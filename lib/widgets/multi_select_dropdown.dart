@@ -24,7 +24,8 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(widget.placeholder),
+          backgroundColor: Theme.of(context).dialogBackgroundColor,
+          title: Text(widget.placeholder, style: Theme.of(context).textTheme.titleLarge),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -34,7 +35,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                 final option = widget.options[index];
                 final isSelected = widget.selectedOptions.contains(option);
                 return CheckboxListTile(
-                  title: Text(option),
+                  title: Text(option, style: Theme.of(context).textTheme.bodyMedium),
                   value: isSelected,
                   onChanged: (bool? selected) {
                     setState(() {
@@ -54,6 +55,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(foregroundColor: Colors.teal),
               child: const Text('Fechar'),
             ),
           ],
@@ -77,7 +79,9 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
           children: widget.selectedOptions.isNotEmpty
               ? widget.selectedOptions.map((option) {
                   return Chip(
-                    label: Text(option),
+                    label: Text(option, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
+                    backgroundColor: Colors.teal.withOpacity(0.1),
+                    deleteIconColor: Colors.teal,
                     onDeleted: () {
                       widget.onSelectionChanged(widget.selectedOptions.where((o) => o != option).toList());
                     },

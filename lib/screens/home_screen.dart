@@ -27,97 +27,53 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  bool _isLoading = true;
-  Duration _totalStudyTime = Duration.zero;
-  Duration _dailyAverage = Duration.zero;
-  double _performance = 0.0;
-  double _progress = 0.0;
-  Set<DateTime> _studiedDays = {};
-  int _studyStreak = 0;
-  List<PerformanceData> _performanceData = [];
-  List<Duration> _weeklyData = List.filled(7, Duration.zero);
-  List<int> _weeklyQuestionsData = List.filled(7, 0); // Added this line
-  Map<String, Map<String, int>> _dailySubjectStudyTime = {};
-  List<Subject> _subjectColors = [];
-  Duration _weeklyHours = Duration.zero;
-  Duration _goalHours = Duration.zero;
-  int _weeklyQuestions = 0;
-  int _goalQuestions = 0;
   ChartView _chartView = ChartView.time;
-
-  // New state for StudyConsistencyTracker
   DateTime _consistencyEndDate = DateTime.now();
-  List<Map<String, dynamic>> _consistencyData = [];
 
-  void _handleConsistencyNav(int direction) { // direction is -1 for prev, 1 for next
-    final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
+  void _handleConsistencyNav(int direction) {
     setState(() {
-      _consistencyEndDate = _consistencyEndDate.add(Duration(days: direction * 15));
-      _calculateConsistencyData(planningProvider); // Recalculate data for the new date range
+      _consistencyEndDate =
+          _consistencyEndDate.add(Duration(days: direction * 30));
     });
+  }
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    return '${hours}h ${minutes}m';
   }
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchAndCalculateData();
-    });
-  }
+  Widget build(BuildContext context) {
+    final historyProvider = context.watch<HistoryProvider>();
+    final activePlanProvider = context.watch<ActivePlanProvider>();
+    final allSubjectsProvider = context.watch<AllSubjectsProvider>();
+    final planningProvider = context.watch<PlanningProvider>();
 
-  void _calculateConsistencyData(PlanningProvider planningProvider) {
-    final today = DateTime.now();
-    final todayWithoutTime = DateTime(today.year, today.month, today.day);
-    final endDate = DateTime(_consistencyEndDate.year, _consistencyEndDate.month, _consistencyEndDate.day);
-    final startDate = endDate.subtract(const Duration(days: 29)); // 30 days total
-
-    final studyDays = planningProvider.studyDays;
-    final dayFormatter = DateFormat('EEEE', 'pt_BR');
-
-    final List<Map<String, dynamic>> daysData = [];
-    for (int i = 0; i < 30; i++) { // Loop for 30 days
-      final date = startDate.add(Duration(days: i));
-      final dayName = dayFormatter.format(date);
-      final isStudied = _studiedDays.contains(date);
-      // Correctly check if the formatted day name (e.g., 'segunda-feira') corresponds to a stored study day (e.g., 'Segunda')
-      final isStudyDay = studyDays.any((d) => dayName.toLowerCase().startsWith(d.toLowerCase()));
-      final isRestDay = !isStudyDay;
-
-      String status;
-      if (isRestDay) {
-        status = 'rest_day';
-      } else {
-        status = isStudied ? 'studied' : 'not_studied';
-      }
-
-      daysData.add({
-        'date': date,
-        'status': status,
-        'active': date.isBefore(todayWithoutTime) || date.isAtSameMomentAs(todayWithoutTime),
-      });
+    if (historyProvider.isLoading ||
+        allSubjectsProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Colors.teal));
     }
-    _consistencyData = daysData;
-  }
-
-  Future<void> _fetchAndCalculateData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-    final activePlanProvider = Provider.of<ActivePlanProvider>(context, listen: false);
-    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
-    final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
-
-    // Assuming providers are already fetched by a higher-level widget or main.dart
 
     final allRecords = historyProvider.allStudyRecords;
 
+    // Find the oldest study record date
+    DateTime? oldestStudyRecordDate;
+    if (allRecords.isNotEmpty) {
+      oldestStudyRecordDate = allRecords
+          .map((record) => DateTime.parse(record.date).toLocal())
+          .reduce((minDate, date) => date.isBefore(minDate) ? date : minDate);
+      oldestStudyRecordDate = DateTime(oldestStudyRecordDate.year,
+          oldestStudyRecordDate.month, oldestStudyRecordDate.day);
+    }
+
     // Calculate Total Study Time
-    final totalMs = allRecords.fold<int>(0, (sum, record) => sum + record.study_time);
-    _totalStudyTime = Duration(milliseconds: totalMs);
+    final totalMs =
+        allRecords.fold<int>(0, (sum, record) => sum + record.study_time);
+    final totalStudyTime = Duration(milliseconds: totalMs);
 
     // Calculate Daily Average
+    Duration dailyAverage = Duration.zero;
     if (allRecords.isNotEmpty) {
       final Map<DateTime, int> dailyTotals = {};
       for (var record in allRecords) {
@@ -131,7 +87,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       if (dailyTotals.isNotEmpty) {
         final averageMs = totalMs / dailyTotals.length;
-        _dailyAverage = Duration(milliseconds: averageMs.round());
+        dailyAverage = Duration(milliseconds: averageMs.round());
       }
     }
 
@@ -139,30 +95,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     int totalQuestions = 0;
     int correctQuestions = 0;
     for (var record in allRecords) {
-      if (record.questions.containsKey('total') && record.questions['total'] is int) {
+      if (record.questions.containsKey('total') &&
+          record.questions['total'] is int) {
         totalQuestions += record.questions['total'] as int;
       }
-      if (record.questions.containsKey('correct') && record.questions['correct'] is int) {
+      if (record.questions.containsKey('correct') &&
+          record.questions['correct'] is int) {
         correctQuestions += record.questions['correct'] as int;
       }
     }
-    _performance = totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0.0;
+    final performance =
+        totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0.0;
 
     // Calculate Syllabus Progress
+    double progress = 0.0;
     final activePlanId = activePlanProvider.activePlanId;
     if (activePlanId != null) {
-      final subjectsInPlan = allSubjectsProvider.subjects.where((s) => s.plan_id == activePlanId).toList();
-      final totalTopics = subjectsInPlan.fold<int>(0, (sum, subject) => sum + (subject.total_topics_count ?? 0));
-      
+      final subjectsInPlan = allSubjectsProvider.subjects
+          .where((s) => s.plan_id == activePlanId)
+          .toList();
+      final totalTopics = subjectsInPlan.fold<int>(
+          0, (sum, subject) => sum + (subject.total_topics_count ?? 0));
+
       final studiedTopics = <String>{};
       for (var record in allRecords.where((r) => r.plan_id == activePlanId)) {
         studiedTopics.add(record.topic);
       }
-      
-      _progress = totalTopics > 0 ? (studiedTopics.length / totalTopics) * 100 : 0.0;
+
+      progress =
+          totalTopics > 0 ? (studiedTopics.length / totalTopics) * 100 : 0.0;
     }
 
     // Calculate Studied Days and Streak
+    Set<DateTime> studiedDays = {};
+    int studyStreak = 0;
     if (allRecords.isNotEmpty) {
       final uniqueStudyDays = allRecords.map((record) {
         try {
@@ -172,110 +138,133 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return null;
         }
       }).where((d) => d != null).cast<DateTime>().toSet();
-      _studiedDays = uniqueStudyDays;
+      studiedDays = uniqueStudyDays;
 
       // Calculate streak
-      _studyStreak = 0;
       var checkDate = DateTime.now();
       var today = DateTime(checkDate.year, checkDate.month, checkDate.day);
-      
+
       if (!uniqueStudyDays.contains(today)) {
         checkDate = checkDate.subtract(const Duration(days: 1));
       }
 
-      while (uniqueStudyDays.contains(DateTime(checkDate.year, checkDate.month, checkDate.day))) {
-        _studyStreak++;
+      while (uniqueStudyDays
+          .contains(DateTime(checkDate.year, checkDate.month, checkDate.day))) {
+        studyStreak++;
         checkDate = checkDate.subtract(const Duration(days: 1));
       }
     }
 
     // Calculate consistency data for the grid
-    _calculateConsistencyData(planningProvider);
+    final today = DateTime.now();
+    final todayWithoutTime = DateTime(today.year, today.month, today.day);
+    final endDate = DateTime(_consistencyEndDate.year,
+        _consistencyEndDate.month, _consistencyEndDate.day);
+    final startDate = endDate.subtract(const Duration(days: 29));
+
+    final studyDaysPlanning = planningProvider.studyDays;
+    final dayFormatter = DateFormat('EEEE', 'pt_BR');
+
+    final List<Map<String, dynamic>> consistencyData = [];
+    for (int i = 0; i < 30; i++) {
+      final date = startDate.add(Duration(days: i));
+      final dayName = dayFormatter.format(date);
+      final isStudied = studiedDays.contains(date);
+      final isStudyDay = studyDaysPlanning
+          .any((d) => dayName.toLowerCase().startsWith(d.toLowerCase()));
+      final isRestDay = !isStudyDay;
+
+      String status;
+      if (oldestStudyRecordDate != null && date.isBefore(oldestStudyRecordDate)) {
+        status = 'inactive';
+      } else if (isStudied) {
+        status = 'studied';
+      } else if (isRestDay) {
+        status = 'rest_day';
+      } else {
+        status = 'not_studied';
+      }
+
+      consistencyData.add({
+        'date': date,
+        'status': status,
+        'active': date.isBefore(todayWithoutTime) ||
+            date.isAtSameMomentAs(todayWithoutTime),
+      });
+    }
 
     // Calculate Performance Data per Subject
     final Map<String, Map<String, int>> subjectPerformance = {};
+    final Map<String, int> subjectStudyTimeMs = {};
+
     for (var record in allRecords) {
       final subjectId = record.subject_id;
       if (subjectId != null) {
-        subjectPerformance.putIfAbsent(subjectId, () => {'total': 0, 'correct': 0});
-        if (record.questions.containsKey('total') && record.questions['total'] is int) {
-          subjectPerformance[subjectId]!['total'] = (subjectPerformance[subjectId]!['total'] ?? 0) + (record.questions['total'] as int);
+        subjectPerformance.putIfAbsent(
+            subjectId, () => {'total': 0, 'correct': 0});
+        subjectStudyTimeMs.update(
+            subjectId, (value) => value + record.study_time,
+            ifAbsent: () => record.study_time);
+
+        if (record.questions.containsKey('total') &&
+            record.questions['total'] is int) {
+          subjectPerformance[subjectId]!['total'] =
+              (subjectPerformance[subjectId]!['total'] ?? 0) +
+                  (record.questions['total'] as int);
         }
-        if (record.questions.containsKey('correct') && record.questions['correct'] is int) {
-          subjectPerformance[subjectId]!['correct'] = (subjectPerformance[subjectId]!['correct'] ?? 0) + (record.questions['correct'] as int);
+        if (record.questions.containsKey('correct') &&
+            record.questions['correct'] is int) {
+          subjectPerformance[subjectId]!['correct'] =
+              (subjectPerformance[subjectId]!['correct'] ?? 0) +
+                  (record.questions['correct'] as int);
         }
       }
     }
 
-    _performanceData = [];
+    List<PerformanceData> performanceData = [];
     for (var entry in subjectPerformance.entries) {
-      final subject = allSubjectsProvider.subjects.firstWhere((s) => s.id == entry.key, orElse: () => Subject(id: '', plan_id: '', subject: 'Desconhecido', color: '#808080', topics: [], total_topics_count: 0));
+      final subject = allSubjectsProvider.subjects.firstWhere(
+          (s) => s.id == entry.key,
+          orElse: () => Subject(
+              id: '',
+              plan_id: '',
+              subject: 'Desconhecido',
+              color: '#808080',
+              topics: [],
+              total_topics_count: 0));
       final total = entry.value['total'] ?? 0;
       final correct = entry.value['correct'] ?? 0;
-      final performance = total > 0 ? (correct / total) * 100 : 0.0;
-      _performanceData.add(PerformanceData(
+      final perf = total > 0 ? (correct / total) * 100 : 0.0;
+      final studyTime =
+          Duration(milliseconds: subjectStudyTimeMs[entry.key] ?? 0);
+
+      performanceData.add(PerformanceData(
         subject: subject,
         totalQuestions: total,
         correctQuestions: correct,
-        performance: performance,
+        performance: perf,
+        studyTime: studyTime,
       ));
     }
-    // Sort by performance
-    _performanceData.sort((a, b) => a.performance.compareTo(b.performance));
+    performanceData.sort((a, b) => a.performance.compareTo(b.performance));
 
     // Calculate Weekly Data
-    _weeklyData = List.filled(7, Duration.zero);
-    _weeklyQuestionsData = List.filled(7, 0);
-    final today = DateTime.now();
-    final startDate = DateTime(today.year, today.month, today.day).subtract(const Duration(days: 6));
+    List<Duration> weeklyData = List.filled(7, Duration.zero);
+    List<int> weeklyQuestionsData = List.filled(7, 0);
+    final weekStartDate = DateTime(today.year, today.month, today.day)
+        .subtract(const Duration(days: 6));
     for (var record in allRecords) {
       try {
         final recordDate = DateTime.parse(record.date).toLocal();
-        if (recordDate.isAfter(startDate.subtract(const Duration(days: 1)))) {
-          final dayIndex = recordDate.difference(startDate).inDays;
+        if (recordDate.isAfter(weekStartDate.subtract(const Duration(days: 1)))) {
+          final dayIndex = recordDate.difference(weekStartDate).inDays;
           if (dayIndex >= 0 && dayIndex < 7) {
-            _weeklyData[dayIndex] += Duration(milliseconds: record.study_time);
-            if (record.questions.containsKey('total') && record.questions['total'] is int) {
-              _weeklyQuestionsData[dayIndex] += record.questions['total'] as int;
+            weeklyData[dayIndex] += Duration(milliseconds: record.study_time);
+            if (record.questions.containsKey('total') &&
+                record.questions['total'] is int) {
+              weeklyQuestionsData[dayIndex] +=
+                  record.questions['total'] as int;
             }
-          }
-        }
-      } catch (e) {
-        // date parsing error already handled for daily average
-      }
-    }
-
-    // Calculate Daily Subject Study Time
-    _dailySubjectStudyTime = {};
-    for (var record in allRecords) {
-      try {
-        final dateKey = DateTime.parse(record.date).toLocal().toIso8601String().split('T')[0];
-        final subjectName = allSubjectsProvider.subjects.firstWhere((s) => s.id == record.subject_id, orElse: () => Subject(id: '', plan_id: '', subject: 'Desconhecido', color: '#808080', topics: [])).subject;
-        _dailySubjectStudyTime.putIfAbsent(dateKey, () => {});
-        _dailySubjectStudyTime[dateKey]!.update(subjectName, (value) => value + record.study_time, ifAbsent: () => record.study_time);
-      } catch (e) {
-        print('Error calculating daily subject study time: $e');
-      }
-    }
-
-    // Populate Subject Colors
-    _subjectColors = allSubjectsProvider.subjects;
-
-    // Calculate Weekly Goals
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 6));
-
-    _weeklyHours = Duration.zero;
-    _weeklyQuestions = 0;
-
-    for (var record in allRecords) {
-      try {
-        final recordDate = DateTime.parse(record.date).toLocal();
-        if (recordDate.isAfter(startOfWeek.subtract(const Duration(days: 1))) && recordDate.isBefore(endOfWeek.add(const Duration(days: 1)))) {
-          _weeklyHours += Duration(milliseconds: record.study_time);
-          if (record.questions.containsKey('total') && record.questions['total'] is int) {
-            _weeklyQuestions += record.questions['total'] as int;
           }
         }
       } catch (e) {
@@ -283,172 +272,256 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
-    _goalHours = Duration(hours: int.tryParse(planningProvider.studyHours) ?? 0);
-    _goalQuestions = int.tryParse(planningProvider.weeklyQuestionsGoal) ?? 0;
+    // Calculate Daily Subject Study Time
+    Map<String, Map<String, int>> dailySubjectStudyTime = {};
+    for (var record in allRecords) {
+      try {
+        final dateKey =
+            DateTime.parse(record.date).toLocal().toIso8601String().split('T')[0];
+        final subjectName = allSubjectsProvider.subjects
+            .firstWhere((s) => s.id == record.subject_id,
+                orElse: () => Subject(
+                    id: '',
+                    plan_id: '',
+                    subject: 'Desconhecido',
+                    color: '#808080',
+                    topics: []))
+            .subject;
+        dailySubjectStudyTime.putIfAbsent(dateKey, () => {});
+        dailySubjectStudyTime[dateKey]!.update(
+            subjectName, (value) => value + record.study_time,
+            ifAbsent: () => record.study_time);
+      } catch (e) {
+        print('Error calculating daily subject study time: $e');
+      }
+    }
 
-    setState(() {
-      _isLoading = false;
-    });
-  }
+    // Populate Subject Colors
+    final subjectColors = allSubjectsProvider.subjects;
 
-  String _formatDuration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    return '${hours}h ${minutes}m';
-  }
+    // Calculate Weekly Goals
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = startOfWeek.add(const Duration(days: 6));
 
-  @override
-  Widget build(BuildContext context) {
+    Duration weeklyHours = Duration.zero;
+    int weeklyQuestions = 0;
+
+    for (var record in allRecords) {
+      try {
+        final recordDate = DateTime.parse(record.date).toLocal();
+        if (recordDate.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+            recordDate.isBefore(endOfWeek.add(const Duration(days: 1)))) {
+          weeklyHours += Duration(milliseconds: record.study_time);
+          if (record.questions.containsKey('total') &&
+              record.questions['total'] is int) {
+            weeklyQuestions += record.questions['total'] as int;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    final goalHours =
+        Duration(hours: int.tryParse(planningProvider.studyHours) ?? 0);
+    final goalQuestions =
+        int.tryParse(planningProvider.weeklyQuestionsGoal) ?? 0;
+
     return Scaffold(
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Summary Cards
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isLandscape = constraints.maxWidth > 600;
-                      if (isLandscape) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: SummaryCard(
-                              icon: MaterialCommunityIcons.clock_time_three_outline,
-                              title: 'Tempo de Estudo',
-                              value: _formatDuration(_totalStudyTime),
-                              color: Colors.amber,
-                              isLandscape: true,
-                            )),
-                            const SizedBox(width: 16),
-                            Expanded(child: SummaryCard(
-                              icon: MaterialCommunityIcons.calendar_today,
-                              title: 'Média Diária',
-                              value: _formatDuration(_dailyAverage),
-                              color: Colors.amber,
-                              isLandscape: true,
-                            )),
-                            const SizedBox(width: 16),
-                            Expanded(child: SummaryCard(
-                              icon: MaterialCommunityIcons.bullseye_arrow,
-                              title: 'Desempenho',
-                              value: '${_performance.toStringAsFixed(1)}%',
-                              color: Colors.amber,
-                              isLandscape: true,
-                            )),
-                            const SizedBox(width: 16),
-                            Expanded(child: SummaryCard(
-                              icon: MaterialCommunityIcons.file_document_outline,
-                              title: 'Progresso Edital',
-                              value: '${_progress.toStringAsFixed(1)}%',
-                              color: Colors.amber,
-                              isLandscape: true,
-                            )),
-                          ],
-                        );
-                      } else {
-                        return GridView.count(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          childAspectRatio: 1.9, // Adjust card height
-                          children: [
-                            SummaryCard(
-                              icon: MaterialCommunityIcons.clock_time_three_outline,
-                              title: 'Tempo de Estudo',
-                              value: _formatDuration(_totalStudyTime),
-                              color: Colors.amber,
-                            ),
-                            SummaryCard(
-                              icon: MaterialCommunityIcons.calendar_today,
-                              title: 'Média Diária',
-                              value: _formatDuration(_dailyAverage),
-                              color: Colors.amber,
-                            ),
-                            SummaryCard(
-                              icon: MaterialCommunityIcons.bullseye_arrow,
-                              title: 'Desempenho',
-                              value: '${_performance.toStringAsFixed(1)}%',
-                              color: Colors.amber,
-                            ),
-                            SummaryCard(
-                              icon: MaterialCommunityIcons.file_document_outline,
-                              title: 'Progresso Edital',
-                              value: '${_progress.toStringAsFixed(1)}%',
-                              color: Colors.amber,
-                            ),
-                          ],
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 24),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Summary Cards
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isLandscape = constraints.maxWidth > 600;
+                if (isLandscape) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                          child: SummaryCard(
+                        icon: MaterialCommunityIcons.clock_time_three_outline,
+                        title: 'Tempo de Estudo',
+                        value: _formatDuration(totalStudyTime),
+                        color: Colors.teal,
+                        iconColor: Colors.teal,
+                        isLandscape: true,
+                      )),
+                      const SizedBox(width: 16),
+                      Expanded(
+                          child: SummaryCard(
+                        icon: MaterialCommunityIcons.calendar_today,
+                        title: 'Média Diária',
+                        value: _formatDuration(dailyAverage),
+                        color: Colors.teal,
+                        iconColor: const Color(0xFF3182F7),
+                        isLandscape: true,
+                      )),
+                      const SizedBox(width: 16),
+                      Expanded(
+                          child: SummaryCard(
+                        icon: MaterialCommunityIcons.bullseye_arrow,
+                        title: 'Desempenho',
+                        value: '${performance.toStringAsFixed(1)}%',
+                        color: Colors.teal,
+                        iconColor: const Color(0xFFF55343),
+                        isLandscape: true,
+                      )),
+                      const SizedBox(width: 16),
+                      Expanded(
+                          child: SummaryCard(
+                        icon: MaterialCommunityIcons.file_document_outline,
+                        title: 'Progresso Edital',
+                        value: '${progress.toStringAsFixed(1)}%',
+                        color: Colors.teal,
+                        iconColor: const Color(0xFFAA67F8),
+                        isLandscape: true,
+                      )),
+                    ],
+                  );
+                } else {
+                  return GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 1.9,
+                    children: [
+                      SummaryCard(
+                        icon: MaterialCommunityIcons.clock_time_three_outline,
+                        title: 'Tempo de Estudo',
+                        value: _formatDuration(totalStudyTime),
+                        color: Colors.teal,
+                        iconColor: Colors.teal,
+                      ),
+                      SummaryCard(
+                        icon: MaterialCommunityIcons.calendar_today,
+                        title: 'Média Diária',
+                        value: _formatDuration(dailyAverage),
+                        color: Colors.teal,
+                        iconColor: const Color(0xFF3182F7),
+                      ),
+                      SummaryCard(
+                        icon: MaterialCommunityIcons.bullseye_arrow,
+                        title: 'Desempenho',
+                        value: '${performance.toStringAsFixed(1)}%',
+                        color: Colors.teal,
+                        iconColor: const Color(0xFFF55343),
+                      ),
+                      SummaryCard(
+                        icon: MaterialCommunityIcons.file_document_outline,
+                        title: 'Progresso Edital',
+                        value: '${progress.toStringAsFixed(1)}%',
+                        color: Colors.teal,
+                        iconColor: const Color(0xFFAA67F8),
+                      ),
+                    ],
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 24),
 
-                  // Study Consistency Tracker
-                  StudyConsistencyTracker(
-                    studyStreak: _studyStreak,
-                    daysData: _consistencyData,
-                    startDate: _consistencyEndDate.subtract(const Duration(days: 29)),
-                    endDate: _consistencyEndDate,
-                    onPrev: () => _handleConsistencyNav(-1),
-                    onNext: () => _handleConsistencyNav(1),
+            // Study Consistency Tracker
+            if (allRecords.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'CONSTÂNCIA NOS ESTUDOS',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: Text(
+                            'Nenhum registro de estudo ainda. Comece a estudar para ver sua consistência!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 24),
+                ),
+              )
+            else
+              StudyConsistencyTracker(
+                studyStreak: studyStreak,
+                daysData: consistencyData,
+                startDate:
+                    _consistencyEndDate.subtract(const Duration(days: 29)),
+                endDate: _consistencyEndDate,
+                onPrev: () => _handleConsistencyNav(-1),
+                onNext: () => _handleConsistencyNav(1),
+              ),
+            const SizedBox(height: 24),
 
-                  // Performance Panel and Goals
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      if (constraints.maxWidth > 600) {
-                                          return Row(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [                                                  Expanded(
-                                                    flex: 3,
-                                                    child: PerformancePanel(performanceData: _performanceData),
-                                                  ),                            SizedBox(width: 24),
-                            Expanded(
-                              flex: 2,
-                              child: Column(
-                                children: [
-WeeklyStudyGoals(
-                                    currentHours: _weeklyHours,
-                                    goalHours: _goalHours,
-                                    currentQuestions: _weeklyQuestions,
-                                    goalQuestions: _goalQuestions,
-                                  ),
+            // Performance Panel and Goals
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth > 600) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: PerformancePanel(
+                            performanceData: performanceData),
+                      ),
+                      SizedBox(width: 24),
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            WeeklyStudyGoals(
+                              currentHours: weeklyHours,
+                              goalHours: goalHours,
+                              currentQuestions: weeklyQuestions,
+                              goalQuestions: goalQuestions,
+                            ),
                             SizedBox(height: 24),
                             WeeklyStudyChart(
-                                    weeklyData: _weeklyData,
-                                    weeklyQuestionsData: _weeklyQuestionsData,
-                                    currentView: _chartView,
-                                    onViewModeChanged: (view) {
-                                      setState(() {
-                                        _chartView = view;
-                                      });
-                                    },
-                                  ),
-                          ],
-                              ),
+                              weeklyData: weeklyData,
+                              weeklyQuestionsData: weeklyQuestionsData,
+                              currentView: _chartView,
+                              onViewModeChanged: (view) {
+                                setState(() {
+                                  _chartView = view;
+                                });
+                              },
                             ),
                           ],
-                        );
-                      } else {
-                                          return Column(
-                                            children: [
-                                              PerformancePanel(performanceData: _performanceData),                            SizedBox(height: 24),
-                            WeeklyStudyGoals(
-                                    currentHours: _weeklyHours,
-                                    goalHours: _goalHours,
-                                    currentQuestions: _weeklyQuestions,
-                                    goalQuestions: _goalQuestions,
-                                  ),
+                        ),
+                      ),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      PerformancePanel(performanceData: performanceData),
+                      SizedBox(height: 24),
+                      WeeklyStudyGoals(
+                        currentHours: weeklyHours,
+                        goalHours: goalHours,
+                        currentQuestions: weeklyQuestions,
+                        goalQuestions: goalQuestions,
+                      ),
                       SizedBox(height: 24),
                       WeeklyStudyChart(
-                        weeklyData: _weeklyData,
-                        weeklyQuestionsData: _weeklyQuestionsData,
+                        weeklyData: weeklyData,
+                        weeklyQuestionsData: weeklyQuestionsData,
                         currentView: _chartView,
                         onViewModeChanged: (view) {
                           setState(() {
@@ -457,34 +530,36 @@ WeeklyStudyGoals(
                         },
                       ),
                     ],
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Additional Sections
-                  const RevisionsSection(),
-                  const SizedBox(height: 24),
-                  const PlanningSection(),
-                  const SizedBox(height: 24),
-                  const LastActivitiesSection(),
-                  const SizedBox(height: 24),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: DailyStudySection(dailySubjectStudyTime: _dailySubjectStudyTime, subjectColors: _subjectColors),
-                      ),
-                      const SizedBox(width: 24), // Spacing between sections
-                      Expanded(
-                        child: const RemindersSection(),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                  );
+                }
+              },
             ),
+            const SizedBox(height: 24),
+
+            // Additional Sections
+            const RevisionsSection(),
+            const SizedBox(height: 24),
+            const PlanningSection(),
+            const SizedBox(height: 24),
+            const LastActivitiesSection(),
+            const SizedBox(height: 24),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: DailyStudySection(
+                      dailySubjectStudyTime: dailySubjectStudyTime,
+                      subjectColors: subjectColors),
+                ),
+                const SizedBox(width: 24), // Spacing between sections
+                Expanded(
+                  child: const RemindersSection(),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -494,6 +569,7 @@ class SummaryCard extends StatelessWidget {
   final String title;
   final String value;
   final Color color;
+  final Color iconColor; // New property for icon color
   final bool isLandscape;
 
   const SummaryCard({
@@ -502,6 +578,7 @@ class SummaryCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.color,
+    required this.iconColor, // Required in constructor
     this.isLandscape = false,
   }) : super(key: key);
 
@@ -515,7 +592,14 @@ class SummaryCard extends StatelessWidget {
         padding: EdgeInsets.all(isLandscape ? 8.0 : 12.0),
         child: Row(
           children: [
-            Icon(icon, size: isLandscape ? 32 : 40, color: Colors.white),
+            Container(
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: isLandscape ? 24 : 32, color: iconColor), // Use iconColor here
+            ),
             SizedBox(width: isLandscape ? 8 : 12),
             Expanded(
               child: Column(
@@ -661,14 +745,13 @@ class WeeklyStudyGoals extends StatelessWidget {
   }) : super(key: key);
 
   String _formatHours(Duration d) {
-    if (d.inMilliseconds <= 0) return 'N/A';
     final hours = d.inHours;
     final minutes = d.inMinutes % 60;
-    return '${hours}h${minutes.toString().padLeft(2, '0')}min';
+    return '${hours.toString().padLeft(2, '0')}h${minutes.toString().padLeft(2, '0')}min';
   }
 
   Color _getBarColor(double percentage) {
-    if (percentage >= 100) return Colors.amber.shade500;
+    if (percentage >= 100) return Colors.teal.shade500;
     if (percentage > 80) return Colors.amber.shade400;
     if (percentage > 40) return Colors.orange.shade400;
     return Colors.red.shade500;
@@ -731,16 +814,26 @@ class WeeklyStudyGoals extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: percentage / 100,
-          backgroundColor: Colors.grey.shade300,
-          color: barColor,
-          minHeight: 12,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6.0), // Half of minHeight for rounded ends
+          child: LinearProgressIndicator(
+            value: percentage / 100,
+            backgroundColor: Colors.grey.shade300,
+            color: barColor,
+            minHeight: 12,
+          ),
         ),
         const SizedBox(height: 4),
         Align(
           alignment: Alignment.centerRight,
-          child: Text('${percentage.toStringAsFixed(1)}%', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          child: Text(
+            '${percentage.toStringAsFixed(1)}%',
+            style: TextStyle(
+              fontSize: 12,
+              color: barColor, // Use the bar's color
+              fontWeight: FontWeight.bold, // Make it bold
+            ),
+          ),
         ),
       ],
     );
@@ -772,12 +865,12 @@ class WeeklyStudyChart extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   'ESTUDO SEMANAL',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
+                const Spacer(),
                 ToggleButtons(
                   isSelected: [
                     currentView == ChartView.time,
@@ -792,18 +885,19 @@ class WeeklyStudyChart extends StatelessWidget {
                   },
                   borderRadius: BorderRadius.circular(8),
                   selectedColor: Colors.white,
-                  fillColor: Theme.of(context).primaryColor,
-                  color: Theme.of(context).primaryColor,
-                  borderColor: Theme.of(context).primaryColor,
-                  selectedBorderColor: Theme.of(context).primaryColor,
+                  fillColor: Colors.teal,
+                  color: Colors.grey, // Color for unselected items
+                  borderColor: Colors.grey, // Border for unselected items
+                  selectedBorderColor: Colors.teal,
+                  constraints: const BoxConstraints(minHeight: 32.0, minWidth: 64.0),
                   children: const <Widget>[
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12.0),
-                      child: Text('TEMPO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text('TEMPO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12.0),
-                      child: Text('QUESTÕES', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text('QUESTÕES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

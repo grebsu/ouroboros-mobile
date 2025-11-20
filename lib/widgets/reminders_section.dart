@@ -70,7 +70,7 @@ class _RemindersSectionState extends State<RemindersSection> {
                   child: const Icon(Icons.add, color: Colors.white),
                   onPressed: () => _addNote(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor, // Use theme's primary color
+                    backgroundColor: Colors.teal, // Definir a cor de fundo como teal
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20), // Rounded corners
                     ),
@@ -84,7 +84,7 @@ class _RemindersSectionState extends State<RemindersSection> {
             Consumer<RemindersProvider>(
               builder: (context, remindersProvider, child) {
                 if (remindersProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(color: Colors.teal));
                 }
 
                 final notes = remindersProvider.notes;
