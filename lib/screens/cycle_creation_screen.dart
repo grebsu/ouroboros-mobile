@@ -425,8 +425,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                         }
                       },
                       icon: const Icon(Icons.auto_awesome),
-                      label: const Text('Calcular Pesos por Banca'),
-                      style: ElevatedButton.styleFrom(
+                                                label: const Text('Aplicar Pesos do Catálogo (por Questões)'),                      style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.teal,
                         foregroundColor: Colors.white,
                       ),

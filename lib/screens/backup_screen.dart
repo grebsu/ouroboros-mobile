@@ -213,41 +213,16 @@ class _BackupScreenState extends State<BackupScreen> {
   }
 
   Future<void> _handleSyncSubjects() async {
-    // Não precisa mais do _isLoading aqui, pois a navegação cuidará do feedback.
-    
-    // Mostra a tela de carregamento.
-    // Usar `push` com uma rota transparente para dar o efeito de "sobreposição".
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: false,
-        pageBuilder: (context, _, __) => const CatalogImportLoadingScreen(),
-      ),
-    );
-
-    try {
-      await DatabaseService.instance.importSubjectsAndTopicsFromJson();
-      
-      if (mounted) {
-        Navigator.of(context).pop(); // Fecha a tela de carregamento
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Catálogo de matérias sincronizado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop(); // Fecha a tela de carregamento
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao sincronizar catálogo: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    // A importação inicial do catálogo agora é feita automaticamente na criação do DB.
+    // Esta função pode ser revisada se uma funcionalidade de "atualização" for desejada.
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Catálogo de matérias já é sincronizado automaticamente na inicialização.'),
+          backgroundColor: Colors.blueGrey,
+        ),
+      );
     }
-    // O estado _isLoading não é mais necessário para este botão específico.
   }
 
   void _handleDeleteAll() {

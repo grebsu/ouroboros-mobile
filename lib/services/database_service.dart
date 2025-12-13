@@ -47,7 +47,7 @@ class DatabaseService {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getApplicationDocumentsDirectory();
     final path = join(dbPath.path, filePath);
-    return await openDatabase(path, version: 15, onCreate: _createDB, onUpgrade: _onUpgrade, onConfigure: _onConfigure); // VERSÃO ATUALIZADA PARA 15
+    return await openDatabase(path, version: 16, onCreate: _createDB, onUpgrade: _onUpgrade, onConfigure: _onConfigure); // VERSÃO ATUALIZADA PARA 16
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -171,6 +171,9 @@ class DatabaseService {
       // 4. Apagar a tabela antiga
       await db.execute('DROP TABLE review_records_old;');
     }
+    if (oldVersion < 16) { // Migração para adicionar question_count à master_topics
+      await db.execute('ALTER TABLE master_topics ADD COLUMN question_count INTEGER;');
+    }
   }
 
   Future<void> _onConfigure(Database db) async {
@@ -191,6 +194,7 @@ class DatabaseService {
         name TEXT NOT NULL,
         tec_id TEXT,
         parent_id INTEGER,
+        question_count INTEGER,
         FOREIGN KEY (master_subject_id) REFERENCES master_subjects (id) ON DELETE CASCADE
       )
     ''');
@@ -326,6 +330,7 @@ class DatabaseService {
     ''');
 
     await _createMasterTables(db);
+    await importSubjectsAndTopicsFromJson(db); // Importar dados mestre
   }
 
   // TODO: Implement CRUD methods for each data model
@@ -782,12 +787,11 @@ class DatabaseService {
   }
 
   // Master Subject/Topic Import
-  Future<void> importSubjectsAndTopicsFromJson() async {
-    final db = await instance.database;
+  Future<void> importSubjectsAndTopicsFromJson(Database dbClient) async {
     final String jsonString = await rootBundle.loadString('assets/data/materias_com_assuntos.json');
     final List<dynamic> subjectsJson = json.decode(jsonString);
 
-    await db.transaction((txn) async {
+    await dbClient.transaction((txn) async {
       final existingSubjects = await txn.query('master_subjects');
       if (existingSubjects.isNotEmpty) {
         // Se já existem dados, não faz nada para evitar duplicação.
@@ -825,11 +829,14 @@ class DatabaseService {
       final topicName = topicData['name'];
       final tecId = topicData['id'];
 
+      final questionCount = topicData['question_count']; // Obter question_count do JSON
+
       final masterTopicId = await txn.insert('master_topics', {
         'master_subject_id': masterSubjectId,
         'name': topicName,
         'tec_id': tecId,
         'parent_id': parentId,
+        'question_count': questionCount, // Inserir question_count
       });
 
       if (topicData['children'] != null && (topicData['children'] as List).isNotEmpty) {
@@ -857,20 +864,18 @@ class DatabaseService {
     final allTopics = topicMaps.map((map) {
       // Converte o MasterTopic em um Topic para compatibilidade com o resto do app
       return Topic(
-        id: null, // ID será gerado ao inserir na tabela 'topics'
+        id: map['id'] as int, // Usamos o ID do master_topic para reconstruir a árvore
         topic_text: map['name'] as String,
         parent_id: map['parent_id'] as int?,
-        // Mapeia o id do master_topic para uma propriedade temporária para reconstruir a árvore
-        // Usaremos 'question_count' como um campo temporário para o id original.
-        question_count: map['id'] as int,
+        question_count: map['question_count'] as int?,
       );
     }).toList();
 
     final topicMapById = <int, Topic>{};
     for (var t in allTopics) {
       t.sub_topics = [];
-      // Usa o 'question_count' temporário como chave
-      topicMapById[t.question_count!] = t;
+      // Usa o 'id' do master_topic como chave
+      topicMapById[t.id!] = t;
     }
 
     final rootTopics = <Topic>[];
@@ -885,12 +890,7 @@ class DatabaseService {
       }
     }
     
-    // Limpa o campo temporário 'question_count' e retorna uma nova árvore de tópicos
-    final List<Topic> cleanedRootTopics = rootTopics
-        .map((rootTopic) => _cleanQuestionCountRecursive(rootTopic))
-        .toList();
-
-    return cleanedRootTopics;
+    return rootTopics;
   }
 
   Future<BackupData> exportBackupData(String userId) async {
@@ -1084,14 +1084,5 @@ class DatabaseService {
     }).toList();
   }
 
-  // NOVA FUNÇÃO: Helper para limpar o question_count recursivamente para tópicos imutáveis
-  Topic _cleanQuestionCountRecursive(Topic topic) {
-    final List<Topic>? cleanedSubTopics = topic.sub_topics
-        ?.map((subTopic) => _cleanQuestionCountRecursive(subTopic))
-        .toList();
-    return topic.copyWith(
-      question_count: null, // Define question_count como null
-      sub_topics: cleanedSubTopics, // Garante que os sub_topics também sejam limpos
-    );
-  }
+
 }

@@ -62,6 +62,8 @@ final GlobalKey<ScaffoldMessengerState> snackbarKey = GlobalKey<ScaffoldMessenge
 
 void main() async { // Make main async
   WidgetsFlutterBinding.ensureInitialized(); // Ensure bindings are initialized
+  // TODO: REMOVER ESTA LINHA EM PRODUÇÃO. APAGA O BANCO DE DADOS NA INICIALIZAÇÃO.
+  await DatabaseService.instance.forceDeleteDatabase(); 
   await initializeDateFormatting('pt_BR', null); // Initialize date formatting for pt_BR
 
   // Adicionado para inicializar a plataforma do webview

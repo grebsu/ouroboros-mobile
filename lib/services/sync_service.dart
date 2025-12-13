@@ -43,11 +43,15 @@ class SyncService {
   static const _prefKey = 'paired_devices';
 
   Future<void> startServer({int port = 5000, required String userId}) async {
-    if (_server != null) return;
+    if (_server != null) {
+      print('[SyncService] HTTP server já está em execução na porta $port.');
+      _currentUserId = userId; // Atualiza o userId caso seja uma reinicialização lógica
+      return;
+    }
     _currentUserId = userId;
-    _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+    _server = await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true); // Adicionado shared: true
     _server!.listen(_handleRequest);
-    print('[SyncService] HTTP server started on 0.0.0.0:$port for user $_currentUserId');
+    print('[SyncService] HTTP server iniciado em 0.0.0.0:$port para o usuário $_currentUserId (shared).');
   }
 
   Future<void> stopServer() async {
