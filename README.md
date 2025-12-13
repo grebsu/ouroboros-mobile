@@ -3,7 +3,7 @@
   <img src="logo/logo-marca.png#gh-light-mode-only" alt="Ouroboros Logo" width="400"/>
 </div>
 
-<h1 align="center">Ouroboros Mobile</h1>
+<h1 align="center">Ouroboros</h1>
 
 <p align="center">
   <strong>Estudo inteligente e autônomo para todos.</strong>
@@ -13,7 +13,7 @@
 
 <p align="center">
   <img alt="Status" src="https://img.shields.io/badge/status-em%20desenvolvimento-yellow">
-  <img alt="Plataforma" src="https://img.shields.io/badge/plataforma-Android-brightgreen">
+  <img alt="Plataforma" src="https://img.shields.io/badge/plataforma-Multiplataforma-brightgreen">
   <img alt="Linguagem" src="https://img.shields.io/badge/feito%20com-Flutter-blue">
 </p>
 
@@ -27,7 +27,7 @@ Eu sempre acreditei que organização, estratégia e tecnologia não deveriam se
 
 Ele foi criado para ajudar estudantes **hipossuficientes**, pessoas que estudam com poucos recursos, mas com muita determinação. E, principalmente, para ajudar quem — assim como eu — **não tem condições de pagar por assinaturas caras de plataformas de estudo**. A meta sempre foi entregar recursos modernos e inteligentes de forma acessível para todos.
 
-Com a chegada da versão Android, essa missão fica ainda mais forte.
+Com a nova versão multiplataforma (Desktop e Android), essa missão fica ainda mais forte.
 
 ## ✨ Funcionalidades Principais
 
@@ -35,16 +35,17 @@ Cada funcionalidade foi pensada para resolver um problema real do dia a dia de q
 
 | Funcionalidade | Descrição |
 | :--- | :--- |
-| 🤖 **Importação Inteligente de Editais** | Cansado de digitar? Cole a URL de um Guia de Estudos do **Tec Concursos** e o Ouroboros importa todas as matérias e tópicos automaticamente. Isso economiza seu tempo e deixa tudo organizado. |
-| 🔄 **Ciclo de Estudos Personalizado** | Com base no seu tempo disponível e na dificuldade de cada matéria, o app cria um ciclo de estudos equilibrado, garantindo que nada fique para trás no seu planejamento. |
-| 🧠 **Mentoria Algorítmica** | Quer focar nos tópicos onde mais errou? Ou naqueles que deixou de lado? Você escolhe os critérios, e o algoritmo analisa seu histórico para recomendar o que faz mais sentido estudar, tornando seu estudo **realmente seu**. |
-| 📊 **Estatísticas Detalhadas** | Visualize seu progresso com gráficos intuitivos. Acompanhe sua consistência, horas líquidas, desempenho por matéria e evolução ao longo do tempo. |
+| 📚 **Catálogo de Matérias Próprio** | Acesse uma base de dados completa com matérias e tópicos, permitindo que você inicie seus estudos sem depender de fontes externas. |
+| 🖥️ **Sincronização Wi-Fi** | Estude no celular ou no desktop. Seus dados são sincronizados automaticamente entre dispositivos na mesma rede Wi-Fi, garantindo continuidade. |
+| 🔄 **Ciclo de Estudos Personalizado** | Com base no seu tempo disponível e na dificuldade de cada matéria, o app cria um ciclo de estudos equilibrado, garantindo que nada fique para trás. |
+| 🧠 **Mentoria Algorítmica** | Foque nos tópicos onde mais errou ou naqueles que deixou de lado. O algoritmo analisa seu histórico para recomendar o que faz mais sentido estudar. |
+| 📊 **Estatísticas Detalhadas** | Visualize seu progresso com gráficos intuitivos. Acompanhe sua consistência, horas líquidas, desempenho por matéria e evolução. |
 | 📝 **Registro Completo de Atividades** | Anote cada detalhe: tempo de estudo, questões (certas/erradas), páginas lidas, videoaulas assistidas e o status de finalização da teoria de cada tópico. |
 | 🎯 **Módulo de Simulados** | Registre e analise seus simulados de forma completa, matéria por matéria, para ter uma visão clara do seu desempenho em um cenário de prova. |
 
 ## 🚀 O Futuro do Projeto
 
-A **sincronização entre o Ouroboros Mobile e a versão Desktop vai chegar**, sim — faz parte dos meus planos. Mas ela deve demorar um pouco.
+Esta versão do Ouroboros, construída em Flutter, **substitui a antiga versão para desktop** e unifica a experiência entre celular e computador. A **sincronização via Wi-Fi já é uma realidade**, permitindo que você mantenha seus dados atualizados entre todos os seus dispositivos.
 
 Eu sou o único desenvolvedor do Ouroboros e, além de cuidar do projeto sozinho, eu também sou **concurseiro**. Estou entrando em uma fase em que vou precisar estudar bastante para um concurso que venho me preparando há muito tempo. Então o desenvolvimento continua, mas em um **ritmo mais humano, mais realista**.
 
