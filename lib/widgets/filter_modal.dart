@@ -28,8 +28,10 @@ class _FilterModalState extends State<FilterModal> {
   DateTime? _endDate;
   final TextEditingController _minDurationController = TextEditingController();
   final TextEditingController _maxDurationController = TextEditingController();
-  final TextEditingController _minPerformanceController = TextEditingController();
-  final TextEditingController _maxPerformanceController = TextEditingController();
+  final TextEditingController _minPerformanceController =
+      TextEditingController();
+  final TextEditingController _maxPerformanceController =
+      TextEditingController();
   List<String> _selectedCategories = [];
   List<String> _selectedSubjects = [];
   List<String> _selectedTopics = [];
@@ -54,8 +56,10 @@ class _FilterModalState extends State<FilterModal> {
     _endDate = filters['endDate'];
     _minDurationController.text = filters['minDuration']?.toString() ?? '';
     _maxDurationController.text = filters['maxDuration']?.toString() ?? '';
-    _minPerformanceController.text = filters['minPerformance']?.toString() ?? '';
-    _maxPerformanceController.text = filters['maxPerformance']?.toString() ?? '';
+    _minPerformanceController.text =
+        filters['minPerformance']?.toString() ?? '';
+    _maxPerformanceController.text =
+        filters['maxPerformance']?.toString() ?? '';
     _selectedCategories = List.from(filters['categories'] ?? []);
     _selectedSubjects = List.from(filters['subjects'] ?? []);
     _selectedTopics = List.from(filters['topics'] ?? []);
@@ -98,23 +102,24 @@ class _FilterModalState extends State<FilterModal> {
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: isStartDate ? (_startDate ?? DateTime.now()) : (_endDate ?? _startDate ?? DateTime.now()),
+      initialDate: isStartDate
+          ? (_startDate ?? DateTime.now())
+          : (_endDate ?? _startDate ?? DateTime.now()),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
       builder: (BuildContext context, Widget? child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.fromSwatch(
-              primarySwatch: Colors.teal,
-              brightness: Theme.of(context).brightness,
-            ).copyWith(
-              onPrimary: Colors.white,
-              onSurface: Theme.of(context).textTheme.bodyMedium?.color,
-            ),
+            colorScheme:
+                ColorScheme.fromSwatch(
+                  primarySwatch: Colors.teal,
+                  brightness: Theme.of(context).brightness,
+                ).copyWith(
+                  onPrimary: Colors.white,
+                  onSurface: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.teal,
-              ),
+              style: TextButton.styleFrom(foregroundColor: Colors.teal),
             ),
           ),
           child: child!,
@@ -149,164 +154,226 @@ class _FilterModalState extends State<FilterModal> {
               ),
             ),
             child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Filtros Avançados', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Theme.of(context).iconTheme.color),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              // Content
-              Expanded(
-                child: ListView(
-                  controller: controller,
+              children: [
+                // Header
+                Padding(
                   padding: const EdgeInsets.all(16.0),
-                  children: [
-                    _buildSectionTitle('Período'),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => _selectDate(context, true),
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Data de Início',
-                                labelStyle: TextStyle(color: Colors.teal),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filtros Avançados',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          color: Theme.of(context).iconTheme.color,
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(),
+                // Content
+                Expanded(
+                  child: ListView(
+                    controller: controller,
+                    padding: const EdgeInsets.all(16.0),
+                    children: [
+                      _buildSectionTitle('Período'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => _selectDate(context, true),
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Data de Início',
+                                  labelStyle: TextStyle(color: Colors.teal),
+                                ),
+                                child: Text(
+                                  _startDate != null
+                                      ? DateFormat(
+                                          'dd/MM/yyyy',
+                                        ).format(_startDate!)
+                                      : 'Selecione',
+                                ),
                               ),
-                              child: Text(_startDate != null ? DateFormat('dd/MM/yyyy').format(_startDate!) : 'Selecione'),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => _selectDate(context, false),
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Data de Fim',
-                                labelStyle: TextStyle(color: Colors.teal),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => _selectDate(context, false),
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Data de Fim',
+                                  labelStyle: TextStyle(color: Colors.teal),
+                                ),
+                                child: Text(
+                                  _endDate != null
+                                      ? DateFormat(
+                                          'dd/MM/yyyy',
+                                        ).format(_endDate!)
+                                      : 'Selecione',
+                                ),
                               ),
-                              child: Text(_endDate != null ? DateFormat('dd/MM/yyyy').format(_endDate!) : 'Selecione'),
                             ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSectionTitle('Duração (minutos)'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              _minDurationController,
+                              'Mínimo',
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              _maxDurationController,
+                              'Máximo',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSectionTitle('Desempenho (%)'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              _minPerformanceController,
+                              'Mínimo',
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              _maxPerformanceController,
+                              'Máximo',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSectionTitle('Categoria'),
+                      Center(
+                        child: Wrap(
+                          spacing: 12.0, // Increased horizontal spacing
+                          runSpacing: 12.0, // Added vertical spacing
+                          children: widget.availableCategories.map((category) {
+                            return FilterChip(
+                              avatar: Icon(
+                                _categoryIcons[category] ?? Icons.category,
+                                color: Colors.teal,
+                              ),
+                              label: Text(
+                                category,
+                                style: TextStyle(
+                                  fontSize:
+                                      _selectedCategories.contains(category)
+                                      ? 20
+                                      : 18, // Larger when selected
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color,
+                                ),
+                              ),
+                              selected: _selectedCategories.contains(category),
+                              backgroundColor: Colors.teal.withOpacity(0.1),
+                              selectedColor: Colors.teal.withOpacity(0.2),
+                              showCheckmark: false, // Remove checkmark
+                              padding: _selectedCategories.contains(category)
+                                  ? const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ) // Larger padding when selected
+                                  : const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    _selectedCategories.add(category);
+                                  } else {
+                                    _selectedCategories.remove(category);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Duração (minutos)'),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField(_minDurationController, 'Mínimo')),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildTextField(_maxDurationController, 'Máximo')),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Desempenho (%)'),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField(_minPerformanceController, 'Mínimo')),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildTextField(_maxPerformanceController, 'Máximo')),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Categoria'),
-                    Center(
-                      child: Wrap(
-                        spacing: 12.0, // Increased horizontal spacing
-                        runSpacing: 12.0, // Added vertical spacing
-                        children: widget.availableCategories.map((category) {
-                                                  return FilterChip(
-                                                    avatar: Icon(_categoryIcons[category] ?? Icons.category, color: Colors.teal),
-                                                    label: Text(
-                                                      category,
-                                                      style: TextStyle(
-                                                        fontSize: _selectedCategories.contains(category) ? 20 : 18, // Larger when selected
-                                                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                                                      ),
-                                                    ),
-                                                    selected: _selectedCategories.contains(category),
-                                                    backgroundColor: Colors.teal.withOpacity(0.1),
-                                                    selectedColor: Colors.teal.withOpacity(0.2),
-                                                    showCheckmark: false, // Remove checkmark
-                                                    padding: _selectedCategories.contains(category)
-                                                        ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12) // Larger padding when selected
-                                                        : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                                    onSelected: (selected) {
-                                                      setState(() {
-                                                        if (selected) {
-                                                          _selectedCategories.add(category);
-                                                        } else {
-                                                          _selectedCategories.remove(category);
-                                                        }
-                                                      });
-                                                    },
-                                                  );                        }).toList(),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Disciplina e Tópico'),
-                    MultiSelectDropdown(
-                      options: widget.availableSubjects.map((s) => s.subject).toList(),
-                      selectedOptions: _selectedSubjects,
-                      onSelectionChanged: (selected) {
-                        setState(() {
-                          _selectedSubjects = selected;
-                          _selectedTopics.clear(); // Limpa os tópicos ao mudar a disciplina
-                        });
-                      },
-                      placeholder: 'Selecione as Disciplinas',
-                    ),
-                    const SizedBox(height: 16),
-                    MultiSelectDropdown(
-                      options: _topicsForSelectedSubjects,
-                      selectedOptions: _selectedTopics,
-                      onSelectionChanged: (selected) {
-                        setState(() {
-                          _selectedTopics = selected;
-                        });
-                      },
-                      placeholder: 'Selecione os Tópicos',
-                    ),
-                  ],
-                ),
-              ),
-              // Footer
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: _clearFilters,
-                      style: TextButton.styleFrom(foregroundColor: Colors.teal),
-                      child: const Text('Limpar'),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: _applyFilters,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        foregroundColor: Colors.white,
+                      const SizedBox(height: 24),
+                      _buildSectionTitle('Disciplina e Tópico'),
+                      MultiSelectDropdown(
+                        options: widget.availableSubjects
+                            .map((s) => s.subject)
+                            .toList(),
+                        selectedOptions: _selectedSubjects,
+                        onSelectionChanged: (selected) {
+                          setState(() {
+                            _selectedSubjects = selected;
+                            _selectedTopics
+                                .clear(); // Limpa os tópicos ao mudar a disciplina
+                          });
+                        },
+                        placeholder: 'Selecione as Disciplinas',
                       ),
-                      child: const Text('Aplicar'),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      MultiSelectDropdown(
+                        options: _topicsForSelectedSubjects,
+                        selectedOptions: _selectedTopics,
+                        onSelectionChanged: (selected) {
+                          setState(() {
+                            _selectedTopics = selected;
+                          });
+                        },
+                        placeholder: 'Selecione os Tópicos',
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                // Footer
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: _clearFilters,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.teal,
+                        ),
+                        child: const Text('Limpar'),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: _applyFilters,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Aplicar'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ));
+        );
       },
     );
   }
@@ -314,7 +381,12 @@ class _FilterModalState extends State<FilterModal> {
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+      child: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+      ),
     );
   }
 

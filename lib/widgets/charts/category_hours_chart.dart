@@ -31,8 +31,12 @@ class CategoryHoursChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orderedValues = _categoryOrder.map((key) => categoryHours[key] ?? 0.0).toList();
-    final orderedTitles = _categoryOrder.map((key) => _categoryTitles[key] ?? key).toList();
+    final orderedValues = _categoryOrder
+        .map((key) => categoryHours[key] ?? 0.0)
+        .toList();
+    final orderedTitles = _categoryOrder
+        .map((key) => _categoryTitles[key] ?? key)
+        .toList();
     final maxValue = orderedValues.isNotEmpty ? orderedValues.reduce(max) : 1.0;
     final hasData = orderedValues.any((value) => value > 0);
 
@@ -47,20 +51,22 @@ class CategoryHoursChart extends StatelessWidget {
       RadarChartData(
         dataSets: [
           RadarDataSet(
-            dataEntries: orderedValues.map((value) => RadarEntry(value: value)).toList(),
+            dataEntries: orderedValues
+                .map((value) => RadarEntry(value: value))
+                .toList(),
             borderColor: Colors.teal,
             fillColor: Colors.teal.withOpacity(0.4),
             borderWidth: 2,
           ),
         ],
         getTitle: (index, angle) {
-          return RadarChartTitle(
-            text: orderedTitles[index],
-            angle: angle,
-          );
+          return RadarChartTitle(text: orderedTitles[index], angle: angle);
         },
         tickCount: 4,
-        ticksTextStyle: const TextStyle(color: Colors.transparent, fontSize: 10),
+        ticksTextStyle: const TextStyle(
+          color: Colors.transparent,
+          fontSize: 10,
+        ),
         tickBorderData: BorderSide(color: Colors.grey.shade300, width: 1),
         gridBorderData: BorderSide(color: Colors.grey.shade300, width: 1),
         radarBorderData: const BorderSide(color: Colors.transparent),
@@ -124,8 +130,10 @@ class _DataLabels extends StatelessWidget {
         if (value <= 0) return const SizedBox.shrink();
 
         final angle = (2 * pi / values.length) * index - (pi / 2);
-        final dataPointRadius = (value / (maxValue > 0 ? maxValue : 1.0)) * chartRadius;
-        final labelRadius = dataPointRadius + 20.0; // Ajuste este valor conforme necessário
+        final dataPointRadius =
+            (value / (maxValue > 0 ? maxValue : 1.0)) * chartRadius;
+        final labelRadius =
+            dataPointRadius + 20.0; // Ajuste este valor conforme necessário
 
         final labelX = centerX + cos(angle) * labelRadius;
         final labelY = centerY + sin(angle) * labelRadius;
@@ -134,7 +142,10 @@ class _DataLabels extends StatelessWidget {
           left: labelX,
           top: labelY,
           child: Transform.translate(
-            offset: const Offset(-22, -10), // Ajuste este offset para centralizar o texto
+            offset: const Offset(
+              -22,
+              -10,
+            ), // Ajuste este offset para centralizar o texto
             child: Container(
               margin: const EdgeInsets.only(top: 4),
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),

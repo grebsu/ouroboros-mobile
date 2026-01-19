@@ -34,7 +34,10 @@ class _CustomPlanSelectorState extends State<CustomPlanSelector> {
           showWhenUnlinked: false,
           targetAnchor: Alignment.topCenter,
           followerAnchor: Alignment.bottomCenter,
-          offset: const Offset(0.0, -8.0), // Pequeno espaçamento entre o botão e o dropdown
+          offset: const Offset(
+            0.0,
+            -8.0,
+          ), // Pequeno espaçamento entre o botão e o dropdown
           child: Material(
             color: Colors.transparent, // Fundo transparente para o Material
             child: Container(
@@ -59,7 +62,9 @@ class _CustomPlanSelectorState extends State<CustomPlanSelector> {
                       return ListTile(
                         title: Text(
                           plan.name,
-                          style: const TextStyle(color: Colors.teal), // Texto teal
+                          style: const TextStyle(
+                            color: Colors.teal,
+                          ), // Texto teal
                           overflow: TextOverflow.ellipsis,
                         ),
                         onTap: () {
@@ -113,23 +118,35 @@ class _CustomPlanSelectorState extends State<CustomPlanSelector> {
           child: CompositedTransformTarget(
             link: _layerLink,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white, // Fundo branco em ambos os modos
-                borderRadius: BorderRadius.circular(20.0), // Borda arredondada para cápsula
+                borderRadius: BorderRadius.circular(
+                  20.0,
+                ), // Borda arredondada para cápsula
                 border: Border.all(color: Colors.teal), // Borda sempre teal
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded( // ADDED THIS
+                  Expanded(
+                    // ADDED THIS
                     child: Text(
                       selectedPlan?.name ?? 'Selecione um Plano',
-                      style: const TextStyle(color: Colors.teal, fontSize: 16.0), // Texto sempre teal
+                      style: const TextStyle(
+                        color: Colors.teal,
+                        fontSize: 16.0,
+                      ), // Texto sempre teal
                       overflow: TextOverflow.ellipsis,
                     ),
                   ), // ADDED THIS
-                  const Icon(Icons.arrow_drop_down, color: Colors.teal), // Ícone sempre teal
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    color: Colors.teal,
+                  ), // Ícone sempre teal
                 ],
               ),
             ),

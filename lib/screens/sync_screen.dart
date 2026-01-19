@@ -25,7 +25,8 @@ class _SyncScreenState extends State<SyncScreen> {
   static const int _syncPort = 5000; // Constante para a porta de sincronização
 
   final MDNSDiscoveryService _discover = MDNSDiscoveryService();
-  final SyncService _sync = SyncService(); // Keep this as it's a singleton and we'll access it directly
+  final SyncService _sync =
+      SyncService(); // Keep this as it's a singleton and we'll access it directly
   final Uuid _uuid = Uuid();
   final TextEditingController _ipController = TextEditingController();
 
@@ -46,8 +47,12 @@ class _SyncScreenState extends State<SyncScreen> {
     _discover.setOnDeviceFound((name, ip, port) {
       final key = '$ip:$port';
       // Evitar adicionar o próprio dispositivo à lista de encontrados se o userId for o mesmo
-      final currentUserId = Provider.of<AuthProvider>(context, listen: false).currentUser?.name;
-      if (currentUserId != null && name.startsWith('Ouroboros-$currentUserId')) {
+      final currentUserId = Provider.of<AuthProvider>(
+        context,
+        listen: false,
+      ).currentUser?.name;
+      if (currentUserId != null &&
+          name.startsWith('Ouroboros-$currentUserId')) {
         return; // Não adicionar o próprio dispositivo
       }
 
@@ -63,7 +68,10 @@ class _SyncScreenState extends State<SyncScreen> {
     });
 
     // Iniciar apenas a descoberta mDNS, já que o servidor e anunciante são globais.
-    final currentUserId = Provider.of<AuthProvider>(context, listen: false).currentUser?.name;
+    final currentUserId = Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    ).currentUser?.name;
     if (currentUserId != null) {
       // Usar uma instanceName mais robusta para init do discover
       _discover.init('_ouro._tcp.local', _syncPort, 'Ouroboros-$currentUserId');
@@ -72,7 +80,11 @@ class _SyncScreenState extends State<SyncScreen> {
       // Se não há userId, a descoberta não pode ser iniciada, mas o servidor global pode estar rodando.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro: Usuário não está logado para iniciar a descoberta.')),
+          const SnackBar(
+            content: Text(
+              'Erro: Usuário não está logado para iniciar a descoberta.',
+            ),
+          ),
         );
       });
     }
@@ -87,11 +99,13 @@ class _SyncScreenState extends State<SyncScreen> {
     }
   }
 
-
-
   Future<void> _pairWith(String ip, int port, String name) async {
     final res = await _sync.sendPairRequest(
-        ip, port, 'Ouroboros-${Platform.localHostname}', _myId);
+      ip,
+      port,
+      'Ouroboros-${Platform.localHostname}',
+      _myId,
+    );
 
     if (!mounted) return;
 
@@ -99,17 +113,17 @@ class _SyncScreenState extends State<SyncScreen> {
       final token = res['token'];
       await _sync.storePairedDevice(ip, port, token, name);
       await _loadPaired();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Pareado com $name ($ip:$port)')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Pareado com $name ($ip:$port)')));
     } else if (res['status'] == 'rejected') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Pareamento rejeitado por $name')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Pareamento rejeitado por $name')));
     } else if (res['status'] == 'timeout') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sem resposta do dispositivo')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Sem resposta do dispositivo')));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro pareando: ${res.toString()}')),
@@ -125,14 +139,17 @@ class _SyncScreenState extends State<SyncScreen> {
         return AlertDialog(
           title: const Text('Solicitação de pareamento'),
           content: Text(
-              'Deseja parear com "${req.deviceName}" (${req.remote}:${req.remotePort})?'),
+            'Deseja parear com "${req.deviceName}" (${req.remote}:${req.remotePort})?',
+          ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Recusar')),
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Recusar'),
+            ),
             ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Aceitar')),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Aceitar'),
+            ),
           ],
         );
       },
@@ -143,7 +160,12 @@ class _SyncScreenState extends State<SyncScreen> {
 
       await _sync.respondToPairRequest(req.id, accepted: true, token: token);
 
-      await _sync.storePairedDevice(req.remote.address, _syncPort, token, req.deviceName);
+      await _sync.storePairedDevice(
+        req.remote.address,
+        _syncPort,
+        token,
+        req.deviceName,
+      );
       await _loadPaired();
     } else {
       await _sync.respondToPairRequest(req.id, accepted: false);
@@ -163,7 +185,9 @@ class _SyncScreenState extends State<SyncScreen> {
     await _loadPaired();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Todos os dispositivos pareados foram removidos.')),
+      const SnackBar(
+        content: Text('Todos os dispositivos pareados foram removidos.'),
+      ),
     );
   }
 
@@ -201,11 +225,15 @@ class _SyncScreenState extends State<SyncScreen> {
       ),
     );
   }
-  
+
   Future<void> _syncNow() async {
     if (_paired.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nenhum par disponível para sincronizar.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhum par disponível para sincronizar.'),
+        ),
+      );
       return;
     }
 
@@ -213,7 +241,9 @@ class _SyncScreenState extends State<SyncScreen> {
     final userId = authProvider.currentUser?.name;
     if (userId == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro: Usuário não está logado.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro: Usuário não está logado.')),
+      );
       return;
     }
 
@@ -225,48 +255,82 @@ class _SyncScreenState extends State<SyncScreen> {
 
     if (ip == null || port == null || token == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dados do par estão incompletos.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dados do par estão incompletos.')),
+      );
       return;
     }
 
     if (!mounted) return;
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    scaffoldMessenger.showSnackBar(SnackBar(content: Text('Sincronizando com ${info['name']}...')));
+    scaffoldMessenger.showSnackBar(
+      SnackBar(content: Text('Sincronizando com ${info['name']}...')),
+    );
 
     final uri = Uri.parse('http://$ip:$port/sync');
     try {
       // 1. Exportar os dados de backup do cliente
-      final clientBackupData = await DatabaseService.instance.exportBackupData(userId);
+      final clientBackupData = await DatabaseService.instance.exportBackupData(
+        userId,
+      );
       final clientJsonData = json.encode(clientBackupData.toMap());
 
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-          'X-User-ID': userId,
-        },
-        body: clientJsonData, // Enviar os dados do cliente no corpo da requisição
-      ).timeout(const Duration(seconds: 60));
+      final response = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+              'X-User-ID': userId,
+            },
+            body:
+                clientJsonData, // Enviar os dados do cliente no corpo da requisição
+          )
+          .timeout(const Duration(seconds: 60));
 
       switch (response.statusCode) {
         case 200:
           // 2. Receber e importar os dados mesclados de volta ao cliente
-          final mergedBackupData = BackupData.fromMap(json.decode(utf8.decode(response.bodyBytes)));
-          await DatabaseService.instance.importMergedData(mergedBackupData, userId); // Usar o novo método
+          final mergedBackupData = BackupData.fromMap(
+            json.decode(utf8.decode(response.bodyBytes)),
+          );
+          await DatabaseService.instance.importMergedData(
+            mergedBackupData,
+            userId,
+          ); // Usar o novo método
           await _showSyncSuccessAndRestart();
           break;
         case 403:
-          scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Falha na sincronização: Token inválido. Por favor, limpe os pareamentos e tente novamente.')));
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Falha na sincronização: Token inválido. Por favor, limpe os pareamentos e tente novamente.',
+              ),
+            ),
+          );
           break;
         case 409:
-          scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Falha na sincronização: Contas de usuário diferentes nos dispositivos.')));
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Falha na sincronização: Contas de usuário diferentes nos dispositivos.',
+              ),
+            ),
+          );
           break;
         default:
-          scaffoldMessenger.showSnackBar(SnackBar(content: Text('Falha na sincronização: ${response.statusCode} - ${response.body}')));
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                'Falha na sincronização: ${response.statusCode} - ${response.body}',
+              ),
+            ),
+          );
       }
     } catch (e) {
-      scaffoldMessenger.showSnackBar(SnackBar(content: Text('Erro de rede ao sincronizar: $e')));
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Erro de rede ao sincronizar: $e')),
+      );
     }
   }
 
@@ -364,13 +428,19 @@ class _SyncScreenState extends State<SyncScreen> {
               ],
             ),
             const Divider(),
-            Text('Dispositivos Encontrados:', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Dispositivos Encontrados:',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             _buildFoundList(),
             const Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Dispositivos Pareados:', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Dispositivos Pareados:',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 TextButton(
                   onPressed: _clearAll,
                   child: const Text('Limpar Todos'),

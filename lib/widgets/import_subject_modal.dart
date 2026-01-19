@@ -15,22 +15,49 @@ class _ImportSubjectModalState extends State<ImportSubjectModal> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Importar Matéria do TEC Concursos', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal)),
+      title: Text(
+        'Importar Matéria do TEC Concursos',
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.teal,
+        ),
+      ),
       content: TextField(
         controller: _controller,
-        style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black,
+        ),
         decoration: InputDecoration(
           labelText: 'URL da Matéria',
-          labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+          labelStyle: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.teal,
+          ),
           hintText: 'https://www.tecconcursos.com.br/materias/...',
-          hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey),
+          hintStyle: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[400]
+                : Colors.grey,
+          ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8.0),
-            borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+            borderSide: BorderSide(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.teal,
+            ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8.0),
-            borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+            borderSide: BorderSide(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey
+                  : Colors.teal,
+            ),
           ),
         ),
       ),
@@ -38,7 +65,9 @@ class _ImportSubjectModalState extends State<ImportSubjectModal> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal,
+            foregroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.teal,
           ),
           child: const Text('Cancelar'),
         ),

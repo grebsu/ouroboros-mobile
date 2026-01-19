@@ -9,8 +9,8 @@ class MdnsAdvertiser {
   Timer? _timer;
 
   final String instanceName; // ex: "Ouroboros-Desktop"
-  final String serviceType;  // ex: "_ouro._tcp.local"
-  final int port;            // ex: 8080
+  final String serviceType; // ex: "_ouro._tcp.local"
+  final int port; // ex: 8080
 
   MdnsAdvertiser({
     required this.instanceName,

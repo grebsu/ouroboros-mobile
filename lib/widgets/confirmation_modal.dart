@@ -30,16 +30,27 @@ class ConfirmationModal extends StatelessWidget {
         children: [
           const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
           const SizedBox(width: 12),
-          Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
-      content: Text(message, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16)),
+      content: Text(
+        message,
+        style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16),
+      ),
       actionsAlignment: MainAxisAlignment.spaceEvenly,
       actionsPadding: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
       actions: <Widget>[
         TextButton(
           onPressed: onClose,
-          child: Text(cancelText, style: const TextStyle(color: Colors.teal, fontSize: 16)),
+          child: Text(
+            cancelText,
+            style: const TextStyle(color: Colors.teal, fontSize: 16),
+          ),
         ),
         ElevatedButton(
           onPressed: onConfirm,
@@ -47,8 +58,13 @@ class ConfirmationModal extends StatelessWidget {
             backgroundColor: Colors.redAccent,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           child: Text(confirmText),
         ),

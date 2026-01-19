@@ -25,7 +25,10 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Theme.of(context).dialogBackgroundColor,
-          title: Text(widget.placeholder, style: Theme.of(context).textTheme.titleLarge),
+          title: Text(
+            widget.placeholder,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -35,18 +38,30 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                 final option = widget.options[index];
                 final isSelected = widget.selectedOptions.contains(option);
                 return CheckboxListTile(
-                  title: Text(option, style: Theme.of(context).textTheme.bodyMedium),
+                  title: Text(
+                    option,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   value: isSelected,
                   onChanged: (bool? selected) {
                     setState(() {
                       if (selected == true) {
-                        widget.onSelectionChanged([...widget.selectedOptions, option]);
+                        widget.onSelectionChanged([
+                          ...widget.selectedOptions,
+                          option,
+                        ]);
                       } else {
-                        widget.onSelectionChanged(widget.selectedOptions.where((o) => o != option).toList());
+                        widget.onSelectionChanged(
+                          widget.selectedOptions
+                              .where((o) => o != option)
+                              .toList(),
+                        );
                       }
                     });
                     Navigator.pop(context); // Fecha o diálogo após a seleção
-                    _showOptions(context); // Reabre o diálogo para continuar a seleção
+                    _showOptions(
+                      context,
+                    ); // Reabre o diálogo para continuar a seleção
                   },
                 );
               },
@@ -71,7 +86,10 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
       child: InputDecorator(
         decoration: InputDecoration(
           border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10.0,
+            vertical: 5.0,
+          ),
         ),
         child: Wrap(
           spacing: 6.0,
@@ -79,11 +97,20 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
           children: widget.selectedOptions.isNotEmpty
               ? widget.selectedOptions.map((option) {
                   return Chip(
-                    label: Text(option, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
+                    label: Text(
+                      option,
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                    ),
                     backgroundColor: Colors.teal.withOpacity(0.1),
                     deleteIconColor: Colors.teal,
                     onDeleted: () {
-                      widget.onSelectionChanged(widget.selectedOptions.where((o) => o != option).toList());
+                      widget.onSelectionChanged(
+                        widget.selectedOptions
+                            .where((o) => o != option)
+                            .toList(),
+                      );
                     },
                   );
                 }).toList()

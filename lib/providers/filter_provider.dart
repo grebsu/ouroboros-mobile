@@ -34,7 +34,8 @@ class FilterProvider with ChangeNotifier {
   int? get historyMaxDuration => _historyFilters['maxDuration'];
   double? get historyMinPerformance => _historyFilters['minPerformance'];
   double? get historyMaxPerformance => _historyFilters['maxPerformance'];
-  List<String> get historySelectedCategories => _historyFilters['categories'] ?? [];
+  List<String> get historySelectedCategories =>
+      _historyFilters['categories'] ?? [];
   List<String> get historySelectedSubjects => _historyFilters['subjects'] ?? [];
   List<String> get historySelectedTopics => _historyFilters['topics'] ?? [];
 

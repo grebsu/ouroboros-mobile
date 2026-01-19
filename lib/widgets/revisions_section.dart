@@ -13,7 +13,6 @@ import 'package:ouroboros_mobile/providers/auth_provider.dart';
 import 'package:ouroboros_mobile/providers/history_provider.dart';
 import 'package:ouroboros_mobile/widgets/study_register_modal.dart';
 
-
 class RevisionsSection extends StatelessWidget {
   const RevisionsSection({Key? key}) : super(key: key);
 
@@ -35,14 +34,21 @@ class RevisionsSection extends StatelessWidget {
             Consumer2<ReviewProvider, NavigationProvider>(
               builder: (context, reviewProvider, navigationProvider, child) {
                 if (reviewProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.teal));
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.teal),
+                  );
                 }
 
                 final pendingReviews = reviewProvider.allReviewRecords
-                    .where((record) => record.completed_date == null && !record.ignored)
+                    .where(
+                      (record) =>
+                          record.completed_date == null && !record.ignored,
+                    )
                     .toList();
 
-                pendingReviews.sort((a, b) => a.scheduled_date.compareTo(b.scheduled_date));
+                pendingReviews.sort(
+                  (a, b) => a.scheduled_date.compareTo(b.scheduled_date),
+                );
 
                 if (pendingReviews.isEmpty) {
                   return const Center(
@@ -54,7 +60,8 @@ class RevisionsSection extends StatelessWidget {
                 }
 
                 final reviewsToShow = pendingReviews.take(3).toList();
-                final remainingCount = pendingReviews.length - reviewsToShow.length;
+                final remainingCount =
+                    pendingReviews.length - reviewsToShow.length;
 
                 return Column(
                   children: [
@@ -73,11 +80,14 @@ class RevisionsSection extends StatelessWidget {
                         child: TextButton(
                           onPressed: () {
                             // Supondo que o índice da tela de revisões é 2
-                            navigationProvider.setIndex(2); 
+                            navigationProvider.setIndex(2);
                           },
                           child: Text(
                             'Ver mais ($remainingCount Revisões Restantes)',
-                            style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.teal,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -103,9 +113,13 @@ class RevisionCard extends StatelessWidget {
       final todayUtc = DateTime.utc(now.year, now.month, now.day);
       DateTime scheduledDate;
       try {
-        scheduledDate = DateFormat('yyyy-MM-ddTHH:mm:ss.SSS').parse(scheduledDateStr, true).toUtc();
+        scheduledDate = DateFormat(
+          'yyyy-MM-ddTHH:mm:ss.SSS',
+        ).parse(scheduledDateStr, true).toUtc();
       } catch (e) {
-        scheduledDate = DateFormat('yyyy-MM-dd').parse(scheduledDateStr, true).toUtc();
+        scheduledDate = DateFormat(
+          'yyyy-MM-dd',
+        ).parse(scheduledDateStr, true).toUtc();
       }
       final diff = todayUtc.difference(scheduledDate).inDays;
       return diff;
@@ -117,9 +131,24 @@ class RevisionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reviewProvider = Provider.of<ReviewProvider>(context, listen: false);
-    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
-    final subject = allSubjectsProvider.subjects.firstWhere((s) => s.id == record.subject_id, orElse: () => Subject(id: '', plan_id: '', subject: 'Desconhecido', color: '#808080', topics: [], lastModified: DateTime.now().millisecondsSinceEpoch));
-    final subjectColor = Color(int.parse(subject.color.replaceFirst('#', '0xFF')));
+    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(
+      context,
+      listen: false,
+    );
+    final subject = allSubjectsProvider.subjects.firstWhere(
+      (s) => s.id == record.subject_id,
+      orElse: () => Subject(
+        id: '',
+        plan_id: '',
+        subject: 'Desconhecido',
+        color: '#808080',
+        topics: [],
+        lastModified: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    final subjectColor = Color(
+      int.parse(subject.color.replaceFirst('#', '0xFF')),
+    );
 
     final dayDifference = getDaysOverdue(record.scheduled_date);
     String statusText;
@@ -150,10 +179,7 @@ class RevisionCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: 10,
-              color: subjectColor,
-            ),
+            Container(width: 10, color: subjectColor),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -171,7 +197,10 @@ class RevisionCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       record.topics.join(', '),
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 14,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                     const Spacer(),
@@ -179,11 +208,7 @@ class RevisionCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(
-                          statusIcon,
-                          color: statusColor,
-                          size: 16,
-                        ),
+                        Icon(statusIcon, color: statusColor, size: 16),
                         const SizedBox(width: 6),
                         Text(
                           statusText,
@@ -193,7 +218,7 @@ class RevisionCard extends StatelessWidget {
                           ),
                         ),
                       ],
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -202,42 +227,74 @@ class RevisionCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  icon: const Icon(MaterialCommunityIcons.check_circle_outline, color: Colors.green),
+                  icon: const Icon(
+                    MaterialCommunityIcons.check_circle_outline,
+                    color: Colors.green,
+                  ),
                   onPressed: () {
-                    final activePlanProvider = Provider.of<ActivePlanProvider>(context, listen: false);
-                    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
-                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-                    final reviewProvider = Provider.of<ReviewProvider>(context, listen: false);
+                    final activePlanProvider = Provider.of<ActivePlanProvider>(
+                      context,
+                      listen: false,
+                    );
+                    final allSubjectsProvider =
+                        Provider.of<AllSubjectsProvider>(
+                          context,
+                          listen: false,
+                        );
+                    final authProvider = Provider.of<AuthProvider>(
+                      context,
+                      listen: false,
+                    );
+                    final historyProvider = Provider.of<HistoryProvider>(
+                      context,
+                      listen: false,
+                    );
+                    final reviewProvider = Provider.of<ReviewProvider>(
+                      context,
+                      listen: false,
+                    );
                     final planId = activePlanProvider.activePlan?.id;
 
                     if (planId == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nenhum plano de estudo ativo selecionado.')),
-                      );
-                      return;
-                    }
-                    
-                    if (record.subject_id == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Erro: A revisão não está associada a nenhuma matéria.')),
+                        const SnackBar(
+                          content: Text(
+                            'Nenhum plano de estudo ativo selecionado.',
+                          ),
+                        ),
                       );
                       return;
                     }
 
-                    final subject = allSubjectsProvider.subjects.firstWhereOrNull((s) => s.id == record.subject_id);
-                    
+                    if (record.subject_id == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Erro: A revisão não está associada a nenhuma matéria.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final subject = allSubjectsProvider.subjects
+                        .firstWhereOrNull((s) => s.id == record.subject_id);
+
                     final newRecord = StudyRecord(
                       id: Uuid().v4(),
                       userId: authProvider.currentUser!.name,
                       plan_id: planId,
                       date: DateTime.now().toIso8601String().split('T')[0],
-                      subject_id: record.subject_id!, // Agora seguro por causa da verificação acima
+                      subject_id: record
+                          .subject_id!, // Agora seguro por causa da verificação acima
                       topicsProgress: record.topics
-                          .map((topicText) => TopicProgress(
-                                topicId: const Uuid().v4(), // Novo ID para o TopicProgress
-                                topicText: topicText,
-                              ))
+                          .map(
+                            (topicText) => TopicProgress(
+                              topicId: const Uuid()
+                                  .v4(), // Novo ID para o TopicProgress
+                              topicText: topicText,
+                            ),
+                          )
                           .toList(),
                       study_time: 0, // Inicia zerado para o usuário preencher
                       category: 'revisao',
@@ -263,7 +320,10 @@ class RevisionCard extends StatelessWidget {
                   tooltip: 'Concluir Revisão',
                 ),
                 IconButton(
-                  icon: const Icon(MaterialCommunityIcons.close_circle_outline, color: Colors.red),
+                  icon: const Icon(
+                    MaterialCommunityIcons.close_circle_outline,
+                    color: Colors.red,
+                  ),
                   onPressed: () {
                     reviewProvider.ignoreReview(record);
                   },

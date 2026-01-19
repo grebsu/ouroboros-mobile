@@ -40,18 +40,23 @@ class PlanningBackupData {
 
   factory PlanningBackupData.fromMap(Map<String, dynamic> map) {
     return PlanningBackupData(
-      studyCycle: map['studyCycle'] != null 
-          ? List<StudySession>.from(map['studyCycle'].map((x) => StudySession.fromJson(x)))
+      studyCycle: map['studyCycle'] != null
+          ? List<StudySession>.from(
+              map['studyCycle'].map((x) => StudySession.fromJson(x)),
+            )
           : null,
       completedCycles: map['completedCycles'] ?? 0,
       currentProgressMinutes: map['currentProgressMinutes'] ?? 0,
-      sessionProgressMap: Map<String, int>.from(map['sessionProgressMap'] ?? {}),
+      sessionProgressMap: Map<String, int>.from(
+        map['sessionProgressMap'] ?? {},
+      ),
       studyHours: map['studyHours'] ?? '0',
       weeklyQuestionsGoal: map['weeklyQuestionsGoal'] ?? '0',
       subjectSettings: Map<String, Map<String, double>>.from(
         (map['subjectSettings'] as Map<String, dynamic>?)?.map(
-          (key, value) => MapEntry(key, Map<String, double>.from(value)),
-        ) ?? {},
+              (key, value) => MapEntry(key, Map<String, double>.from(value)),
+            ) ??
+            {},
       ),
       studyDays: List<String>.from(map['studyDays'] ?? []),
       cycleGenerationTimestamp: map['cycleGenerationTimestamp'],
@@ -83,27 +88,49 @@ class BackupData {
       'studyRecords': studyRecords.map((x) => x.toMap()).toList(),
       'reviewRecords': reviewRecords.map((x) => x.toMap()).toList(),
       'simuladoRecords': simuladoRecords.map((x) => x.toMap()).toList(),
-      'planningDataPerPlan': planningDataPerPlan.map((key, value) => MapEntry(key, value.toMap())),
+      'planningDataPerPlan': planningDataPerPlan.map(
+        (key, value) => MapEntry(key, value.toMap()),
+      ),
     };
   }
 
   factory BackupData.fromMap(Map<String, dynamic> map) {
     return BackupData(
       plans: List<Plan>.from(map['plans']?.map((x) => Plan.fromMap(x)) ?? []),
-      subjects: List<Subject>.from(map['subjects']?.map((x) {
-        // Extrai a lista de tópicos e reconstrói a hierarquia
-        List<Topic> hierarchicalTopics = (x['topics'] as List<dynamic>?)
-            ?.map((t) => Topic.fromBackupMap(t))
-            .toList() ?? [];
-        return Subject.fromMap(x, hierarchicalTopics);
-      }) ?? []),
-      studyRecords: List<StudyRecord>.from(map['studyRecords']?.map((x) => StudyRecord.fromMap(x)) ?? []),
-      reviewRecords: List<ReviewRecord>.from(map['reviewRecords']?.map((x) => ReviewRecord.fromMap(x)) ?? []),
-      simuladoRecords: List<SimuladoRecord>.from(map['simuladoRecords']?.map((x) => SimuladoRecord.fromMap(x, (x['subjects'] as List<dynamic>).map((s) => SimuladoSubject.fromMap(s)).toList())) ?? []),
+      subjects: List<Subject>.from(
+        map['subjects']?.map((x) {
+              // Extrai a lista de tópicos e reconstrói a hierarquia
+              List<Topic> hierarchicalTopics =
+                  (x['topics'] as List<dynamic>?)
+                      ?.map((t) => Topic.fromBackupMap(t))
+                      .toList() ??
+                  [];
+              return Subject.fromMap(x, hierarchicalTopics);
+            }) ??
+            [],
+      ),
+      studyRecords: List<StudyRecord>.from(
+        map['studyRecords']?.map((x) => StudyRecord.fromMap(x)) ?? [],
+      ),
+      reviewRecords: List<ReviewRecord>.from(
+        map['reviewRecords']?.map((x) => ReviewRecord.fromMap(x)) ?? [],
+      ),
+      simuladoRecords: List<SimuladoRecord>.from(
+        map['simuladoRecords']?.map(
+              (x) => SimuladoRecord.fromMap(
+                x,
+                (x['subjects'] as List<dynamic>)
+                    .map((s) => SimuladoSubject.fromMap(s))
+                    .toList(),
+              ),
+            ) ??
+            [],
+      ),
       planningDataPerPlan: Map<String, PlanningBackupData>.from(
         (map['planningDataPerPlan'] as Map<String, dynamic>?)?.map(
-          (key, value) => MapEntry(key, PlanningBackupData.fromMap(value)),
-        ) ?? {},
+              (key, value) => MapEntry(key, PlanningBackupData.fromMap(value)),
+            ) ??
+            {},
       ),
     );
   }
@@ -112,7 +139,9 @@ class BackupData {
     final Map<int, Topic> topicMap = {};
     for (var topic in flatTopics) {
       if (topic.id != null) {
-        topicMap[topic.id!] = topic.copyWith(sub_topics: []); // Initialize sub_topics
+        topicMap[topic.id!] = topic.copyWith(
+          sub_topics: [],
+        ); // Initialize sub_topics
       }
     }
 

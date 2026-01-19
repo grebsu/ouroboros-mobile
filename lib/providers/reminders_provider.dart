@@ -26,7 +26,9 @@ class RemindersProvider with ChangeNotifier {
     if (notesString != null) {
       try {
         final List<dynamic> decodedList = jsonDecode(notesString);
-        _notes = decodedList.map((item) => ReminderNote.fromJson(item)).toList();
+        _notes = decodedList
+            .map((item) => ReminderNote.fromJson(item))
+            .toList();
       } catch (e) {
         print('Error decoding reminder notes: $e');
         _notes = []; // Reset to empty list if decoding fails
@@ -41,7 +43,9 @@ class RemindersProvider with ChangeNotifier {
 
   Future<void> _saveNotes() async {
     final prefs = await SharedPreferences.getInstance();
-    final notesString = jsonEncode(_notes.map((note) => note.toJson()).toList());
+    final notesString = jsonEncode(
+      _notes.map((note) => note.toJson()).toList(),
+    );
     await prefs.setString(_prefsKey, notesString);
   }
 

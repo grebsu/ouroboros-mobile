@@ -5,7 +5,10 @@ import 'package:ouroboros_mobile/models/data_models.dart';
 class DisciplinasDesempenhoChart extends StatelessWidget {
   final Map<Subject, SubjectPerformanceData> subjectPerformanceData;
 
-  const DisciplinasDesempenhoChart({super.key, required this.subjectPerformanceData});
+  const DisciplinasDesempenhoChart({
+    super.key,
+    required this.subjectPerformanceData,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +28,7 @@ class DisciplinasDesempenhoChart extends StatelessWidget {
     for (int i = 0; i < sortedSubjects.length; i++) {
       final subject = sortedSubjects[i];
       final data = subjectPerformanceData[subject]!;
-      
+
       final barRodWidth = 8.0;
       final spaceBetweenBars = 2.0;
 
@@ -73,15 +76,25 @@ class DisciplinasDesempenhoChart extends StatelessWidget {
               minY: 0,
               maxY: 100,
               titlesData: FlTitlesData(
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 40,
                     getTitlesWidget: (value, meta) {
                       if (value % 20 == 0) {
-                        return Text('${value.toInt()}%', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 10));
+                        return Text(
+                          '${value.toInt()}%',
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                            fontSize: 10,
+                          ),
+                        );
                       }
                       return const Text('');
                     },
@@ -90,24 +103,35 @@ class DisciplinasDesempenhoChart extends StatelessWidget {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 100, // Adjusted reserved size for rotated labels
+                    reservedSize:
+                        100, // Adjusted reserved size for rotated labels
                     getTitlesWidget: (value, meta) {
-                      if (value.toInt() >= 0 && value.toInt() < sortedSubjects.length) {
+                      if (value.toInt() >= 0 &&
+                          value.toInt() < sortedSubjects.length) {
                         final subject = sortedSubjects[value.toInt()];
                         return SideTitleWidget(
                           meta: meta,
-                          angle: -0.785, // Aproximadamente -45 graus em radianos
+                          angle:
+                              -0.785, // Aproximadamente -45 graus em radianos
                           space: 8,
                           child: Text(
                             subject.subject,
-                            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 10),
-                            textAlign: TextAlign.end, // Alinhar ao final para o texto girado
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.color,
+                              fontSize: 10,
+                            ),
+                            textAlign: TextAlign
+                                .end, // Alinhar ao final para o texto girado
                           ),
                         );
                       }
                       return const Text('');
                     },
-                    interval: sortedSubjects.length > 5 ? (sortedSubjects.length / 5).ceilToDouble() : 1, // Dynamic interval
+                    interval: sortedSubjects.length > 5
+                        ? (sortedSubjects.length / 5).ceilToDouble()
+                        : 1, // Dynamic interval
                   ),
                 ),
               ),
@@ -118,8 +142,10 @@ class DisciplinasDesempenhoChart extends StatelessWidget {
                     final data = subjectPerformanceData[subject]!;
                     String label = rodIndex == 0 ? 'Acertos' : 'Erros';
                     Color color = rodIndex == 0 ? Colors.teal : Colors.red;
-                    
-                    final count = rodIndex == 0 ? data.correctQuestions : (data.totalQuestions - data.correctQuestions);
+
+                    final count = rodIndex == 0
+                        ? data.correctQuestions
+                        : (data.totalQuestions - data.correctQuestions);
 
                     return BarTooltipItem(
                       '${subject.subject}\n$label: ${rod.toY.toStringAsFixed(1)}% ($count/${data.totalQuestions})',
@@ -167,13 +193,15 @@ class DisciplinasDesempenhoChart extends StatelessWidget {
   Widget _legendItem(BuildContext context, Color color, String text) {
     return Row(
       children: [
-        Container(
-          width: 12,
-          height: 12,
-          color: color,
-        ),
+        Container(width: 12, height: 12, color: color),
         const SizedBox(width: 4),
-        Text(text, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+        ),
       ],
     );
   }

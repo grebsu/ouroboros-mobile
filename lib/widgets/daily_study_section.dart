@@ -66,7 +66,10 @@ class _DailyStudySectionState extends State<DailyStudySection> {
       });
     });
 
-    final totalStudyMinutes = studyData.fold<int>(0, (acc, item) => acc + item['minutes'] as int);
+    final totalStudyMinutes = studyData.fold<int>(
+      0,
+      (acc, item) => acc + item['minutes'] as int,
+    );
 
     List<PieChartSectionData> showingSections() {
       if (studyData.isEmpty) {
@@ -76,7 +79,11 @@ class _DailyStudySectionState extends State<DailyStudySection> {
             value: 100,
             title: '0%',
             radius: 60,
-            titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black),
+            titleStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
             showTitle: false,
           ),
         ];
@@ -89,14 +96,20 @@ class _DailyStudySectionState extends State<DailyStudySection> {
         final double radius = isTouched ? 60 : 50;
         final double fontSize = isTouched ? 16 : 12;
 
-        final double percentage = totalStudyMinutes > 0 ? (data['minutes'] / totalStudyMinutes) * 100 : 0;
+        final double percentage = totalStudyMinutes > 0
+            ? (data['minutes'] / totalStudyMinutes) * 100
+            : 0;
 
         return PieChartSectionData(
           color: data['color'],
           value: data['minutes'].toDouble(),
           title: percentage > 0 ? '${percentage.toStringAsFixed(1)}%' : '',
           radius: radius,
-          titleStyle: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: Colors.white),
+          titleStyle: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
           badgePositionPercentageOffset: .98,
         );
       }).toList();
@@ -144,7 +157,11 @@ class _DailyStudySectionState extends State<DailyStudySection> {
             const SizedBox(height: 16),
             Text(
               'Legenda:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
             ),
             const SizedBox(height: 8),
             ListView.builder(
@@ -170,7 +187,8 @@ class _DailyStudySectionState extends State<DailyStudySection> {
                         child: Text(
                           '${item['subject']}: ${_formatMinutesToHoursMinutes(item['minutes'] as int)}',
                           style: TextStyle(color: Colors.grey.shade700),
-                          overflow: TextOverflow.ellipsis, // Add ellipsis for long text
+                          overflow: TextOverflow
+                              .ellipsis, // Add ellipsis for long text
                         ),
                       ),
                     ],
@@ -183,7 +201,10 @@ class _DailyStudySectionState extends State<DailyStudySection> {
               alignment: Alignment.centerRight,
               child: Text(
                 'Total: ${_formatMinutesToHoursMinutes(totalStudyMinutes)}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
           ],

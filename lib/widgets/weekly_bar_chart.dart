@@ -22,8 +22,12 @@ class WeeklyBarChart extends StatelessWidget {
     double maxY = 0;
 
     if (currentView == ChartView.time) {
-      final maxStudyTime = weeklyData.fold<Duration>(Duration.zero, (max, d) => d > max ? d : max);
-      maxY = (maxStudyTime.inMinutes / 60.0) * 1.2; // Add some padding to the top
+      final maxStudyTime = weeklyData.fold<Duration>(
+        Duration.zero,
+        (max, d) => d > max ? d : max,
+      );
+      maxY =
+          (maxStudyTime.inMinutes / 60.0) * 1.2; // Add some padding to the top
       if (maxY == 0) maxY = 1.0; // Avoid division by zero if no data
 
       for (int i = 0; i < weeklyData.length; i++) {
@@ -35,14 +39,19 @@ class WeeklyBarChart extends StatelessWidget {
                 toY: weeklyData[i].inMinutes / 60.0,
                 color: Colors.teal, // Use Teal for time
                 width: 16,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
               ),
             ],
           ),
         );
       }
     } else {
-      final maxQuestions = weeklyQuestionsData.fold<int>(0, (max, q) => q > max ? q : max);
+      final maxQuestions = weeklyQuestionsData.fold<int>(
+        0,
+        (max, q) => q > max ? q : max,
+      );
       maxY = (maxQuestions * 1.2).toDouble(); // Add some padding to the top
       if (maxY == 0) maxY = 10.0; // Avoid division by zero if no data
 
@@ -55,7 +64,9 @@ class WeeklyBarChart extends StatelessWidget {
                 toY: weeklyQuestionsData[i].toDouble(),
                 color: Colors.purple, // Use Purple for questions
                 width: 16,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
               ),
             ],
           ),
@@ -79,7 +90,10 @@ class WeeklyBarChart extends StatelessWidget {
                 getTitlesWidget: (value, meta) {
                   return Padding(
                     padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(days[value.toInt()], style: const TextStyle(fontSize: 10)),
+                    child: Text(
+                      days[value.toInt()],
+                      style: const TextStyle(fontSize: 10),
+                    ),
                   );
                 },
                 reservedSize: 20,
@@ -100,8 +114,12 @@ class WeeklyBarChart extends StatelessWidget {
                 reservedSize: 28,
               ),
             ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
           ),
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(

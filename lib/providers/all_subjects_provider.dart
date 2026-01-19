@@ -31,7 +31,9 @@ class AllSubjectsProvider with ChangeNotifier {
 
   Future<Subject?> getSubjectByNameAndPlanId(String name, String planId) async {
     try {
-      return _subjects.firstWhere((subject) => subject.subject == name && subject.plan_id == planId);
+      return _subjects.firstWhere(
+        (subject) => subject.subject == name && subject.plan_id == planId,
+      );
     } catch (e) {
       return null;
     }
@@ -59,16 +61,29 @@ class AllSubjectsProvider with ChangeNotifier {
   Future<void> _internalRefreshData() async {
     if (authProvider?.currentUser == null) return;
     print('AllSubjectsProvider: Iniciando _internalRefreshData...');
-    _subjects = await _dbService.readAllSubjects(authProvider!.currentUser!.name);
-    final allPlans = await _dbService.readAllPlans(authProvider!.currentUser!.name);
-    _plansMap = { for (var plan in allPlans) plan.id: plan };
+    _subjects = await _dbService.readAllSubjects(
+      authProvider!.currentUser!.name,
+    );
+    final allPlans = await _dbService.readAllPlans(
+      authProvider!.currentUser!.name,
+    );
+    _plansMap = {for (var plan in allPlans) plan.id: plan};
 
     // Filtrar matérias para incluir apenas aquelas com planos existentes
-    _subjects = _subjects.where((subject) => _plansMap.containsKey(subject.plan_id)).toList();
-    _studyRecords = await _dbService.readStudyRecordsForUser(authProvider!.currentUser!.name);
+    _subjects = _subjects
+        .where((subject) => _plansMap.containsKey(subject.plan_id))
+        .toList();
+    _studyRecords = await _dbService.readStudyRecordsForUser(
+      authProvider!.currentUser!.name,
+    );
     _simuladoRecords = [];
     for (final plan in allPlans) {
-      _simuladoRecords.addAll(await _dbService.readSimuladoRecordsForPlan(plan.id, authProvider!.currentUser!.name));
+      _simuladoRecords.addAll(
+        await _dbService.readSimuladoRecordsForPlan(
+          plan.id,
+          authProvider!.currentUser!.name,
+        ),
+      );
     }
     print('AllSubjectsProvider: _internalRefreshData concluído.');
   }
@@ -96,7 +111,11 @@ class AllSubjectsProvider with ChangeNotifier {
     final studyQuestions = _studyRecords
         .where((record) => record.subject_id == subjectId)
         .fold<int>(0, (sum, record) {
-          return sum + record.topicsProgress.fold<int>(0, (tpSum, tp) => tpSum + (tp.questions['total'] ?? 0));
+          return sum +
+              record.topicsProgress.fold<int>(
+                0,
+                (tpSum, tp) => tpSum + (tp.questions['total'] ?? 0),
+              );
         });
     final simuladoQuestions = _simuladoRecords
         .expand((record) => record.subjects)
@@ -136,7 +155,10 @@ class AllSubjectsProvider with ChangeNotifier {
   }
 
   String getTotalStudyHours() {
-    final totalMilliseconds = _studyRecords.fold<int>(0, (sum, record) => sum + record.study_time);
+    final totalMilliseconds = _studyRecords.fold<int>(
+      0,
+      (sum, record) => sum + record.study_time,
+    );
     final totalMinutes = totalMilliseconds / 60000;
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
@@ -145,7 +167,11 @@ class AllSubjectsProvider with ChangeNotifier {
 
   int getTotalQuestions() {
     final studyQuestions = _studyRecords.fold<int>(0, (sum, record) {
-      return sum + record.topicsProgress.fold<int>(0, (tpSum, tp) => tpSum + (tp.questions['total'] ?? 0));
+      return sum +
+          record.topicsProgress.fold<int>(
+            0,
+            (tpSum, tp) => tpSum + (tp.questions['total'] ?? 0),
+          );
     });
     final simuladoQuestions = _simuladoRecords
         .expand((record) => record.subjects)
@@ -180,15 +206,22 @@ class AllSubjectsProvider with ChangeNotifier {
 
   Future<void> addSubject(Subject subject) async {
     if (authProvider?.currentUser == null) return;
-    final newSubject = subject.copyWith(lastModified: DateTime.now().millisecondsSinceEpoch);
+    final newSubject = subject.copyWith(
+      lastModified: DateTime.now().millisecondsSinceEpoch,
+    );
     await _dbService.createSubject(newSubject, authProvider!.currentUser!.name);
     await fetchData(); // Keep full fetch here to update UI correctly
   }
 
   Future<void> updateSubject(Subject subject) async {
     if (authProvider?.currentUser == null) return;
-    final updatedSubject = subject.copyWith(lastModified: DateTime.now().millisecondsSinceEpoch);
-    await _dbService.updateSubject(updatedSubject, authProvider!.currentUser!.name);
+    final updatedSubject = subject.copyWith(
+      lastModified: DateTime.now().millisecondsSinceEpoch,
+    );
+    await _dbService.updateSubject(
+      updatedSubject,
+      authProvider!.currentUser!.name,
+    );
     await fetchData();
   }
 
@@ -197,9 +230,13 @@ class AllSubjectsProvider with ChangeNotifier {
     await fetchData();
   }
 
-  Future<void> calculateAndApplyTopicWeights(List<String> selectedSubjectIds) async {
+  Future<void> calculateAndApplyTopicWeights(
+    List<String> selectedSubjectIds,
+  ) async {
     try {
-      final selectedSubjects = _subjects.where((s) => selectedSubjectIds.contains(s.id)).toList();
+      final selectedSubjects = _subjects
+          .where((s) => selectedSubjectIds.contains(s.id))
+          .toList();
 
       // Helper to extract all leaf topics recursively from a list of subjects
       List<Topic> _extractAllLeafTopics(List<Subject> subjects) {
@@ -208,20 +245,27 @@ class AllSubjectsProvider with ChangeNotifier {
           for (var topic in topics) {
             if (topic.sub_topics == null || topic.sub_topics!.isEmpty) {
               leafTopics.add(topic);
-              print('Extracted leaf topic: ${topic.topic_text}, Questions: ${topic.question_count}');
+              print(
+                'Extracted leaf topic: ${topic.topic_text}, Questions: ${topic.question_count}',
+              );
             } else {
               extract(topic.sub_topics!);
             }
           }
         }
+
         for (var subject in subjects) {
           extract(subject.topics);
         }
         return leafTopics;
       }
 
-      final guideSubjects = selectedSubjects.where((s) => s.import_source == 'tec_concursos').toList();
-      final manualSubjects = selectedSubjects.where((s) => s.import_source != 'tec_concursos').toList();
+      final guideSubjects = selectedSubjects
+          .where((s) => s.import_source == 'tec_concursos')
+          .toList();
+      final manualSubjects = selectedSubjects
+          .where((s) => s.import_source != 'tec_concursos')
+          .toList();
 
       // Helper function to calculate and normalize weights for a given set of topics
       Map<int, int> _calculateAndNormalizeWeights(List<Topic> topics) {
@@ -231,22 +275,32 @@ class AllSubjectsProvider with ChangeNotifier {
           return weights;
         }
 
-        print('calculateAndNormalizeWeights: Processing ${topics.length} topics.');
-        
-        final topicsWithQuestions = topics.where((t) => t.question_count != null && t.question_count! > 0).toList();
-        final topicsWithoutQuestions = topics.where((t) => t.question_count == null || t.question_count == 0).toList();
+        print(
+          'calculateAndNormalizeWeights: Processing ${topics.length} topics.',
+        );
+
+        final topicsWithQuestions = topics
+            .where((t) => t.question_count != null && t.question_count! > 0)
+            .toList();
+        final topicsWithoutQuestions = topics
+            .where((t) => t.question_count == null || t.question_count == 0)
+            .toList();
 
         // Assign default weight of 1 for topics without questions
         for (var topic in topicsWithoutQuestions) {
           if (topic.id != null) {
             weights[topic.id!] = 1;
-            print('  Assigned default weight 1 to topic ${topic.topic_text} (no questions).');
+            print(
+              '  Assigned default weight 1 to topic ${topic.topic_text} (no questions).',
+            );
           }
         }
 
         if (topicsWithQuestions.isNotEmpty) {
           // Use log transformation to handle skewed data distribution
-          final List<double> logCounts = topicsWithQuestions.map((t) => log(t.question_count!)).toList();
+          final List<double> logCounts = topicsWithQuestions
+              .map((t) => log(t.question_count!))
+              .toList();
           final double minLog = logCounts.reduce((a, b) => a < b ? a : b);
           final double maxLog = logCounts.reduce((a, b) => a > b ? a : b);
 
@@ -257,7 +311,9 @@ class AllSubjectsProvider with ChangeNotifier {
             for (final topic in topicsWithQuestions) {
               if (topic.id != null) {
                 weights[topic.id!] = 3;
-                print('  Topic: ${topic.topic_text}, Questions: ${topic.question_count}, Calculated Weight: 3 (all equal).');
+                print(
+                  '  Topic: ${topic.topic_text}, Questions: ${topic.question_count}, Calculated Weight: 3 (all equal).',
+                );
               }
             }
           } else {
@@ -266,9 +322,14 @@ class AllSubjectsProvider with ChangeNotifier {
               if (topic.id != null) {
                 final double logCount = log(topic.question_count!);
                 final double normalizedValue = (logCount - minLog) / logRange;
-                final int weight = (1 + (normalizedValue * 4)).round().clamp(1, 5);
+                final int weight = (1 + (normalizedValue * 4)).round().clamp(
+                  1,
+                  5,
+                );
                 weights[topic.id!] = weight;
-                print('  Topic: ${topic.topic_text}, Questions: ${topic.question_count}, Log: $logCount, Normalized: $normalizedValue, Calculated Weight: $weight');
+                print(
+                  '  Topic: ${topic.topic_text}, Questions: ${topic.question_count}, Log: $logCount, Normalized: $normalizedValue, Calculated Weight: $weight',
+                );
               }
             }
           }

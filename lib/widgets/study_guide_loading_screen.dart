@@ -11,10 +11,12 @@ class StudyGuideLoadingScreen extends StatefulWidget {
   });
 
   @override
-  State<StudyGuideLoadingScreen> createState() => _StudyGuideLoadingScreenState();
+  State<StudyGuideLoadingScreen> createState() =>
+      _StudyGuideLoadingScreenState();
 }
 
-class _StudyGuideLoadingScreenState extends State<StudyGuideLoadingScreen> with SingleTickerProviderStateMixin {
+class _StudyGuideLoadingScreenState extends State<StudyGuideLoadingScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -35,7 +37,9 @@ class _StudyGuideLoadingScreenState extends State<StudyGuideLoadingScreen> with 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final logoAsset = isDarkMode ? 'logo/logo-modo-escuro.png' : 'logo/logo.png'; // Changed to .png
+    final logoAsset = isDarkMode
+        ? 'logo/logo-modo-escuro.png'
+        : 'logo/logo.png'; // Changed to .png
 
     return ValueListenableBuilder<LoadingState>(
       valueListenable: widget.loadingStateNotifier,
@@ -59,7 +63,8 @@ class _StudyGuideLoadingScreenState extends State<StudyGuideLoadingScreen> with 
                   ),
                   const SizedBox(height: 20), // Spacing after status text
 
-                  Row( // New Row for logo and progress bar
+                  Row(
+                    // New Row for logo and progress bar
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       RotationTransition(
@@ -70,12 +75,16 @@ class _StudyGuideLoadingScreenState extends State<StudyGuideLoadingScreen> with 
                           width: 60,
                         ),
                       ),
-                      const SizedBox(width: 20), // Spacing between logo and progress bar
+                      const SizedBox(
+                        width: 20,
+                      ), // Spacing between logo and progress bar
                       Expanded(
                         child: LinearProgressIndicator(
                           value: loadingState.progress,
                           backgroundColor: Colors.grey[300],
-                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Colors.teal,
+                          ),
                           minHeight: 10,
                           borderRadius: BorderRadius.circular(5),
                         ),

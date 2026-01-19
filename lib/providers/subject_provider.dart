@@ -18,14 +18,20 @@ class SubjectProvider with ChangeNotifier {
     if (_authProvider?.currentUser == null) return;
     _isLoading = true;
     notifyListeners();
-    _subjects = await _dbService.readSubjectsForPlan(planId, _authProvider!.currentUser!.name);
+    _subjects = await _dbService.readSubjectsForPlan(
+      planId,
+      _authProvider!.currentUser!.name,
+    );
     _isLoading = false;
     notifyListeners();
   }
 
   Future<void> addSubject(Subject newSubject) async {
     if (_authProvider?.currentUser == null) return;
-    await _dbService.createSubject(newSubject, _authProvider!.currentUser!.name);
+    await _dbService.createSubject(
+      newSubject,
+      _authProvider!.currentUser!.name,
+    );
     // Assuming newSubject has planId, refetch for that plan
     await fetchSubjects(newSubject.plan_id);
   }

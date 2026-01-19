@@ -42,7 +42,9 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
   @override
   void initState() {
     super.initState();
-    _expandedNodes = widget.data.map((e) => e.id).toSet(); // Start with top-level expanded
+    _expandedNodes = widget.data
+        .map((e) => e.id)
+        .toSet(); // Start with top-level expanded
     _flattenedData = _getFlattenedData();
   }
 
@@ -54,7 +56,10 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
     return flatList;
   }
 
-  void _flattenNode(HierarchicalPerformanceNode node, List<HierarchicalPerformanceNode> flatList) {
+  void _flattenNode(
+    HierarchicalPerformanceNode node,
+    List<HierarchicalPerformanceNode> flatList,
+  ) {
     flatList.add(node);
     if (_expandedNodes.contains(node.id)) {
       for (final child in node.children) {
@@ -99,16 +104,68 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
       decoration: BoxDecoration(
         color: theme.colorScheme.primary.withOpacity(0.1),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(8.0)),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2), width: 1),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
       child: Row(
         children: [
-          Expanded(flex: 5, child: Text('Disciplina/Tópico', style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
-          Expanded(flex: 2, child: Text('Acertos', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
-          Expanded(flex: 2, child: Text('Erros', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
-          Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
-          Expanded(flex: 3, child: Text('Desempenho', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color))),
+          Expanded(
+            flex: 5,
+            child: Text(
+              'Disciplina/Tópico',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Acertos',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Erros',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Total',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              'Desempenho',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -122,7 +179,9 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
 
     Color? rowBackgroundColor = node.isGroupingTopic
         ? theme.colorScheme.primary.withOpacity(0.05)
-        : (isEvenRow ? theme.colorScheme.surfaceVariant.withOpacity(0.1) : Colors.transparent);
+        : (isEvenRow
+              ? theme.colorScheme.surfaceVariant.withOpacity(0.1)
+              : Colors.transparent);
 
     Color performanceColor;
     if (node.percentualAcerto >= 70) {
@@ -139,7 +198,12 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
           onTap: hasChildren ? () => _toggleNode(node.id) : null,
           child: Container(
             color: rowBackgroundColor,
-            padding: EdgeInsets.only(left: 8.0 + (node.level * 16.0), right: 8.0, top: 12.0, bottom: 12.0),
+            padding: EdgeInsets.only(
+              left: 8.0 + (node.level * 16.0),
+              right: 8.0,
+              top: 12.0,
+              bottom: 12.0,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -147,7 +211,11 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
                   child: Row(
                     children: [
                       if (hasChildren)
-                        Icon(isExpanded ? Icons.expand_more : Icons.chevron_right, size: 18, color: theme.textTheme.bodyLarge?.color)
+                        Icon(
+                          isExpanded ? Icons.expand_more : Icons.chevron_right,
+                          size: 18,
+                          color: theme.textTheme.bodyLarge?.color,
+                        )
                       else
                         const SizedBox(width: 18),
                       const SizedBox(width: 4),
@@ -155,7 +223,9 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
                         child: Text(
                           node.name,
                           style: TextStyle(
-                            fontWeight: node.isGroupingTopic ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: node.isGroupingTopic
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             color: theme.textTheme.bodyLarge?.color,
                           ),
                         ),
@@ -163,15 +233,39 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
                     ],
                   ),
                 ),
-                Expanded(flex: 2, child: Text('${node.acertos}', textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodyLarge?.color))),
-                Expanded(flex: 2, child: Text('${node.erros}', textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodyLarge?.color))),
-                Expanded(flex: 2, child: Text('${node.total}', textAlign: TextAlign.center, style: TextStyle(color: theme.textTheme.bodyLarge?.color))),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '${node.acertos}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '${node.erros}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '${node.total}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                  ),
+                ),
                 Expanded(
                   flex: 3,
                   child: Center(
                     child: Text(
                       '${node.percentualAcerto.toStringAsFixed(1)}%',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: performanceColor),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: performanceColor,
+                      ),
                     ),
                   ),
                 ),
@@ -179,7 +273,11 @@ class _TopicPerformanceTableState extends State<TopicPerformanceTable> {
             ),
           ),
         ),
-        Divider(height: 1, thickness: 0.5, color: theme.dividerColor.withOpacity(0.5)),
+        Divider(
+          height: 1,
+          thickness: 0.5,
+          color: theme.dividerColor.withOpacity(0.5),
+        ),
       ],
     );
   }

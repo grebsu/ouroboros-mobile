@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 class StudyConsistencyGrid extends StatelessWidget {
   final List<Map<String, dynamic>> daysData;
 
-  const StudyConsistencyGrid({Key? key, required this.daysData}) : super(key: key);
+  const StudyConsistencyGrid({Key? key, required this.daysData})
+    : super(key: key);
 
   Color _getDayColor(Map<String, dynamic> day) {
     if (!(day['active'] as bool)) return Colors.grey.shade200;
@@ -66,7 +67,11 @@ class StudyConsistencyGrid extends StatelessWidget {
               child: Text(
                 (day['date'] as DateTime).day.toString(),
                 style: TextStyle(
-                  color: (day['active'] as bool) ? Colors.white : Colors.grey.shade600, // Text color based on active status
+                  color: (day['active'] as bool)
+                      ? Colors.white
+                      : Colors
+                            .grey
+                            .shade600, // Text color based on active status
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),

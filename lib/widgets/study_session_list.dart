@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:provider/provider.dart';
@@ -63,20 +62,29 @@ class _StudySessionListState extends State<StudySessionList> {
     Widget buildListItem(StudySession session, int index) {
       final currentProgress = sessionProgressMap[session.id] ?? 0;
       final isCompleted = currentProgress >= session.duration;
-      final progressPercentage = session.duration > 0 ? currentProgress / session.duration : 0.0;
-      final extraTime = widget.extraStudyTimeBySubjectId[session.subjectId] ?? 0;
+      final progressPercentage = session.duration > 0
+          ? currentProgress / session.duration
+          : 0.0;
+      final extraTime =
+          widget.extraStudyTimeBySubjectId[session.subjectId] ?? 0;
 
       return Card(
         key: ValueKey(session.id),
         margin: const EdgeInsets.symmetric(vertical: 4.0),
         child: ListTile(
-          leading: CircleAvatar(backgroundColor: Color(int.parse(session.color.replaceFirst('#', '0xFF')))),
+          leading: CircleAvatar(
+            backgroundColor: Color(
+              int.parse(session.color.replaceFirst('#', '0xFF')),
+            ),
+          ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 session.subject,
-                style: isCompleted ? const TextStyle(decoration: TextDecoration.lineThrough) : null,
+                style: isCompleted
+                    ? const TextStyle(decoration: TextDecoration.lineThrough)
+                    : null,
               ),
               Text(
                 '${_formatDuration(currentProgress)} / ${_formatDuration(session.duration)}',
@@ -87,7 +95,9 @@ class _StudySessionListState extends State<StudySessionList> {
                 child: LinearProgressIndicator(
                   value: progressPercentage,
                   backgroundColor: Colors.grey[300],
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(int.parse(session.color.replaceFirst('#', '0xFF')))),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Color(int.parse(session.color.replaceFirst('#', '0xFF'))),
+                  ),
                 ),
               ),
               if (isCompleted && extraTime > 0)
@@ -96,7 +106,11 @@ class _StudySessionListState extends State<StudySessionList> {
                   child: Chip(
                     label: Text(
                       '+ ${_formatDuration(extraTime)} (Extra)',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     backgroundColor: Colors.indigo.shade400,
                     visualDensity: VisualDensity.compact,
@@ -121,20 +135,20 @@ class _StudySessionListState extends State<StudySessionList> {
                   ],
                 )
               : (widget.onStartStudy != null && widget.onRegisterStudy != null
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.play_arrow),
-                          onPressed: () => widget.onStartStudy!(session),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: () => widget.onRegisterStudy!(session),
-                        ),
-                      ],
-                    )
-                  : null),
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.play_arrow),
+                            onPressed: () => widget.onStartStudy!(session),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () => widget.onRegisterStudy!(session),
+                          ),
+                        ],
+                      )
+                    : null),
         ),
       );
     }

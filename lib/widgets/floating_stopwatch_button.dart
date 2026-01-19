@@ -14,17 +14,22 @@ class FloatingStopwatchButton extends StatefulWidget {
   const FloatingStopwatchButton({super.key});
 
   @override
-  State<FloatingStopwatchButton> createState() => _FloatingStopwatchButtonState();
+  State<FloatingStopwatchButton> createState() =>
+      _FloatingStopwatchButtonState();
 }
 
-class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton> with SingleTickerProviderStateMixin {
+class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
+    with SingleTickerProviderStateMixin {
   Offset? _position;
   AnimationController? _animationController;
   Animation<Offset>? _floatAnimation;
 
   void _handleStudyRecordSave(StudyRecord record) {
     Provider.of<HistoryProvider>(context, listen: false).addStudyRecord(record);
-    Provider.of<PlanningProvider>(context, listen: false).updateProgress(record);
+    Provider.of<PlanningProvider>(
+      context,
+      listen: false,
+    ).updateProgress(record);
   }
 
   @override
@@ -35,13 +40,16 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton> with 
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    _floatAnimation = Tween<Offset>(
-      begin: const Offset(0, 0),
-      end: const Offset(0, -10),
-    ).animate(CurvedAnimation(
-      parent: _animationController!,
-      curve: Curves.easeInOut,
-    ));
+    _floatAnimation =
+        Tween<Offset>(
+          begin: const Offset(0, 0),
+          end: const Offset(0, -10),
+        ).animate(
+          CurvedAnimation(
+            parent: _animationController!,
+            curve: Curves.easeInOut,
+          ),
+        );
     // Initialize _position here
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final screenSize = MediaQuery.of(context).size;
@@ -96,17 +104,18 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton> with 
                     return Card(
                       color: Colors.teal.withOpacity(0.8),
                       elevation: 4.0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 8.0,
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.timer,
-                              color: Colors.white,
-                              size: 24,
-                            ),
+                            Icon(Icons.timer, color: Colors.white, size: 24),
                             const SizedBox(width: 8),
                             Text(
                               stopwatchProvider.result,
@@ -145,25 +154,32 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton> with 
               },
               child: Consumer2<ActivePlanProvider, StopwatchProvider>(
                 builder: (context, activePlanProvider, stopwatchProvider, child) {
-                  final onPressed = () async { // Marcar como async
+                  final onPressed = () async {
+                    // Marcar como async
                     final planId = activePlanProvider.activePlan?.id;
 
                     if (planId != null) {
                       if (!stopwatchProvider.isActive) {
                         stopwatchProvider.setContext(planId: planId);
                       }
-                      
-                      final result = await showDialog<Map<String, dynamic>?>( // Capturar o resultado
+
+                      final result = await showDialog<Map<String, dynamic>?>(
+                        // Capturar o resultado
                         context: context,
-                        builder: (context) => const StopwatchModal(), // Não passa onSaveAndClose
+                        builder: (context) =>
+                            const StopwatchModal(), // Não passa onSaveAndClose
                       );
 
-                      if (result != null) { // Se o usuário salvou
+                      if (result != null) {
+                        // Se o usuário salvou
                         final int time = result['time'];
                         final String? subjectId = result['subjectId'];
                         final Topic? topic = result['topic'];
 
-                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                        final authProvider = Provider.of<AuthProvider>(
+                          context,
+                          listen: false,
+                        );
                         final initialRecord = StudyRecord(
                           id: const Uuid().v4(),
                           userId: authProvider.currentUser!.name,
@@ -175,7 +191,7 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton> with 
                                   TopicProgress(
                                     topicId: topic.id.toString(),
                                     topicText: topic.topic_text,
-                                  )
+                                  ),
                                 ]
                               : [],
                           study_time: time,
@@ -184,7 +200,7 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton> with 
                           count_in_planning: true,
                           lastModified: DateTime.now().millisecondsSinceEpoch,
                         );
-                        
+
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
@@ -197,7 +213,11 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton> with 
                       }
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nenhum plano de estudo ativo selecionado.')),
+                        const SnackBar(
+                          content: Text(
+                            'Nenhum plano de estudo ativo selecionado.',
+                          ),
+                        ),
                       );
                     }
                   };
@@ -206,19 +226,20 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton> with 
                     return Card(
                       color: Colors.teal,
                       elevation: 4.0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                       child: InkWell(
                         onTap: onPressed,
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12.0,
+                            vertical: 8.0,
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.timer,
-                                color: Colors.white,
-                                size: 24,
-                              ),
+                              Icon(Icons.timer, color: Colors.white, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 stopwatchProvider.result,

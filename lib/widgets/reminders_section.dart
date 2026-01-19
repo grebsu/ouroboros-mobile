@@ -30,7 +30,10 @@ class _RemindersSectionState extends State<RemindersSection> {
   }
 
   void _addNote(BuildContext context) {
-    final remindersProvider = Provider.of<RemindersProvider>(context, listen: false);
+    final remindersProvider = Provider.of<RemindersProvider>(
+      context,
+      listen: false,
+    );
     if (_newNoteController.text.trim().isNotEmpty) {
       remindersProvider.addNote(_newNoteController.text.trim());
       _newNoteController.clear();
@@ -70,11 +73,16 @@ class _RemindersSectionState extends State<RemindersSection> {
                   child: const Icon(Icons.add, color: Colors.white),
                   onPressed: () => _addNote(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal, // Definir a cor de fundo como teal
+                    backgroundColor:
+                        Colors.teal, // Definir a cor de fundo como teal
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20), // Rounded corners
+                      borderRadius: BorderRadius.circular(
+                        20,
+                      ), // Rounded corners
                     ),
-                    padding: const EdgeInsets.all(12), // Adjust padding for icon only
+                    padding: const EdgeInsets.all(
+                      12,
+                    ), // Adjust padding for icon only
                     minimumSize: Size.zero, // Remove default minimum size
                   ),
                 ),
@@ -84,7 +92,9 @@ class _RemindersSectionState extends State<RemindersSection> {
             Consumer<RemindersProvider>(
               builder: (context, remindersProvider, child) {
                 if (remindersProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.teal));
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.teal),
+                  );
                 }
 
                 final notes = remindersProvider.notes;
@@ -108,9 +118,11 @@ class _RemindersSectionState extends State<RemindersSection> {
                         final note = notes[index];
                         return ReminderNoteWidget(
                           note: note,
-                          onToggle: () => remindersProvider.toggleNoteCompletion(note.id),
+                          onToggle: () =>
+                              remindersProvider.toggleNoteCompletion(note.id),
                           onDelete: () => remindersProvider.deleteNote(note.id),
-                          onUpdate: (newText) => remindersProvider.updateNote(note.id, newText),
+                          onUpdate: (newText) =>
+                              remindersProvider.updateNote(note.id, newText),
                         );
                       },
                     ),
@@ -178,7 +190,12 @@ class _ReminderNoteWidgetState extends State<ReminderNoteWidget> {
       elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: widget.note.completed ? Colors.grey.shade300 : Colors.amber.shade300, width: 1),
+        side: BorderSide(
+          color: widget.note.completed
+              ? Colors.grey.shade300
+              : Colors.amber.shade300,
+          width: 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -200,8 +217,12 @@ class _ReminderNoteWidgetState extends State<ReminderNoteWidget> {
                         isDense: true,
                       ),
                       style: TextStyle(
-                        color: widget.note.completed ? Colors.grey.shade500 : Colors.grey.shade800,
-                        decoration: widget.note.completed ? TextDecoration.lineThrough : TextDecoration.none,
+                        color: widget.note.completed
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade800,
+                        decoration: widget.note.completed
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
                       ),
                       onSubmitted: (_) => _handleSaveEdit(),
                       onEditingComplete: _handleSaveEdit,
@@ -209,8 +230,12 @@ class _ReminderNoteWidgetState extends State<ReminderNoteWidget> {
                   : Text(
                       widget.note.text,
                       style: TextStyle(
-                        color: widget.note.completed ? Colors.grey.shade500 : Colors.grey.shade800,
-                        decoration: widget.note.completed ? TextDecoration.lineThrough : TextDecoration.none,
+                        color: widget.note.completed
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade800,
+                        decoration: widget.note.completed
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
                       ),
                     ),
             ),

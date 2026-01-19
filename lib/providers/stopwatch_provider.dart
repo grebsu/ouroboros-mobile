@@ -44,8 +44,8 @@ class StopwatchProvider with ChangeNotifier {
 
   String _formatDuration(Duration duration) {
     return '${duration.inHours.toString().padLeft(2, '0')}:'
-           '${(duration.inMinutes % 60).toString().padLeft(2, '0')}:'
-           '${(duration.inSeconds % 60).toString().padLeft(2, '0')}';
+        '${(duration.inMinutes % 60).toString().padLeft(2, '0')}:'
+        '${(duration.inSeconds % 60).toString().padLeft(2, '0')}';
   }
 
   void setContext({

@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Debian package build artifacts
+package_dir/
+package_dir.deb

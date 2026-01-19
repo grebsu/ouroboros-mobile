@@ -23,7 +23,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   int _chartPeriodIndex = 2; // 0: daily, 1: weekly, 2: monthly
 
   void _openStudyRegisterModal({StudyRecord? record, Topic? topic}) {
-    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+    final historyProvider = Provider.of<HistoryProvider>(
+      context,
+      listen: false,
+    );
 
     showModalBottomSheet(
       context: context,
@@ -48,12 +51,21 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context);
     final historyProvider = Provider.of<HistoryProvider>(context);
 
-    final studyHours = allSubjectsProvider.getStudyHoursForSubject(widget.subject.id);
-    final performance = allSubjectsProvider.getPerformanceForSubject(widget.subject.id);
+    final studyHours = allSubjectsProvider.getStudyHoursForSubject(
+      widget.subject.id,
+    );
+    final performance = allSubjectsProvider.getPerformanceForSubject(
+      widget.subject.id,
+    );
 
     final totalTopics = _countTopics(widget.subject.topics);
-    final studiedTopics = _countStudiedTopics(widget.subject.topics, historyProvider.allStudyRecords);
-    final progress = totalTopics > 0 ? (studiedTopics / totalTopics * 100).toStringAsFixed(0) : '0';
+    final studiedTopics = _countStudiedTopics(
+      widget.subject.topics,
+      historyProvider.allStudyRecords,
+    );
+    final progress = totalTopics > 0
+        ? (studiedTopics / totalTopics * 100).toStringAsFixed(0)
+        : '0';
 
     final pagesRead = historyProvider.allStudyRecords
         .where((record) => record.subject_id == widget.subject.id)
@@ -62,7 +74,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
           for (var tp in record.topicsProgress) {
             if (tp.pages.isNotEmpty) {
               for (var p in tp.pages) {
-                if (p is Map<String, dynamic> && p.containsKey('start') && p.containsKey('end')) {
+                if (p is Map<String, dynamic> &&
+                    p.containsKey('start') &&
+                    p.containsKey('end')) {
                   final start = p['start'] as int?;
                   final end = p['end'] as int?;
                   if (start != null && end != null) {
@@ -77,10 +91,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
 
     return Theme(
       data: Theme.of(context).copyWith(
-        colorScheme: Theme.of(context).colorScheme.copyWith(
-          primary: Colors.teal,
-          secondary: Colors.teal,
-        ),
+        colorScheme: Theme.of(
+          context,
+        ).colorScheme.copyWith(primary: Colors.teal, secondary: Colors.teal),
         textSelectionTheme: Theme.of(context).textSelectionTheme.copyWith(
           cursorColor: Colors.teal,
           selectionColor: Colors.teal.withOpacity(0.4),
@@ -88,14 +101,11 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
         ),
       ),
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.subject.subject),
-        ),
+        appBar: AppBar(title: Text(widget.subject.subject)),
         body: ListView(
           padding: const EdgeInsets.all(16.0),
           children: <Widget>[
             // Header: Subject Name and Add Button
-
 
             // Four Summary Sections
             LayoutBuilder(
@@ -113,10 +123,30 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                   mainAxisSpacing: 16.0,
                   childAspectRatio: childAspectRatio,
                   children: <Widget>[
-                    _buildSummaryCard(context, Icons.timer, 'Tempo de Estudo', studyHours),
-                    _buildSummaryCard(context, Icons.trending_up, 'Desempenho', '${performance.toStringAsFixed(0)}%'),
-                    _buildSummaryCard(context, Icons.assignment_turned_in, 'Progresso no Edital', '$progress%'),
-                    _buildSummaryCard(context, Icons.menu_book, 'Páginas Lidas', pagesRead.toString()),
+                    _buildSummaryCard(
+                      context,
+                      Icons.timer,
+                      'Tempo de Estudo',
+                      studyHours,
+                    ),
+                    _buildSummaryCard(
+                      context,
+                      Icons.trending_up,
+                      'Desempenho',
+                      '${performance.toStringAsFixed(0)}%',
+                    ),
+                    _buildSummaryCard(
+                      context,
+                      Icons.assignment_turned_in,
+                      'Progresso no Edital',
+                      '$progress%',
+                    ),
+                    _buildSummaryCard(
+                      context,
+                      Icons.menu_book,
+                      'Páginas Lidas',
+                      pagesRead.toString(),
+                    ),
                   ],
                 );
               },
@@ -124,38 +154,56 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
 
             const SizedBox(height: 24.0),
 
-                      // Edital Verticalizado (Topics)
-                      Card(
-                        elevation: 4.0,
-                        color: Colors.teal,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Edital Verticalizado',
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(_allTopicsExpanded ? Icons.unfold_less : Icons.unfold_more, color: Colors.white),
-                                    onPressed: () {
-                                      setState(() {
-                                        _allTopicsExpanded = !_allTopicsExpanded;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),                    const SizedBox(height: 8.0),
+            // Edital Verticalizado (Topics)
+            Card(
+              elevation: 4.0,
+              color: Colors.teal,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Edital Verticalizado',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            _allTopicsExpanded
+                                ? Icons.unfold_less
+                                : Icons.unfold_more,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _allTopicsExpanded = !_allTopicsExpanded;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8.0),
                     // Display topics
                     if (widget.subject.topics.isEmpty)
-                      const Text('Nenhum tópico cadastrado para esta disciplina.')
+                      const Text(
+                        'Nenhum tópico cadastrado para esta disciplina.',
+                      )
                     else
-                      ..._buildTopicList(widget.subject.topics, 0, historyProvider.allStudyRecords),
+                      ..._buildTopicList(
+                        widget.subject.topics,
+                        0,
+                        historyProvider.allStudyRecords,
+                      ),
                   ],
                 ),
               ),
@@ -166,7 +214,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
             // Histórico de Registros
             Card(
               elevation: 4.0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -174,10 +224,17 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                   children: <Widget>[
                     Text(
                       'Histórico de Registros',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8.0),
-                    _buildStudyHistoryTable(context, historyProvider.allStudyRecords.where((r) => r.subject_id == widget.subject.id).toList()),
+                    _buildStudyHistoryTable(
+                      context,
+                      historyProvider.allStudyRecords
+                          .where((r) => r.subject_id == widget.subject.id)
+                          .toList(),
+                    ),
                   ],
                 ),
               ),
@@ -188,7 +245,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
             // Evolução no Tempo
             Card(
               elevation: 4.0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -196,10 +255,17 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                   children: <Widget>[
                     Text(
                       'Evolução no Tempo',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8.0),
-                    _buildChart(context, historyProvider.allStudyRecords.where((r) => r.subject_id == widget.subject.id).toList()),
+                    _buildChart(
+                      context,
+                      historyProvider.allStudyRecords
+                          .where((r) => r.subject_id == widget.subject.id)
+                          .toList(),
+                    ),
                   ],
                 ),
               ),
@@ -224,7 +290,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   int _countStudiedTopics(List<Topic> topics, List<StudyRecord> records) {
     int count = 0;
     // Coleta todos os topicTexts de todos os TopicProgress de todos os records
-    final studiedTopicTexts = records.expand((r) => r.topicsProgress.map((tp) => tp.topicText)).toSet();
+    final studiedTopicTexts = records
+        .expand((r) => r.topicsProgress.map((tp) => tp.topicText))
+        .toSet();
     for (final topic in topics) {
       if (studiedTopicTexts.contains(topic.topic_text)) {
         count++;
@@ -236,7 +304,11 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     return count;
   }
 
-  List<Widget> _buildTopicList(List<Topic> topics, int depth, List<StudyRecord> records) {
+  List<Widget> _buildTopicList(
+    List<Topic> topics,
+    int depth,
+    List<StudyRecord> records,
+  ) {
     List<Widget> topicWidgets = [];
     for (var topic in topics) {
       topicWidgets.add(
@@ -245,7 +317,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
           depth: depth,
           isInitiallyExpanded: _allTopicsExpanded,
           // Coleta todos os topicTexts de todos os TopicProgress de todos os records
-          studiedTopicTexts: records.expand((r) => r.topicsProgress.map((tp) => tp.topicText)).toSet(),
+          studiedTopicTexts: records
+              .expand((r) => r.topicsProgress.map((tp) => tp.topicText))
+              .toSet(),
           onAdd: (Topic topic) => _openStudyRegisterModal(topic: topic),
         ),
       );
@@ -253,7 +327,12 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     return topicWidgets;
   }
 
-  Widget _buildSummaryCard(BuildContext context, IconData icon, String title, String value) {
+  Widget _buildSummaryCard(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String value,
+  ) {
     return Card(
       elevation: 4.0,
       color: Colors.teal,
@@ -274,12 +353,17 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                 children: <Widget>[
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleSmall?.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 4.0),
                   Text(
                     value,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -298,7 +382,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     return '${hours}h ${minutes}m';
   }
 
-  Widget _buildStudyHistoryTable(BuildContext context, List<StudyRecord> records) {
+  Widget _buildStudyHistoryTable(
+    BuildContext context,
+    List<StudyRecord> records,
+  ) {
     if (records.isEmpty) {
       return Center(
         child: Column(
@@ -325,12 +412,16 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       itemCount: records.length,
       itemBuilder: (ctx, index) {
         final record = records[index];
-        final aggregatedProgress = AggregatedTopicProgress.fromStudyRecord(record);
+        final aggregatedProgress = AggregatedTopicProgress.fromStudyRecord(
+          record,
+        );
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 8.0),
           elevation: 2.0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -340,23 +431,39 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      DateFormat('dd/MM/yyyy').format(DateTime.parse(record.date)),
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      DateFormat(
+                        'dd/MM/yyyy',
+                      ).format(DateTime.parse(record.date)),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.teal),
-                          onPressed: () => _openStudyRegisterModal(record: record),
+                          onPressed: () =>
+                              _openStudyRegisterModal(record: record),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () {
-                            final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-                            final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
+                            final historyProvider =
+                                Provider.of<HistoryProvider>(
+                                  context,
+                                  listen: false,
+                                );
+                            final planningProvider =
+                                Provider.of<PlanningProvider>(
+                                  context,
+                                  listen: false,
+                                );
                             historyProvider.deleteStudyRecord(record.id);
-                            planningProvider.recalculateProgress(historyProvider.records);
+                            planningProvider.recalculateProgress(
+                              historyProvider.records,
+                            );
                           },
                         ),
                       ],
@@ -389,13 +496,19 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
 
   Widget _buildChart(BuildContext context, List<StudyRecord> records) {
     if (records.isEmpty) {
-      return const Center(child: Text('Nenhum registro de estudo para gerar o gráfico.'));
+      return const Center(
+        child: Text('Nenhum registro de estudo para gerar o gráfico.'),
+      );
     }
 
     return Column(
       children: [
         ToggleButtons(
-          isSelected: [_chartPeriodIndex == 0, _chartPeriodIndex == 1, _chartPeriodIndex == 2],
+          isSelected: [
+            _chartPeriodIndex == 0,
+            _chartPeriodIndex == 1,
+            _chartPeriodIndex == 2,
+          ],
           onPressed: (index) {
             setState(() {
               _chartPeriodIndex = index;
@@ -406,18 +519,22 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
           color: Colors.teal,
           fillColor: Colors.teal,
           children: const [
-            Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Diário')),
-            Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Semanal')),
-            Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Mensal')),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Diário'),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Semanal'),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Mensal'),
+            ),
           ],
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 200,
-          child: LineChart(
-            _getChartData(records),
-          ),
-        ),
+        SizedBox(height: 200, child: LineChart(_getChartData(records))),
       ],
     );
   }
@@ -430,12 +547,15 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       final studyTimeHours = record.study_time / 3600000.0;
       DateTime key;
 
-      if (_chartPeriodIndex == 0) { // Daily
+      if (_chartPeriodIndex == 0) {
+        // Daily
         key = DateTime(date.year, date.month, date.day);
-      } else if (_chartPeriodIndex == 1) { // Weekly
+      } else if (_chartPeriodIndex == 1) {
+        // Weekly
         key = date.subtract(Duration(days: date.weekday - 1));
         key = DateTime(key.year, key.month, key.day);
-      } else { // Monthly
+      } else {
+        // Monthly
         key = DateTime(date.year, date.month);
       }
 
@@ -462,12 +582,17 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       ),
       titlesData: FlTitlesData(
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
             getTitlesWidget: (value, meta) {
-              return Text('${value.toInt()}h', style: const TextStyle(color: Colors.black, fontSize: 10));
+              return Text(
+                '${value.toInt()}h',
+                style: const TextStyle(color: Colors.black, fontSize: 10),
+              );
             },
             interval: 1,
             reservedSize: 28,
@@ -491,13 +616,18 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                   meta: meta,
                   angle: -0.7, // Rotate labels
                   space: 8,
-                  child: Text(DateFormat(format).format(date), style: const TextStyle(color: Colors.black, fontSize: 10)),
+                  child: Text(
+                    DateFormat(format).format(date),
+                    style: const TextStyle(color: Colors.black, fontSize: 10),
+                  ),
                 );
               }
               return const Text('');
             },
             reservedSize: 40,
-            interval: sortedKeys.length > 7 ? (sortedKeys.length / 7).ceilToDouble() : 1,
+            interval: sortedKeys.length > 7
+                ? (sortedKeys.length / 7).ceilToDouble()
+                : 1,
           ),
         ),
       ),
@@ -532,28 +662,35 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
           getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-            return touchedBarSpots.map((barSpot) {
-              final flSpot = barSpot;
-              if (flSpot.x.toInt() >= 0 && flSpot.x.toInt() < sortedKeys.length) {
-                final date = sortedKeys[flSpot.x.toInt()];
-                final hours = flSpot.y;
-                return LineTooltipItem(
-                  '${hours.toStringAsFixed(1)} horas\n',
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  children: [
-                    TextSpan(
-                      text: DateFormat('dd/MM/yyyy').format(date),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.normal,
+            return touchedBarSpots
+                .map((barSpot) {
+                  final flSpot = barSpot;
+                  if (flSpot.x.toInt() >= 0 &&
+                      flSpot.x.toInt() < sortedKeys.length) {
+                    final date = sortedKeys[flSpot.x.toInt()];
+                    final hours = flSpot.y;
+                    return LineTooltipItem(
+                      '${hours.toStringAsFixed(1)} horas\n',
+                      const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ],
-                );
-              } else {
-                return null;
-              }
-            }).whereType<LineTooltipItem>().toList();
+                      children: [
+                        TextSpan(
+                          text: DateFormat('dd/MM/yyyy').format(date),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    );
+                  } else {
+                    return null;
+                  }
+                })
+                .whereType<LineTooltipItem>()
+                .toList();
           },
         ),
       ),
@@ -602,9 +739,12 @@ class _TopicListItemState extends State<TopicListItem> {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasSubtopics = widget.topic.sub_topics != null && widget.topic.sub_topics!.isNotEmpty;
+    final bool hasSubtopics =
+        widget.topic.sub_topics != null && widget.topic.sub_topics!.isNotEmpty;
     final bool isGroupingTopic = widget.topic.is_grouping_topic ?? false;
-    final bool isStudied = widget.studiedTopicTexts.contains(widget.topic.topic_text);
+    final bool isStudied = widget.studiedTopicTexts.contains(
+      widget.topic.topic_text,
+    );
 
     return Column(
       children: [
@@ -612,7 +752,10 @@ class _TopicListItemState extends State<TopicListItem> {
           contentPadding: EdgeInsets.only(left: widget.depth * 16.0 + 16.0),
           leading: hasSubtopics
               ? IconButton(
-                  icon: Icon(_isExpanded ? Icons.arrow_drop_down : Icons.arrow_right, color: Colors.white),
+                  icon: Icon(
+                    _isExpanded ? Icons.arrow_drop_down : Icons.arrow_right,
+                    color: Colors.white,
+                  ),
                   onPressed: () => setState(() => _isExpanded = !_isExpanded),
                 )
               : const SizedBox(width: 48),
@@ -629,28 +772,36 @@ class _TopicListItemState extends State<TopicListItem> {
               Chip(
                 label: Text(
                   isStudied ? 'Concluído' : 'Pendente',
-                  style: TextStyle(color: isStudied ? Colors.green.shade900 : Colors.red),
+                  style: TextStyle(
+                    color: isStudied ? Colors.green.shade900 : Colors.red,
+                  ),
                 ),
-                backgroundColor: isStudied ? Colors.green.shade100 : Colors.red.shade100,
+                backgroundColor: isStudied
+                    ? Colors.green.shade100
+                    : Colors.red.shade100,
               ),
               IconButton(
                 icon: Icon(
                   Icons.add_circle_outline,
                   color: hasSubtopics ? Colors.grey.shade400 : Colors.white,
                 ),
-                onPressed: hasSubtopics ? null : () => widget.onAdd(widget.topic),
+                onPressed: hasSubtopics
+                    ? null
+                    : () => widget.onAdd(widget.topic),
               ),
             ],
           ),
         ),
         if (_isExpanded && hasSubtopics)
-          ...widget.topic.sub_topics!.map((subTopic) => TopicListItem(
-                topic: subTopic,
-                depth: widget.depth + 1,
-                isInitiallyExpanded: widget.isInitiallyExpanded,
-                studiedTopicTexts: widget.studiedTopicTexts,
-                onAdd: widget.onAdd,
-              )),
+          ...widget.topic.sub_topics!.map(
+            (subTopic) => TopicListItem(
+              topic: subTopic,
+              depth: widget.depth + 1,
+              isInitiallyExpanded: widget.isInitiallyExpanded,
+              studiedTopicTexts: widget.studiedTopicTexts,
+              onAdd: widget.onAdd,
+            ),
+          ),
       ],
     );
   }

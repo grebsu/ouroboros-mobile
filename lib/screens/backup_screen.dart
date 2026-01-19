@@ -45,7 +45,9 @@ class _BackupScreenState extends State<BackupScreen> {
         throw Exception('Usuário não encontrado.');
       }
 
-      final backupData = await DatabaseService.instance.exportBackupData(userId);
+      final backupData = await DatabaseService.instance.exportBackupData(
+        userId,
+      );
 
       // 4. Converter para JSON e salvar
       final jsonString = jsonEncode(backupData.toMap());
@@ -75,7 +77,6 @@ class _BackupScreenState extends State<BackupScreen> {
           );
         }
       }
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +102,8 @@ class _BackupScreenState extends State<BackupScreen> {
       builder: (BuildContext dialogContext) {
         return ConfirmationModal(
           title: 'Confirmar Importação',
-          message: 'A importação de um arquivo substituirá todos os dados atuais. Esta ação é irreversível. Deseja continuar?',
+          message:
+              'A importação de um arquivo substituirá todos os dados atuais. Esta ação é irreversível. Deseja continuar?',
           confirmText: 'Importar e Substituir',
           onConfirm: () async {
             if (dialogContext.mounted) {
@@ -109,7 +111,9 @@ class _BackupScreenState extends State<BackupScreen> {
             }
             if (_isLoading) return;
 
-            setState(() { _isLoading = true; });
+            setState(() {
+              _isLoading = true;
+            });
 
             try {
               final result = await FilePicker.platform.pickFiles(
@@ -123,7 +127,9 @@ class _BackupScreenState extends State<BackupScreen> {
                     const SnackBar(content: Text('Importação cancelada.')),
                   );
                 }
-                if (mounted) { setState(() => _isLoading = false); }
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                }
                 return;
               }
 
@@ -131,7 +137,10 @@ class _BackupScreenState extends State<BackupScreen> {
               final jsonString = await file.readAsString();
               final backupData = BackupData.fromMap(jsonDecode(jsonString));
 
-              final authProvider = Provider.of<AuthProvider>(backupScreenContext, listen: false);
+              final authProvider = Provider.of<AuthProvider>(
+                backupScreenContext,
+                listen: false,
+              );
               final userId = authProvider.currentUser?.name;
               if (userId == null) {
                 throw Exception('Usuário não encontrado.');
@@ -143,46 +152,106 @@ class _BackupScreenState extends State<BackupScreen> {
               await db.importBackupData(backupData, userId);
 
               // 1. Definir o plano ativo com base nos dados importados
-              final activePlanProvider = Provider.of<ActivePlanProvider>(backupScreenContext, listen: false);
+              final activePlanProvider = Provider.of<ActivePlanProvider>(
+                backupScreenContext,
+                listen: false,
+              );
               if (backupData.plans.isNotEmpty) {
-                  final oldActivePlanId = prefs.getString('active_plan_id_${userId}');
-                  String newActivePlanIdToSet = backupData.plans.first.id; // Padrão para o primeiro plano
+                final oldActivePlanId = prefs.getString(
+                  'active_plan_id_${userId}',
+                );
+                String newActivePlanIdToSet =
+                    backupData.plans.first.id; // Padrão para o primeiro plano
 
-                  if (oldActivePlanId != null && backupData.plans.any((p) => p.id == oldActivePlanId)) {
-                      newActivePlanIdToSet = oldActivePlanId; // Preservar o plano ativo antigo se ele estiver no backup
-                  }
-                  await prefs.setString('active_plan_id_${userId}', newActivePlanIdToSet);
+                if (oldActivePlanId != null &&
+                    backupData.plans.any((p) => p.id == oldActivePlanId)) {
+                  newActivePlanIdToSet =
+                      oldActivePlanId; // Preservar o plano ativo antigo se ele estiver no backup
+                }
+                await prefs.setString(
+                  'active_plan_id_${userId}',
+                  newActivePlanIdToSet,
+                );
               } else {
-                  await prefs.remove('active_plan_id_${userId}'); // Nenhum plano, limpar ativo
+                await prefs.remove(
+                  'active_plan_id_${userId}',
+                ); // Nenhum plano, limpar ativo
               }
 
               for (var entry in backupData.planningDataPerPlan.entries) {
                 final planId = entry.key;
                 final planningData = entry.value;
                 if (planningData.studyCycle != null) {
-                  await prefs.setString('${userId}_studyCycle_$planId', jsonEncode(planningData.studyCycle!.map((s) => s.toJson()).toList()));
+                  await prefs.setString(
+                    '${userId}_studyCycle_$planId',
+                    jsonEncode(
+                      planningData.studyCycle!.map((s) => s.toJson()).toList(),
+                    ),
+                  );
                 }
-                await prefs.setInt('${userId}_completedCycles_$planId', planningData.completedCycles);
-                await prefs.setInt('${userId}_currentProgressMinutes_$planId', planningData.currentProgressMinutes);
-                await prefs.setString('${userId}_sessionProgressMap_$planId', jsonEncode(planningData.sessionProgressMap));
-                await prefs.setString('${userId}_studyHours_$planId', planningData.studyHours);
-                await prefs.setString('${userId}_weeklyQuestionsGoal_$planId', planningData.weeklyQuestionsGoal);
-                await prefs.setString('${userId}_subjectSettings_$planId', jsonEncode(planningData.subjectSettings));
-                await prefs.setStringList('${userId}_studyDays_$planId', planningData.studyDays);
+                await prefs.setInt(
+                  '${userId}_completedCycles_$planId',
+                  planningData.completedCycles,
+                );
+                await prefs.setInt(
+                  '${userId}_currentProgressMinutes_$planId',
+                  planningData.currentProgressMinutes,
+                );
+                await prefs.setString(
+                  '${userId}_sessionProgressMap_$planId',
+                  jsonEncode(planningData.sessionProgressMap),
+                );
+                await prefs.setString(
+                  '${userId}_studyHours_$planId',
+                  planningData.studyHours,
+                );
+                await prefs.setString(
+                  '${userId}_weeklyQuestionsGoal_$planId',
+                  planningData.weeklyQuestionsGoal,
+                );
+                await prefs.setString(
+                  '${userId}_subjectSettings_$planId',
+                  jsonEncode(planningData.subjectSettings),
+                );
+                await prefs.setStringList(
+                  '${userId}_studyDays_$planId',
+                  planningData.studyDays,
+                );
                 if (planningData.cycleGenerationTimestamp != null) {
-                  await prefs.setString('${userId}_cycleGenerationTimestamp_$planId', planningData.cycleGenerationTimestamp!);
+                  await prefs.setString(
+                    '${userId}_cycleGenerationTimestamp_$planId',
+                    planningData.cycleGenerationTimestamp!,
+                  );
                 }
               }
 
-              await Provider.of<PlansProvider>(backupScreenContext, listen: false).fetchPlans();
-              await Provider.of<AllSubjectsProvider>(backupScreenContext, listen: false).fetchData();
-              await Provider.of<HistoryProvider>(backupScreenContext, listen: false).fetchHistory();
-              await Provider.of<ReviewProvider>(backupScreenContext, listen: false).fetchReviews();
-              
+              await Provider.of<PlansProvider>(
+                backupScreenContext,
+                listen: false,
+              ).fetchPlans();
+              await Provider.of<AllSubjectsProvider>(
+                backupScreenContext,
+                listen: false,
+              ).fetchData();
+              await Provider.of<HistoryProvider>(
+                backupScreenContext,
+                listen: false,
+              ).fetchHistory();
+              await Provider.of<ReviewProvider>(
+                backupScreenContext,
+                listen: false,
+              ).fetchReviews();
+
               // NEW: Refresh ActivePlanProvider state
-              await Provider.of<ActivePlanProvider>(backupScreenContext, listen: false).refreshActivePlan();
-              
-              await Provider.of<PlanningProvider>(backupScreenContext, listen: false).loadData();
+              await Provider.of<ActivePlanProvider>(
+                backupScreenContext,
+                listen: false,
+              ).refreshActivePlan();
+
+              await Provider.of<PlanningProvider>(
+                backupScreenContext,
+                listen: false,
+              ).loadData();
 
               if (backupScreenContext.mounted) {
                 ScaffoldMessenger.of(backupScreenContext).showSnackBar(
@@ -192,7 +261,6 @@ class _BackupScreenState extends State<BackupScreen> {
                   ),
                 );
               }
-
             } catch (e) {
               if (backupScreenContext.mounted) {
                 ScaffoldMessenger.of(backupScreenContext).showSnackBar(
@@ -203,7 +271,11 @@ class _BackupScreenState extends State<BackupScreen> {
                 );
               }
             } finally {
-              if (mounted) { setState(() { _isLoading = false; }); }
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
             }
           },
           onClose: () => Navigator.of(dialogContext).pop(),
@@ -219,29 +291,55 @@ class _BackupScreenState extends State<BackupScreen> {
       builder: (BuildContext dialogContext) {
         return ConfirmationModal(
           title: 'Apagar Todos os Dados?',
-          message: 'ATENÇÃO: Esta ação é irreversível e apagará permanentemente todos os seus dados. Use com extrema cautela.',
+          message:
+              'ATENÇÃO: Esta ação é irreversível e apagará permanentemente todos os seus dados. Use com extrema cautela.',
           confirmText: 'Apagar Tudo',
           onConfirm: () async {
             if (dialogContext.mounted) {
-              Navigator.of(dialogContext).pop(); // Fecha o modal antes de iniciar
+              Navigator.of(
+                dialogContext,
+              ).pop(); // Fecha o modal antes de iniciar
             }
-            setState(() { _isLoading = true; });
+            setState(() {
+              _isLoading = true;
+            });
 
             try {
-              final authProvider = Provider.of<AuthProvider>(backupScreenContext, listen: false);
+              final authProvider = Provider.of<AuthProvider>(
+                backupScreenContext,
+                listen: false,
+              );
               final userId = authProvider.currentUser?.name;
               if (userId == null) {
                 throw Exception('Usuário não encontrado.');
               }
               await DatabaseService.instance.deleteAllDataForUser(userId);
-              await Provider.of<PlanningProvider>(backupScreenContext, listen: false).clearAllData();
+              await Provider.of<PlanningProvider>(
+                backupScreenContext,
+                listen: false,
+              ).clearAllData();
 
-              Provider.of<ActivePlanProvider>(backupScreenContext, listen: false).clearActivePlan();
-              await Provider.of<PlansProvider>(backupScreenContext, listen: false).fetchPlans();
-              await Provider.of<AllSubjectsProvider>(backupScreenContext, listen: false).fetchData();
-              await Provider.of<HistoryProvider>(backupScreenContext, listen: false).fetchHistory();
-              await Provider.of<ReviewProvider>(backupScreenContext, listen: false).fetchReviews();
-              
+              Provider.of<ActivePlanProvider>(
+                backupScreenContext,
+                listen: false,
+              ).clearActivePlan();
+              await Provider.of<PlansProvider>(
+                backupScreenContext,
+                listen: false,
+              ).fetchPlans();
+              await Provider.of<AllSubjectsProvider>(
+                backupScreenContext,
+                listen: false,
+              ).fetchData();
+              await Provider.of<HistoryProvider>(
+                backupScreenContext,
+                listen: false,
+              ).fetchHistory();
+              await Provider.of<ReviewProvider>(
+                backupScreenContext,
+                listen: false,
+              ).fetchReviews();
+
               if (backupScreenContext.mounted) {
                 ScaffoldMessenger.of(backupScreenContext).showSnackBar(
                   const SnackBar(
@@ -250,7 +348,6 @@ class _BackupScreenState extends State<BackupScreen> {
                   ),
                 );
               }
-
             } catch (e) {
               if (backupScreenContext.mounted) {
                 ScaffoldMessenger.of(backupScreenContext).showSnackBar(
@@ -261,8 +358,11 @@ class _BackupScreenState extends State<BackupScreen> {
                 );
               }
             } finally {
-              if (mounted) { // Usamos o contexto original da tela para o setState
-                setState(() { _isLoading = false; });
+              if (mounted) {
+                // Usamos o contexto original da tela para o setState
+                setState(() {
+                  _isLoading = false;
+                });
               }
             }
           },
@@ -272,8 +372,6 @@ class _BackupScreenState extends State<BackupScreen> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -282,7 +380,6 @@ class _BackupScreenState extends State<BackupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             _buildExportCard(context),
             const SizedBox(height: 16),
             _buildImportCard(context),
@@ -308,7 +405,12 @@ class _BackupScreenState extends State<BackupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildCardTitle(context, Icons.download, 'Exportar Dados', Colors.teal),
+            _buildCardTitle(
+              context,
+              Icons.download,
+              'Exportar Dados',
+              Colors.teal,
+            ),
             const SizedBox(height: 8),
             Text(
               'Crie um backup de todos os seus dados. Salve este arquivo em um local seguro.',
@@ -343,17 +445,32 @@ class _BackupScreenState extends State<BackupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildCardTitle(context, Icons.upload, 'Importar Dados', Colors.teal),
+            _buildCardTitle(
+              context,
+              Icons.upload,
+              'Importar Dados',
+              Colors.teal,
+            ),
             const SizedBox(height: 16),
             _buildWarningBox(
               title: 'Atenção!',
-              message: 'A importação de um arquivo substituirá permanentemente todos os dados atuais. Use com cuidado.',
+              message:
+                  'A importação de um arquivo substituirá permanentemente todos os dados atuais. Use com cuidado.',
               color: Colors.orange,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _isLoading ? null : _handleImport,
-              icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal)) : const Icon(Icons.upload),
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.teal,
+                      ),
+                    )
+                  : const Icon(Icons.upload),
               label: Text(_isLoading ? 'Importando...' : 'Importar de Arquivo'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
@@ -379,17 +496,32 @@ class _BackupScreenState extends State<BackupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildCardTitle(context, Icons.warning, 'Começar do Zero', Colors.red),
+            _buildCardTitle(
+              context,
+              Icons.warning,
+              'Começar do Zero',
+              Colors.red,
+            ),
             const SizedBox(height: 16),
             _buildWarningBox(
               title: 'ATENÇÃO: Esta ação é irreversível!',
-              message: 'Todos os seus dados serão PERMANENTEMENTE apagados. Use com extrema cautela.',
+              message:
+                  'Todos os seus dados serão PERMANENTEMENTE apagados. Use com extrema cautela.',
               color: Colors.red,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _isLoading ? null : _handleDeleteAll,
-              icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal)) : const Icon(Icons.delete_forever),
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.teal,
+                      ),
+                    )
+                  : const Icon(Icons.delete_forever),
               label: Text(_isLoading ? 'Apagando Dados...' : 'Começar do Zero'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -415,7 +547,12 @@ class _BackupScreenState extends State<BackupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildCardTitle(context, Icons.sync_alt, 'Sincronização Local', Colors.blueGrey),
+            _buildCardTitle(
+              context,
+              Icons.sync_alt,
+              'Sincronização Local',
+              Colors.blueGrey,
+            ),
             const SizedBox(height: 8),
             Text(
               'Sincronize seus dados entre dispositivos na mesma rede Wi-Fi.',
@@ -424,9 +561,9 @@ class _BackupScreenState extends State<BackupScreen> {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => SyncScreen()),
-                );
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (context) => SyncScreen()));
               },
               icon: const Icon(Icons.sync_alt),
               label: const Text('Acessar Sincronização Local'),
@@ -442,17 +579,33 @@ class _BackupScreenState extends State<BackupScreen> {
     );
   }
 
-  Widget _buildCardTitle(BuildContext context, IconData icon, String title, Color color) {
+  Widget _buildCardTitle(
+    BuildContext context,
+    IconData icon,
+    String title,
+    Color color,
+  ) {
     return Row(
       children: [
         Icon(icon, color: color),
         const SizedBox(width: 8),
-        Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildWarningBox({required String title, required String message, required Color color}) {
+  Widget _buildWarningBox({
+    required String title,
+    required String message,
+    required Color color,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -468,7 +621,10 @@ class _BackupScreenState extends State<BackupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+                Text(
+                  title,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: color),
+                ),
                 const SizedBox(height: 4),
                 Text(message, style: TextStyle(color: color)),
               ],

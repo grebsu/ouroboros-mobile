@@ -32,8 +32,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _handleConsistencyNav(int direction) {
     setState(() {
-      _consistencyEndDate =
-          _consistencyEndDate.add(Duration(days: direction * 30));
+      _consistencyEndDate = _consistencyEndDate.add(
+        Duration(days: direction * 30),
+      );
     });
   }
 
@@ -50,8 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final allSubjectsProvider = context.watch<AllSubjectsProvider>();
     final planningProvider = context.watch<PlanningProvider>();
 
-    if (historyProvider.isLoading ||
-        allSubjectsProvider.isLoading) {
+    if (historyProvider.isLoading || allSubjectsProvider.isLoading) {
       return const Center(child: CircularProgressIndicator(color: Colors.teal));
     }
 
@@ -63,13 +63,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       oldestStudyRecordDate = allRecords
           .map((record) => DateTime.parse(record.date).toLocal())
           .reduce((minDate, date) => date.isBefore(minDate) ? date : minDate);
-      oldestStudyRecordDate = DateTime(oldestStudyRecordDate.year,
-          oldestStudyRecordDate.month, oldestStudyRecordDate.day);
+      oldestStudyRecordDate = DateTime(
+        oldestStudyRecordDate.year,
+        oldestStudyRecordDate.month,
+        oldestStudyRecordDate.day,
+      );
     }
 
     // Calculate Total Study Time
-    final totalMs =
-        allRecords.fold<int>(0, (sum, record) => sum + record.study_time);
+    final totalMs = allRecords.fold<int>(
+      0,
+      (sum, record) => sum + record.study_time,
+    );
     final totalStudyTime = Duration(milliseconds: totalMs);
 
     // Calculate Daily Average
@@ -100,8 +105,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         correctQuestions += tp.questions['correct'] ?? 0;
       }
     }
-    final performance =
-        totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0.0;
+    final performance = totalQuestions > 0
+        ? (correctQuestions / totalQuestions) * 100
+        : 0.0;
 
     // Calculate Syllabus Progress
     double progress = 0.0;
@@ -111,7 +117,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .where((s) => s.plan_id == activePlanId)
           .toList();
       final totalTopics = subjectsInPlan.fold<int>(
-          0, (sum, subject) => sum + (subject.total_topics_count ?? 0));
+        0,
+        (sum, subject) => sum + (subject.total_topics_count ?? 0),
+      );
 
       final studiedTopics = <String>{};
       for (var record in allRecords.where((r) => r.plan_id == activePlanId)) {
@@ -119,22 +127,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         studiedTopics.addAll(record.topicsProgress.map((tp) => tp.topicText));
       }
 
-      progress =
-          totalTopics > 0 ? (studiedTopics.length / totalTopics) * 100 : 0.0;
+      progress = totalTopics > 0
+          ? (studiedTopics.length / totalTopics) * 100
+          : 0.0;
     }
 
     // Calculate Studied Days and Streak
     Set<DateTime> studiedDays = {};
     int studyStreak = 0;
     if (allRecords.isNotEmpty) {
-      final uniqueStudyDays = allRecords.map((record) {
-        try {
-          final date = DateTime.parse(record.date).toLocal();
-          return DateTime(date.year, date.month, date.day);
-        } catch (e) {
-          return null;
-        }
-      }).where((d) => d != null).cast<DateTime>().toSet();
+      final uniqueStudyDays = allRecords
+          .map((record) {
+            try {
+              final date = DateTime.parse(record.date).toLocal();
+              return DateTime(date.year, date.month, date.day);
+            } catch (e) {
+              return null;
+            }
+          })
+          .where((d) => d != null)
+          .cast<DateTime>()
+          .toSet();
       studiedDays = uniqueStudyDays;
 
       // Calculate streak
@@ -145,8 +158,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         checkDate = checkDate.subtract(const Duration(days: 1));
       }
 
-      while (uniqueStudyDays
-          .contains(DateTime(checkDate.year, checkDate.month, checkDate.day))) {
+      while (uniqueStudyDays.contains(
+        DateTime(checkDate.year, checkDate.month, checkDate.day),
+      )) {
         studyStreak++;
         checkDate = checkDate.subtract(const Duration(days: 1));
       }
@@ -155,8 +169,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Calculate consistency data for the grid
     final today = DateTime.now();
     final todayWithoutTime = DateTime(today.year, today.month, today.day);
-    final endDate = DateTime(_consistencyEndDate.year,
-        _consistencyEndDate.month, _consistencyEndDate.day);
+    final endDate = DateTime(
+      _consistencyEndDate.year,
+      _consistencyEndDate.month,
+      _consistencyEndDate.day,
+    );
     final startDate = endDate.subtract(const Duration(days: 29));
 
     final studyDaysPlanning = planningProvider.studyDays;
@@ -167,12 +184,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final date = startDate.add(Duration(days: i));
       final dayName = dayFormatter.format(date);
       final isStudied = studiedDays.contains(date);
-      final isStudyDay = studyDaysPlanning
-          .any((d) => dayName.toLowerCase().startsWith(d.toLowerCase()));
+      final isStudyDay = studyDaysPlanning.any(
+        (d) => dayName.toLowerCase().startsWith(d.toLowerCase()),
+      );
       final isRestDay = !isStudyDay;
 
       String status;
-      if (oldestStudyRecordDate != null && date.isBefore(oldestStudyRecordDate)) {
+      if (oldestStudyRecordDate != null &&
+          date.isBefore(oldestStudyRecordDate)) {
         status = 'inactive';
       } else if (isStudied) {
         status = 'studied';
@@ -185,7 +204,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       consistencyData.add({
         'date': date,
         'status': status,
-        'active': date.isBefore(todayWithoutTime) ||
+        'active':
+            date.isBefore(todayWithoutTime) ||
             date.isAtSameMomentAs(todayWithoutTime),
       });
     }
@@ -198,18 +218,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final subjectId = record.subject_id;
       if (subjectId != null) {
         subjectPerformance.putIfAbsent(
-            subjectId, () => {'total': 0, 'correct': 0});
+          subjectId,
+          () => {'total': 0, 'correct': 0},
+        );
         subjectStudyTimeMs.update(
-            subjectId, (value) => value + record.study_time,
-            ifAbsent: () => record.study_time);
+          subjectId,
+          (value) => value + record.study_time,
+          ifAbsent: () => record.study_time,
+        );
 
         for (var tp in record.topicsProgress) {
           subjectPerformance[subjectId]!['total'] =
               (subjectPerformance[subjectId]!['total'] ?? 0) +
-                  (tp.questions['total'] ?? 0);
+              (tp.questions['total'] ?? 0);
           subjectPerformance[subjectId]!['correct'] =
               (subjectPerformance[subjectId]!['correct'] ?? 0) +
-                  (tp.questions['correct'] ?? 0);
+              (tp.questions['correct'] ?? 0);
         }
       }
     }
@@ -217,40 +241,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
     List<PerformanceData> performanceData = [];
     for (var entry in subjectPerformance.entries) {
       final subject = allSubjectsProvider.subjects.firstWhere(
-          (s) => s.id == entry.key,
-          orElse: () => Subject(
-              id: '',
-              plan_id: '',
-              subject: 'Desconhecido',
-              color: '#808080',
-              topics: [],
-              total_topics_count: 0,
-              lastModified: DateTime.now().millisecondsSinceEpoch));
+        (s) => s.id == entry.key,
+        orElse: () => Subject(
+          id: '',
+          plan_id: '',
+          subject: 'Desconhecido',
+          color: '#808080',
+          topics: [],
+          total_topics_count: 0,
+          lastModified: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
       final total = entry.value['total'] ?? 0;
       final correct = entry.value['correct'] ?? 0;
       final perf = total > 0 ? (correct / total) * 100 : 0.0;
-      final studyTime =
-          Duration(milliseconds: subjectStudyTimeMs[entry.key] ?? 0);
+      final studyTime = Duration(
+        milliseconds: subjectStudyTimeMs[entry.key] ?? 0,
+      );
 
-      performanceData.add(PerformanceData(
-        subject: subject,
-        totalQuestions: total,
-        correctQuestions: correct,
-        performance: perf,
-        studyTime: studyTime,
-      ));
+      performanceData.add(
+        PerformanceData(
+          subject: subject,
+          totalQuestions: total,
+          correctQuestions: correct,
+          performance: perf,
+          studyTime: studyTime,
+        ),
+      );
     }
     performanceData.sort((a, b) => a.performance.compareTo(b.performance));
 
     // Calculate Weekly Data
     List<Duration> weeklyData = List.filled(7, Duration.zero);
     List<int> weeklyQuestionsData = List.filled(7, 0);
-    final weekStartDate = DateTime(today.year, today.month, today.day)
-        .subtract(const Duration(days: 6));
+    final weekStartDate = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).subtract(const Duration(days: 6));
     for (var record in allRecords) {
       try {
         final recordDate = DateTime.parse(record.date).toLocal();
-        if (recordDate.isAfter(weekStartDate.subtract(const Duration(days: 1)))) {
+        if (recordDate.isAfter(
+          weekStartDate.subtract(const Duration(days: 1)),
+        )) {
           final dayIndex = recordDate.difference(weekStartDate).inDays;
           if (dayIndex >= 0 && dayIndex < 7) {
             weeklyData[dayIndex] += Duration(milliseconds: record.study_time);
@@ -268,22 +302,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Map<String, Map<String, int>> dailySubjectStudyTime = {};
     for (var record in allRecords) {
       try {
-        final dateKey =
-            DateTime.parse(record.date).toLocal().toIso8601String().split('T')[0];
+        final dateKey = DateTime.parse(
+          record.date,
+        ).toLocal().toIso8601String().split('T')[0];
         final subjectName = allSubjectsProvider.subjects
-            .firstWhere((s) => s.id == record.subject_id,
-                orElse: () => Subject(
-                    id: '',
-                    plan_id: '',
-                    subject: 'Desconhecido',
-                    color: '#808080',
-                    topics: [],
-                    lastModified: DateTime.now().millisecondsSinceEpoch))
+            .firstWhere(
+              (s) => s.id == record.subject_id,
+              orElse: () => Subject(
+                id: '',
+                plan_id: '',
+                subject: 'Desconhecido',
+                color: '#808080',
+                topics: [],
+                lastModified: DateTime.now().millisecondsSinceEpoch,
+              ),
+            )
             .subject;
         dailySubjectStudyTime.putIfAbsent(dateKey, () => {});
         dailySubjectStudyTime[dateKey]!.update(
-            subjectName, (value) => value + record.study_time,
-            ifAbsent: () => record.study_time);
+          subjectName,
+          (value) => value + record.study_time,
+          ifAbsent: () => record.study_time,
+        );
       } catch (e) {
         print('Error calculating daily subject study time: $e');
       }
@@ -315,8 +355,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
-    final goalHours =
-        Duration(hours: int.tryParse(planningProvider.studyHours) ?? 0);
+    final goalHours = Duration(
+      hours: int.tryParse(planningProvider.studyHours) ?? 0,
+    );
     final goalQuestions =
         int.tryParse(planningProvider.weeklyQuestionsGoal) ?? 0;
 
@@ -335,44 +376,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                          child: SummaryCard(
-                        icon: MaterialCommunityIcons.clock_time_three_outline,
-                        title: 'Tempo de Estudo',
-                        value: _formatDuration(totalStudyTime),
-                        color: Colors.teal,
-                        iconColor: Colors.teal,
-                        isLandscape: true,
-                      )),
+                        child: SummaryCard(
+                          icon: MaterialCommunityIcons.clock_time_three_outline,
+                          title: 'Tempo de Estudo',
+                          value: _formatDuration(totalStudyTime),
+                          color: Colors.teal,
+                          iconColor: Colors.teal,
+                          isLandscape: true,
+                        ),
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
-                          child: SummaryCard(
-                        icon: MaterialCommunityIcons.calendar_today,
-                        title: 'Média Diária',
-                        value: _formatDuration(dailyAverage),
-                        color: Colors.teal,
-                        iconColor: const Color(0xFF3182F7),
-                        isLandscape: true,
-                      )),
+                        child: SummaryCard(
+                          icon: MaterialCommunityIcons.calendar_today,
+                          title: 'Média Diária',
+                          value: _formatDuration(dailyAverage),
+                          color: Colors.teal,
+                          iconColor: const Color(0xFF3182F7),
+                          isLandscape: true,
+                        ),
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
-                          child: SummaryCard(
-                        icon: MaterialCommunityIcons.bullseye_arrow,
-                        title: 'Desempenho',
-                        value: '${performance.toStringAsFixed(1)}%',
-                        color: Colors.teal,
-                        iconColor: const Color(0xFFF55343),
-                        isLandscape: true,
-                      )),
+                        child: SummaryCard(
+                          icon: MaterialCommunityIcons.bullseye_arrow,
+                          title: 'Desempenho',
+                          value: '${performance.toStringAsFixed(1)}%',
+                          color: Colors.teal,
+                          iconColor: const Color(0xFFF55343),
+                          isLandscape: true,
+                        ),
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
-                          child: SummaryCard(
-                        icon: MaterialCommunityIcons.file_document_outline,
-                        title: 'Progresso Edital',
-                        value: '${progress.toStringAsFixed(1)}%',
-                        color: Colors.teal,
-                        iconColor: const Color(0xFFAA67F8),
-                        isLandscape: true,
-                      )),
+                        child: SummaryCard(
+                          icon: MaterialCommunityIcons.file_document_outline,
+                          title: 'Progresso Edital',
+                          value: '${progress.toStringAsFixed(1)}%',
+                          color: Colors.teal,
+                          iconColor: const Color(0xFFAA67F8),
+                          isLandscape: true,
+                        ),
+                      ),
                     ],
                   );
                 } else {
@@ -425,7 +470,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Card(
                   elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -433,14 +480,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         const Text(
                           'CONSTÂNCIA NOS ESTUDOS',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Center(
                           child: Text(
                             'Nenhum registro de estudo ainda. Comece a estudar para ver sua consistência!',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ),
                       ],
@@ -452,8 +505,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               StudyConsistencyTracker(
                 studyStreak: studyStreak,
                 daysData: consistencyData,
-                startDate:
-                    _consistencyEndDate.subtract(const Duration(days: 29)),
+                startDate: _consistencyEndDate.subtract(
+                  const Duration(days: 29),
+                ),
                 endDate: _consistencyEndDate,
                 onPrev: () => _handleConsistencyNav(-1),
                 onNext: () => _handleConsistencyNav(1),
@@ -470,7 +524,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Expanded(
                         flex: 3,
                         child: PerformancePanel(
-                            performanceData: performanceData),
+                          performanceData: performanceData,
+                        ),
                       ),
                       SizedBox(width: 24),
                       Expanded(
@@ -540,13 +595,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Expanded(
                   child: DailyStudySection(
-                      dailySubjectStudyTime: dailySubjectStudyTime,
-                      subjectColors: subjectColors),
+                    dailySubjectStudyTime: dailySubjectStudyTime,
+                    subjectColors: subjectColors,
+                  ),
                 ),
                 const SizedBox(width: 24), // Spacing between sections
-                Expanded(
-                  child: const RemindersSection(),
-                ),
+                Expanded(child: const RemindersSection()),
               ],
             ),
           ],
@@ -590,7 +644,11 @@ class SummaryCard extends StatelessWidget {
                 color: Theme.of(context).cardColor,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: isLandscape ? 24 : 32, color: iconColor), // Use iconColor here
+              child: Icon(
+                icon,
+                size: isLandscape ? 24 : 32,
+                color: iconColor,
+              ), // Use iconColor here
             ),
             SizedBox(width: isLandscape ? 8 : 12),
             Expanded(
@@ -600,15 +658,19 @@ class SummaryCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(color: Colors.white, fontSize: isLandscape ? 14 : 16),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isLandscape ? 14 : 16,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     value,
                     style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isLandscape ? 20 : 24,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: isLandscape ? 20 : 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -640,9 +702,14 @@ class StudyConsistencyTracker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isNextDisabled = endDate.isAfter(DateTime.now()) || 
-                           DateTime(endDate.year, endDate.month, endDate.day) == 
-                           DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final isNextDisabled =
+        endDate.isAfter(DateTime.now()) ||
+        DateTime(endDate.year, endDate.month, endDate.day) ==
+            DateTime(
+              DateTime.now().year,
+              DateTime.now().month,
+              DateTime.now().day,
+            );
 
     return Card(
       elevation: 2,
@@ -661,7 +728,10 @@ class StudyConsistencyTracker extends StatelessWidget {
                     children: [
                       const Text(
                         'CONSTÂNCIA NOS ESTUDOS',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text('Você está há $studyStreak dias sem falhar!'),
                     ],
@@ -697,7 +767,8 @@ class StudyConsistencyTracker extends StatelessWidget {
 class PerformancePanel extends StatelessWidget {
   final List<PerformanceData> performanceData;
 
-  const PerformancePanel({Key? key, required this.performanceData}) : super(key: key);
+  const PerformancePanel({Key? key, required this.performanceData})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -751,8 +822,12 @@ class WeeklyStudyGoals extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hoursPercentage = goalHours.inMilliseconds > 0 ? (currentHours.inMilliseconds / goalHours.inMilliseconds) * 100 : 0.0;
-    final questionsPercentage = goalQuestions > 0 ? (currentQuestions / goalQuestions) * 100 : 0.0;
+    final hoursPercentage = goalHours.inMilliseconds > 0
+        ? (currentHours.inMilliseconds / goalHours.inMilliseconds) * 100
+        : 0.0;
+    final questionsPercentage = goalQuestions > 0
+        ? (currentQuestions / goalQuestions) * 100
+        : 0.0;
 
     return Card(
       elevation: 2,
@@ -801,13 +876,21 @@ class WeeklyStudyGoals extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-            Text('$currentValue / $goalValue', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            Text(
+              '$currentValue / $goalValue',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
         const SizedBox(height: 8),
         ClipRRect(
-          borderRadius: BorderRadius.circular(6.0), // Half of minHeight for rounded ends
+          borderRadius: BorderRadius.circular(
+            6.0,
+          ), // Half of minHeight for rounded ends
           child: LinearProgressIndicator(
             value: percentage / 100,
             backgroundColor: Colors.grey.shade300,
@@ -881,15 +964,30 @@ class WeeklyStudyChart extends StatelessWidget {
                   color: Colors.grey, // Color for unselected items
                   borderColor: Colors.grey, // Border for unselected items
                   selectedBorderColor: Colors.teal,
-                  constraints: const BoxConstraints(minHeight: 32.0, minWidth: 64.0),
+                  constraints: const BoxConstraints(
+                    minHeight: 32.0,
+                    minWidth: 64.0,
+                  ),
                   children: const <Widget>[
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text('TEMPO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'TEMPO',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text('QUESTÕES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'QUESTÕES',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -909,9 +1007,3 @@ class WeeklyStudyChart extends StatelessWidget {
 }
 
 // Placeholder Widgets for other sections
-
-
-
-
-
-

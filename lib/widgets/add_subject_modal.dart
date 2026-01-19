@@ -36,23 +36,58 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
 
   // Full color palette from the desktop version
   final List<String> _colors = [
-    '#EF4444', '#F87171', '#DC2626', '#B91C1C',
-    '#F97316', '#FB923C', '#EA580C', '#C2410C',
-    '#F59E0B', '#FBBF24', '#D97706', '#B45309',
-    '#84CC16', '#A3E635', '#65A30D', '#4D7C0F',
-    '#22C55E', '#4ADE80', '#16A34A', '#15803D',
-    '#FFD700', '#DAA520', '#B8860B', '#A52A2A',
-    '#0EA5E9', '#38BDF8', '#0284C7', '#0369A1',
-    '#3B82F6', '#60A5FA', '#2563EB', '#1D4ED8',
-    '#8B5CF6', '#A78BFA', '#7C3AED', '#6D28D9',
-    '#A855F7', '#C084FC', '#9333EA', '#7E22CE',
-    '#EC4899', '#F472B6', '#DB2777', '#BE185D',
+    '#EF4444',
+    '#F87171',
+    '#DC2626',
+    '#B91C1C',
+    '#F97316',
+    '#FB923C',
+    '#EA580C',
+    '#C2410C',
+    '#F59E0B',
+    '#FBBF24',
+    '#D97706',
+    '#B45309',
+    '#84CC16',
+    '#A3E635',
+    '#65A30D',
+    '#4D7C0F',
+    '#22C55E',
+    '#4ADE80',
+    '#16A34A',
+    '#15803D',
+    '#FFD700',
+    '#DAA520',
+    '#B8860B',
+    '#A52A2A',
+    '#0EA5E9',
+    '#38BDF8',
+    '#0284C7',
+    '#0369A1',
+    '#3B82F6',
+    '#60A5FA',
+    '#2563EB',
+    '#1D4ED8',
+    '#8B5CF6',
+    '#A78BFA',
+    '#7C3AED',
+    '#6D28D9',
+    '#A855F7',
+    '#C084FC',
+    '#9333EA',
+    '#7E22CE',
+    '#EC4899',
+    '#F472B6',
+    '#DB2777',
+    '#BE185D',
   ];
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialSubjectData?.subject ?? '');
+    _nameController = TextEditingController(
+      text: widget.initialSubjectData?.subject ?? '',
+    );
     _currentTopics = widget.initialSubjectData?.topics ?? [];
     _selectedColor = widget.initialSubjectData?.color ?? _colors[0];
     if (widget.initialSubjectData == null) {
@@ -98,7 +133,9 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
       _nameController.text = selectedSubject.name;
     });
     try {
-      final topics = await DatabaseService.instance.readMasterTopicsForSubject(selectedSubject.id);
+      final topics = await DatabaseService.instance.readMasterTopicsForSubject(
+        selectedSubject.id,
+      );
       setState(() {
         _currentTopics = topics;
         _isLoadingSubjects = false;
@@ -110,13 +147,25 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
 
   void _handleUpdateTopic(Topic topic, String newName) {
     setState(() {
-      _recursiveTopicUpdate(_currentTopics, topic, (t) => t.copyWith(topic_text: newName, isEditing: false, lastModified: DateTime.now().millisecondsSinceEpoch));
+      _recursiveTopicUpdate(
+        _currentTopics,
+        topic,
+        (t) => t.copyWith(
+          topic_text: newName,
+          isEditing: false,
+          lastModified: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
     });
   }
 
   void _handleToggleEdit(Topic topic) {
     setState(() {
-      _recursiveTopicUpdate(_currentTopics, topic, (t) => t.copyWith(isEditing: !t.isEditing));
+      _recursiveTopicUpdate(
+        _currentTopics,
+        topic,
+        (t) => t.copyWith(isEditing: !t.isEditing),
+      );
     });
   }
 
@@ -127,7 +176,11 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
   }
 
   void _handleAddTopic({Topic? parent}) {
-    final newTopic = Topic(topic_text: '', isEditing: true, lastModified: DateTime.now().millisecondsSinceEpoch);
+    final newTopic = Topic(
+      topic_text: '',
+      isEditing: true,
+      lastModified: DateTime.now().millisecondsSinceEpoch,
+    );
     setState(() {
       if (parent == null) {
         _currentTopics.add(newTopic);
@@ -162,13 +215,18 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
     }
   }
 
-  bool _recursiveTopicUpdate(List<Topic> topics, Topic target, Topic Function(Topic) update) {
+  bool _recursiveTopicUpdate(
+    List<Topic> topics,
+    Topic target,
+    Topic Function(Topic) update,
+  ) {
     for (int i = 0; i < topics.length; i++) {
       if (topics[i] == target) {
         topics[i] = update(topics[i]);
         return true;
       }
-      if (topics[i].sub_topics != null && _recursiveTopicUpdate(topics[i].sub_topics!, target, update)) {
+      if (topics[i].sub_topics != null &&
+          _recursiveTopicUpdate(topics[i].sub_topics!, target, update)) {
         return true;
       }
     }
@@ -181,7 +239,8 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
         topics.removeAt(i);
         return true;
       }
-      if (topics[i].sub_topics != null && _recursiveTopicDelete(topics[i].sub_topics!, target)) {
+      if (topics[i].sub_topics != null &&
+          _recursiveTopicDelete(topics[i].sub_topics!, target)) {
         return true;
       }
     }
@@ -193,15 +252,11 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
       _formKey.currentState!.save();
       // Filtra apenas os tópicos selecionados
       final selectedTopics = _filterSelectedTopics(_currentTopics);
-      widget.onSave(
-        _nameController.text,
-        selectedTopics,
-        _selectedColor,
-      );
+      widget.onSave(_nameController.text, selectedTopics, _selectedColor);
       Navigator.of(context).pop();
     }
   }
-  
+
   List<Topic> _filterSelectedTopics(List<Topic> topics) {
     List<Topic> filtered = [];
     for (var topic in topics) {
@@ -223,7 +278,11 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
     return Scaffold(
       backgroundColor: Theme.of(context).cardColor,
       appBar: AppBar(
-        title: Text(widget.initialSubjectData == null ? 'Nova Disciplina' : 'Editar Disciplina'),
+        title: Text(
+          widget.initialSubjectData == null
+              ? 'Nova Disciplina'
+              : 'Editar Disciplina',
+        ),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
@@ -260,11 +319,17 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                         labelText: 'Carregar do Catálogo',
                         border: const OutlineInputBorder(),
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                          borderSide: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.5),
+                          ),
                         ),
                       ),
                       hint: const Text('Selecione uma matéria...'),
-                      onChanged: _isLoadingSubjects ? null : _onMasterSubjectSelected,
+                      onChanged: _isLoadingSubjects
+                          ? null
+                          : _onMasterSubjectSelected,
                       items: [
                         const DropdownMenuItem<MasterSubject?>(
                           value: null,
@@ -282,24 +347,38 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                   ],
                   TextFormField(
                     controller: _nameController,
-                    readOnly: _selectedMasterSubject != null && widget.initialSubjectData == null,
+                    readOnly:
+                        _selectedMasterSubject != null &&
+                        widget.initialSubjectData == null,
                     decoration: InputDecoration(
                       labelText: 'Nome da Disciplina',
                       border: const OutlineInputBorder(),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                        borderSide: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.5),
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).primaryColor,
+                          width: 2.0,
+                        ),
                       ),
                     ),
-                    validator: (value) => (value == null || value.isEmpty) ? 'Campo obrigatório' : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Campo obrigatório'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Selecione uma Cor', style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Selecione uma Cor',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 8),
                       GestureDetector(
                         onTap: () {
@@ -308,7 +387,10 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                           });
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: Colors.grey.shade400),
@@ -322,15 +404,31 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                                     width: 28,
                                     height: 28,
                                     decoration: BoxDecoration(
-                                      color: Color(int.parse(_selectedColor.replaceFirst('#', '0xFF'))),
+                                      color: Color(
+                                        int.parse(
+                                          _selectedColor.replaceFirst(
+                                            '#',
+                                            '0xFF',
+                                          ),
+                                        ),
+                                      ),
                                       shape: BoxShape.circle,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  Text(_selectedColor, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(
+                                    _selectedColor,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ],
                               ),
-                              Icon(_isColorPickerExpanded ? Icons.expand_less : Icons.expand_more),
+                              Icon(
+                                _isColorPickerExpanded
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
+                              ),
                             ],
                           ),
                         ),
@@ -345,16 +443,26 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                               return GestureDetector(
                                 onTap: () => setState(() {
                                   _selectedColor = color;
-                                  _isColorPickerExpanded = false; // Collapse on selection
+                                  _isColorPickerExpanded =
+                                      false; // Collapse on selection
                                 }),
                                 child: Container(
                                   width: 36,
                                   height: 36,
                                   decoration: BoxDecoration(
-                                    color: Color(int.parse(color.replaceFirst('#', '0xFF'))),
+                                    color: Color(
+                                      int.parse(
+                                        color.replaceFirst('#', '0xFF'),
+                                      ),
+                                    ),
                                     shape: BoxShape.circle,
                                     border: _selectedColor == color
-                                        ? Border.all(color: Theme.of(context).primaryColor, width: 3)
+                                        ? Border.all(
+                                            color: Theme.of(
+                                              context,
+                                            ).primaryColor,
+                                            width: 3,
+                                          )
                                         : null,
                                   ),
                                 ),
@@ -368,7 +476,10 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Tópicos', style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Tópicos',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       IconButton(
                         icon: const Icon(Icons.add_circle, color: Colors.teal),
                         onPressed: () => _handleAddTopic(),
@@ -391,11 +502,14 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                         radius: const Radius.circular(8),
                         thickness: 8.0,
                         interactive: true,
-                                              child: SingleChildScrollView(
-                                                controller: _scrollController,
-                                                padding: const EdgeInsets.only(right: 12.0), // Adiciona padding à direita para a scrollbar
-                                                child: _buildTopicTree(_currentTopics, 0),
-                                              ),                      ),
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.only(
+                            right: 12.0,
+                          ), // Adiciona padding à direita para a scrollbar
+                          child: _buildTopicTree(_currentTopics, 0),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -422,7 +536,8 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
               padding: EdgeInsets.only(left: level * 16.0),
               child: _TopicCard(
                 topic: topic,
-                onToggleSelected: (isSelected) => _handleToggleSelected(topic, isSelected),
+                onToggleSelected: (isSelected) =>
+                    _handleToggleSelected(topic, isSelected),
                 onUpdate: (newName) => _handleUpdateTopic(topic, newName),
                 onDelete: () => _handleDeleteTopic(topic),
                 onToggleEdit: () => _handleToggleEdit(topic),
@@ -437,7 +552,6 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
     );
   }
 }
-
 
 class _TopicCard extends StatelessWidget {
   final Topic topic;
@@ -492,11 +606,11 @@ class _TopicCard extends StatelessWidget {
                         }
                       },
                       onTapOutside: (_) {
-                         if (topic.topic_text.isNotEmpty) {
-                            onToggleEdit(); // Salva ao clicar fora
-                         } else {
-                           onDelete();
-                         }
+                        if (topic.topic_text.isNotEmpty) {
+                          onToggleEdit(); // Salva ao clicar fora
+                        } else {
+                          onDelete();
+                        }
                       },
                     ),
                   )
@@ -509,13 +623,21 @@ class _TopicCard extends StatelessWidget {
             visualDensity: VisualDensity.compact,
           ),
           IconButton(
-            icon: Icon(topic.isEditing ? Icons.done : Icons.edit, size: 20, color: Colors.blueAccent),
+            icon: Icon(
+              topic.isEditing ? Icons.done : Icons.edit,
+              size: 20,
+              color: Colors.blueAccent,
+            ),
             onPressed: onToggleEdit,
             tooltip: 'Editar',
             visualDensity: VisualDensity.compact,
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+            icon: const Icon(
+              Icons.delete_outline,
+              size: 20,
+              color: Colors.redAccent,
+            ),
             onPressed: onDelete,
             tooltip: 'Deletar',
             visualDensity: VisualDensity.compact,

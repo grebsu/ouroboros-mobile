@@ -48,7 +48,10 @@ class HorasEstudoChart extends StatelessWidget {
                 final date = sortedDates[group.x.toInt()];
                 return BarTooltipItem(
                   '${hours.toString().padLeft(2, '0')}h${minutes.toString().padLeft(2, '0')}m\n',
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                   children: [
                     TextSpan(
                       text: DateFormat('dd/MM/yyyy').format(date),
@@ -63,25 +66,38 @@ class HorasEstudoChart extends StatelessWidget {
             ),
           ),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 40,
                 getTitlesWidget: (value, meta) {
-                  if (value.toInt() >= 0 && value.toInt() < sortedDates.length) {
+                  if (value.toInt() >= 0 &&
+                      value.toInt() < sortedDates.length) {
                     final date = sortedDates[value.toInt()];
                     return SideTitleWidget(
                       meta: meta,
                       angle: -45, // Rotate labels
                       space: 8,
-                      child: Text(DateFormat('dd/MM').format(date), style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 10)),
+                      child: Text(
+                        DateFormat('dd/MM').format(date),
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                          fontSize: 10,
+                        ),
+                      ),
                     );
                   }
                   return const Text('');
                 },
-                interval: sortedDates.length > 7 ? (sortedDates.length / 7).ceilToDouble() : 1, // Dynamic interval
+                interval: sortedDates.length > 7
+                    ? (sortedDates.length / 7).ceilToDouble()
+                    : 1, // Dynamic interval
               ),
             ),
             leftTitles: AxisTitles(
@@ -90,7 +106,13 @@ class HorasEstudoChart extends StatelessWidget {
                 reservedSize: 40,
                 getTitlesWidget: (value, meta) {
                   final hours = value.toInt();
-                  return Text('${hours}h', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 10));
+                  return Text(
+                    '${hours}h',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                      fontSize: 10,
+                    ),
+                  );
                 },
                 interval: 1, // Show labels for every hour
               ),

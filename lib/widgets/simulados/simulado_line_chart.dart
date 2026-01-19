@@ -14,7 +14,10 @@ class SimuladoLineChart extends StatelessWidget {
 
   double _getPerformance(SimuladoRecord simulado) {
     final totalCorrect = simulado.subjects.fold(0, (sum, s) => sum + s.correct);
-    final totalQuestions = simulado.subjects.fold(0, (sum, s) => sum + s.total_questions);
+    final totalQuestions = simulado.subjects.fold(
+      0,
+      (sum, s) => sum + s.total_questions,
+    );
     return totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0.0;
   }
 
@@ -39,10 +42,11 @@ class SimuladoLineChart extends StatelessWidget {
     final List<FlSpot> spots = simulados.asMap().entries.map((entry) {
       final index = entry.key;
       final simulado = entry.value;
-      final value = chartType == 'desempenho' ? _getPerformance(simulado) : _getTotalScore(simulado);
+      final value = chartType == 'desempenho'
+          ? _getPerformance(simulado)
+          : _getTotalScore(simulado);
       return FlSpot(index.toDouble(), value.toDouble());
     }).toList();
-
 
     final List<String> labels = simulados.map((s) {
       final dateTime = DateTime.parse(s.date);
@@ -60,7 +64,10 @@ class SimuladoLineChart extends StatelessWidget {
               getTitlesWidget: (value, meta) {
                 return Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(labels[value.toInt()], style: const TextStyle(fontSize: 10)),
+                  child: Text(
+                    labels[value.toInt()],
+                    style: const TextStyle(fontSize: 10),
+                  ),
                 );
               },
               interval: 1,
@@ -70,15 +77,25 @@ class SimuladoLineChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, meta) {
-                return Text(value.toInt().toString(), style: const TextStyle(fontSize: 10));
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
+                );
               },
               interval: 10,
             ),
           ),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
-        borderData: FlBorderData(show: true, border: Border.all(color: const Color(0xff37434d), width: 1)),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: const Color(0xff37434d), width: 1),
+        ),
         lineBarsData: [
           LineChartBarData(
             spots: spots,

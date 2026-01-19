@@ -34,13 +34,16 @@ class _NumberPickerWheelState extends State<NumberPickerWheel> {
   void initState() {
     super.initState();
     _currentValue = widget.initialValue;
-    _scrollController = FixedExtentScrollController(initialItem: _currentValue - widget.minValue);
+    _scrollController = FixedExtentScrollController(
+      initialItem: _currentValue - widget.minValue,
+    );
   }
 
   @override
   void didUpdateWidget(covariant NumberPickerWheel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialValue != oldWidget.initialValue && widget.initialValue != _currentValue) {
+    if (widget.initialValue != oldWidget.initialValue &&
+        widget.initialValue != _currentValue) {
       _currentValue = widget.initialValue;
       _scrollController.jumpToItem(_currentValue - widget.minValue);
     }
@@ -79,7 +82,9 @@ class _NumberPickerWheelState extends State<NumberPickerWheel> {
             return Center(
               child: Text(
                 value.toString().padLeft(2, '0'),
-                style: widget.textStyle ?? Theme.of(context).textTheme.headlineMedium,
+                style:
+                    widget.textStyle ??
+                    Theme.of(context).textTheme.headlineMedium,
               ),
             );
           },

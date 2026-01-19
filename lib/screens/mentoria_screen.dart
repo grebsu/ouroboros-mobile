@@ -40,7 +40,8 @@ class MentoriaProvider with ChangeNotifier {
   bool get prioritizePendingReviews => _prioritizePendingReviews;
   bool get prioritizeMostReviewed => _prioritizeMostReviewed;
   bool get prioritizeRecentlyAdded => _prioritizeRecentlyAdded;
-  bool get prioritizeNotStudiedInTimeWindow => _prioritizeNotStudiedInTimeWindow;
+  bool get prioritizeNotStudiedInTimeWindow =>
+      _prioritizeNotStudiedInTimeWindow;
   int get notStudiedInDays => _notStudiedInDays;
   bool get prioritizeNotRecentlyStudied => _prioritizeNotRecentlyStudied; // NEW
   bool get prioritizeUnfinishedTopics => _prioritizeUnfinishedTopics;
@@ -54,17 +55,25 @@ class MentoriaProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _sequentialTopics = prefs.getBool('sequentialTopics') ?? true;
     _useHitRate = prefs.getBool('useHitRate') ?? false;
-    _prioritizeLessStudiedTime = prefs.getBool('prioritizeLessStudiedTime') ?? false;
-    _prioritizeMoreStudiedTime = prefs.getBool('prioritizeMoreStudiedTime') ?? false;
+    _prioritizeLessStudiedTime =
+        prefs.getBool('prioritizeLessStudiedTime') ?? false;
+    _prioritizeMoreStudiedTime =
+        prefs.getBool('prioritizeMoreStudiedTime') ?? false;
     _prioritizeMostErrors = prefs.getBool('prioritizeMostErrors') ?? false;
-    _prioritizeLeastQuestions = prefs.getBool('prioritizeLeastQuestions') ?? false;
-    _prioritizePendingReviews = prefs.getBool('prioritizePendingReviews') ?? false;
+    _prioritizeLeastQuestions =
+        prefs.getBool('prioritizeLeastQuestions') ?? false;
+    _prioritizePendingReviews =
+        prefs.getBool('prioritizePendingReviews') ?? false;
     _prioritizeMostReviewed = prefs.getBool('prioritizeMostReviewed') ?? false;
-    _prioritizeRecentlyAdded = prefs.getBool('prioritizeRecentlyAdded') ?? false;
-    _prioritizeNotStudiedInTimeWindow = prefs.getBool('prioritizeNotStudiedInTimeWindow') ?? false;
+    _prioritizeRecentlyAdded =
+        prefs.getBool('prioritizeRecentlyAdded') ?? false;
+    _prioritizeNotStudiedInTimeWindow =
+        prefs.getBool('prioritizeNotStudiedInTimeWindow') ?? false;
     _notStudiedInDays = prefs.getInt('notStudiedInDays') ?? 7;
-    _prioritizeNotRecentlyStudied = prefs.getBool('prioritizeNotRecentlyStudied') ?? true; // NEW
-    _prioritizeUnfinishedTopics = prefs.getBool('prioritizeUnfinishedTopics') ?? true;
+    _prioritizeNotRecentlyStudied =
+        prefs.getBool('prioritizeNotRecentlyStudied') ?? true; // NEW
+    _prioritizeUnfinishedTopics =
+        prefs.getBool('prioritizeUnfinishedTopics') ?? true;
     _prioritizeTopicWeights = prefs.getBool('prioritizeTopicWeights') ?? false;
     notifyListeners();
   }
@@ -147,7 +156,8 @@ class MentoriaProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setPrioritizeNotRecentlyStudied(bool value) async { // NEW
+  void setPrioritizeNotRecentlyStudied(bool value) async {
+    // NEW
     _prioritizeNotRecentlyStudied = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('prioritizeNotRecentlyStudied', value);
@@ -181,7 +191,9 @@ class MentoriaScreen extends StatelessWidget {
             children: [
               SwitchListTile(
                 title: const Text('Recomendar tópicos em ordem sequencial'),
-                subtitle: const Text('Ideal para quem está começando em uma matéria e prefere seguir a ordem do edital.'),
+                subtitle: const Text(
+                  'Ideal para quem está começando em uma matéria e prefere seguir a ordem do edital.',
+                ),
                 value: provider.sequentialTopics,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
@@ -200,48 +212,68 @@ class MentoriaScreen extends StatelessWidget {
               ),
               SwitchListTile(
                 title: const Text('Taxa de Acertos'),
-                subtitle: const Text('Prioriza tópicos com menor percentual de acertos.'),
+                subtitle: const Text(
+                  'Prioriza tópicos com menor percentual de acertos.',
+                ),
                 value: provider.useHitRate,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setUseHitRate(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setUseHitRate(value),
               ),
               SwitchListTile(
                 title: const Text('Menos tempo estudado'),
-                subtitle: const Text('Prioriza tópicos com menor tempo de estudo acumulado.'),
+                subtitle: const Text(
+                  'Prioriza tópicos com menor tempo de estudo acumulado.',
+                ),
                 value: provider.prioritizeLessStudiedTime,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeLessStudiedTime(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setPrioritizeLessStudiedTime(value),
               ),
               SwitchListTile(
                 title: const Text('Mais tempo estudado'),
-                subtitle: const Text('Prioriza tópicos com maior tempo de estudo acumulado.'),
+                subtitle: const Text(
+                  'Prioriza tópicos com maior tempo de estudo acumulado.',
+                ),
                 value: provider.prioritizeMoreStudiedTime,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeMoreStudiedTime(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setPrioritizeMoreStudiedTime(value),
               ),
               SwitchListTile(
                 title: const Text('Maior número de erros'),
-                subtitle: const Text('Prioriza tópicos com maior quantidade de erros em questões.'),
+                subtitle: const Text(
+                  'Prioriza tópicos com maior quantidade de erros em questões.',
+                ),
                 value: provider.prioritizeMostErrors,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeMostErrors(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setPrioritizeMostErrors(value),
               ),
               SwitchListTile(
                 title: const Text('Menor quantidade de questões feitas'),
-                subtitle: const Text('Prioriza tópicos com poucas questões respondidas.'),
+                subtitle: const Text(
+                  'Prioriza tópicos com poucas questões respondidas.',
+                ),
                 value: provider.prioritizeLeastQuestions,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeLeastQuestions(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setPrioritizeLeastQuestions(value),
               ),
               const Divider(),
               const Padding(
@@ -253,21 +285,29 @@ class MentoriaScreen extends StatelessWidget {
               ),
               SwitchListTile(
                 title: const Text('Revisões Pendentes'),
-                subtitle: const Text('Prioriza tópicos com revisões próximas ou atrasadas.'),
+                subtitle: const Text(
+                  'Prioriza tópicos com revisões próximas ou atrasadas.',
+                ),
                 value: provider.prioritizePendingReviews,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizePendingReviews(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setPrioritizePendingReviews(value),
               ),
               SwitchListTile(
                 title: const Text('Tópicos Mais Revisados'),
-                subtitle: const Text('Prioriza tópicos que foram mais revisados.'),
+                subtitle: const Text(
+                  'Prioriza tópicos que foram mais revisados.',
+                ),
                 value: provider.prioritizeMostReviewed,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeMostReviewed(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setPrioritizeMostReviewed(value),
               ),
               const Divider(),
               const Padding(
@@ -279,30 +319,45 @@ class MentoriaScreen extends StatelessWidget {
               ),
               SwitchListTile(
                 title: const Text('Adicionados Recentemente'),
-                subtitle: const Text('Prioriza tópicos novos no plano de estudos.'),
+                subtitle: const Text(
+                  'Prioriza tópicos novos no plano de estudos.',
+                ),
                 value: provider.prioritizeRecentlyAdded,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeRecentlyAdded(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setPrioritizeRecentlyAdded(value),
               ),
               SwitchListTile(
                 title: const Text('Não estudados há um tempo'),
-                subtitle: const Text('Prioriza tópicos não estudados em um período específico.'),
+                subtitle: const Text(
+                  'Prioriza tópicos não estudados em um período específico.',
+                ),
                 value: provider.prioritizeNotStudiedInTimeWindow,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeNotStudiedInTimeWindow(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) =>
+                          provider.setPrioritizeNotStudiedInTimeWindow(value),
               ),
-              SwitchListTile( // NEW
+              SwitchListTile(
+                // NEW
                 title: const Text('Evitar repetição imediata'),
-                subtitle: const Text('Penaliza tópicos estudados muito recentemente para sugerir novos.'),
+                subtitle: const Text(
+                  'Penaliza tópicos estudados muito recentemente para sugerir novos.',
+                ),
                 value: provider.prioritizeNotRecentlyStudied,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeNotRecentlyStudied(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) =>
+                          provider.setPrioritizeNotRecentlyStudied(value),
               ),
               if (provider.prioritizeNotStudiedInTimeWindow)
                 Padding(
@@ -320,8 +375,12 @@ class MentoriaScreen extends StatelessWidget {
                           label: provider.notStudiedInDays.toString(),
                           activeColor: Theme.of(context).colorScheme.primary,
                           // Slider NÃO tem inactiveThumbColor ou inactiveTrackColor
-                          inactiveColor: Colors.grey[300], // Cor da trilha quando inativo
-                          onChanged: provider.sequentialTopics ? null : (value) => provider.setNotStudiedInDays(value.toInt()),
+                          inactiveColor:
+                              Colors.grey[300], // Cor da trilha quando inativo
+                          onChanged: provider.sequentialTopics
+                              ? null
+                              : (value) =>
+                                    provider.setNotStudiedInDays(value.toInt()),
                         ),
                       ),
                     ],
@@ -337,21 +396,29 @@ class MentoriaScreen extends StatelessWidget {
               ),
               SwitchListTile(
                 title: const Text('Priorizar tópicos não finalizados'),
-                subtitle: const Text('Dá mais peso a tópicos cuja teoria ainda não foi finalizada.'),
+                subtitle: const Text(
+                  'Dá mais peso a tópicos cuja teoria ainda não foi finalizada.',
+                ),
                 value: provider.prioritizeUnfinishedTopics,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeUnfinishedTopics(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setPrioritizeUnfinishedTopics(value),
               ),
               SwitchListTile(
                 title: const Text('Peso dos Tópicos'),
-                subtitle: const Text('Prioriza tópicos com maior peso (definido por você ou calculado).'),
+                subtitle: const Text(
+                  'Prioriza tópicos com maior peso (definido por você ou calculado).',
+                ),
                 value: provider.prioritizeTopicWeights,
                 activeColor: Theme.of(context).colorScheme.primary,
                 inactiveThumbColor: Colors.grey[400],
                 inactiveTrackColor: Colors.grey[300],
-                onChanged: provider.sequentialTopics ? null : (value) => provider.setPrioritizeTopicWeights(value),
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setPrioritizeTopicWeights(value),
               ),
             ],
           );

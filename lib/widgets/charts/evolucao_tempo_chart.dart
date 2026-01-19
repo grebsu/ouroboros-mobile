@@ -17,8 +17,12 @@ class EvolucaoTempoChart extends StatelessWidget {
     for (int i = 0; i < sortedDates.length; i++) {
       final date = sortedDates[i];
       final stats = dailyStats[date]!;
-      correctSpots.add(FlSpot(i.toDouble(), (stats['correct'] ?? 0).toDouble()));
-      incorrectSpots.add(FlSpot(i.toDouble(), (stats['incorrect'] ?? 0).toDouble()));
+      correctSpots.add(
+        FlSpot(i.toDouble(), (stats['correct'] ?? 0).toDouble()),
+      );
+      incorrectSpots.add(
+        FlSpot(i.toDouble(), (stats['incorrect'] ?? 0).toDouble()),
+      );
     }
 
     double maxY = 0;
@@ -56,13 +60,23 @@ class EvolucaoTempoChart extends StatelessWidget {
             },
           ),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
-                  return Text('${value.toInt()}Q', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 10));
+                  return Text(
+                    '${value.toInt()}Q',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                      fontSize: 10,
+                    ),
+                  );
                 },
                 interval: yInterval, // Show labels for every question count
                 reservedSize: 28,
@@ -73,18 +87,27 @@ class EvolucaoTempoChart extends StatelessWidget {
                 showTitles: true,
                 reservedSize: 40, // Increased reserved size for rotated labels
                 getTitlesWidget: (value, meta) {
-                  if (value.toInt() >= 0 && value.toInt() < sortedDates.length) {
+                  if (value.toInt() >= 0 &&
+                      value.toInt() < sortedDates.length) {
                     final date = sortedDates[value.toInt()];
                     return SideTitleWidget(
                       meta: meta,
                       angle: -45, // Rotate labels
                       space: 8,
-                      child: Text(DateFormat('dd/MM').format(date), style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 10)),
+                      child: Text(
+                        DateFormat('dd/MM').format(date),
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                          fontSize: 10,
+                        ),
+                      ),
                     );
                   }
                   return const Text('');
                 },
-                interval: sortedDates.length > 7 ? (sortedDates.length / 7).ceilToDouble() : 1, // Dynamic interval
+                interval: sortedDates.length > 7
+                    ? (sortedDates.length / 7).ceilToDouble()
+                    : 1, // Dynamic interval
               ),
             ),
           ),
@@ -102,32 +125,37 @@ class EvolucaoTempoChart extends StatelessWidget {
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
               getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-                return touchedBarSpots.map((barSpot) {
-                  final flSpot = barSpot;
-                  if (flSpot.x.toInt() >= 0 && flSpot.x.toInt() < sortedDates.length) {
-                    final date = sortedDates[flSpot.x.toInt()];
-                    final value = flSpot.y;
-                    final isCorrectLine = barSpot.bar.color == Colors.teal; // Check color
-                    final label = isCorrectLine ? 'Acertos' : 'Erros';
-                    final color = isCorrectLine ? Colors.teal : Colors.red;
+                return touchedBarSpots
+                    .map((barSpot) {
+                      final flSpot = barSpot;
+                      if (flSpot.x.toInt() >= 0 &&
+                          flSpot.x.toInt() < sortedDates.length) {
+                        final date = sortedDates[flSpot.x.toInt()];
+                        final value = flSpot.y;
+                        final isCorrectLine =
+                            barSpot.bar.color == Colors.teal; // Check color
+                        final label = isCorrectLine ? 'Acertos' : 'Erros';
+                        final color = isCorrectLine ? Colors.teal : Colors.red;
 
-                    return LineTooltipItem(
-                      '${value.toInt()} $label\n',
-                      TextStyle(color: color, fontWeight: FontWeight.bold),
-                      children: [
-                        TextSpan(
-                          text: DateFormat('dd/MM/yyyy').format(date),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.normal,
-                          ),
-                        ),
-                      ],
-                    );
-                  } else {
-                    return null;
-                  }
-                }).whereType<LineTooltipItem>().toList();
+                        return LineTooltipItem(
+                          '${value.toInt()} $label\n',
+                          TextStyle(color: color, fontWeight: FontWeight.bold),
+                          children: [
+                            TextSpan(
+                              text: DateFormat('dd/MM/yyyy').format(date),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        );
+                      } else {
+                        return null;
+                      }
+                    })
+                    .whereType<LineTooltipItem>()
+                    .toList();
               },
             ),
           ),
@@ -149,10 +177,7 @@ class EvolucaoTempoChart extends StatelessWidget {
       belowBarData: BarAreaData(
         show: true,
         gradient: LinearGradient(
-          colors: [
-            color.withOpacity(0.2),
-            color.withOpacity(0.0),
-          ],
+          colors: [color.withOpacity(0.2), color.withOpacity(0.0)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),

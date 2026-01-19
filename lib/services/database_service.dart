@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
@@ -31,7 +30,9 @@ class DatabaseService {
         await file.delete();
         print('!!!!!!!!!! Database file deleted successfully. !!!!!!!!!!');
       } else {
-        print('!!!!!!!!!! Database file not found, nothing to delete. !!!!!!!!!!');
+        print(
+          '!!!!!!!!!! Database file not found, nothing to delete. !!!!!!!!!!',
+        );
       }
     } catch (e) {
       print('!!!!!!!!!! Error deleting database file: $e !!!!!!!!!!');
@@ -47,7 +48,13 @@ class DatabaseService {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getApplicationDocumentsDirectory();
     final path = join(dbPath.path, filePath);
-    return await openDatabase(path, version: 17, onCreate: _createDB, onUpgrade: _onUpgrade, onConfigure: _onConfigure); // VERSÃO ATUALIZADA PARA 17
+    return await openDatabase(
+      path,
+      version: 17,
+      onCreate: _createDB,
+      onUpgrade: _onUpgrade,
+      onConfigure: _onConfigure,
+    ); // VERSÃO ATUALIZADA PARA 17
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -55,10 +62,14 @@ class DatabaseService {
       await db.execute('ALTER TABLE topics ADD COLUMN parent_id INTEGER');
     }
     if (oldVersion < 3) {
-      await db.execute('ALTER TABLE topics ADD COLUMN is_grouping_topic INTEGER NOT NULL DEFAULT 0');
+      await db.execute(
+        'ALTER TABLE topics ADD COLUMN is_grouping_topic INTEGER NOT NULL DEFAULT 0',
+      );
     }
     if (oldVersion < 4) {
-      await db.execute('ALTER TABLE subjects ADD COLUMN total_topics_count INTEGER');
+      await db.execute(
+        'ALTER TABLE subjects ADD COLUMN total_topics_count INTEGER',
+      );
     }
     if (oldVersion < 5) {
       await db.execute('ALTER TABLE topics ADD COLUMN question_count INTEGER');
@@ -70,17 +81,27 @@ class DatabaseService {
       await db.execute('ALTER TABLE subjects ADD COLUMN import_source TEXT');
     }
     if (oldVersion < 8) {
-      await db.execute('ALTER TABLE study_records ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
+      await db.execute(
+        'ALTER TABLE study_records ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'',
+      );
     }
     if (oldVersion < 9) {
-      await db.execute('ALTER TABLE subjects ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
-      await db.execute('ALTER TABLE simulado_records ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
+      await db.execute(
+        'ALTER TABLE subjects ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'',
+      );
+      await db.execute(
+        'ALTER TABLE simulado_records ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'',
+      );
     }
     if (oldVersion < 10) {
-      await db.execute('ALTER TABLE review_records ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
+      await db.execute(
+        'ALTER TABLE review_records ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'',
+      );
     }
     if (oldVersion < 11) {
-      await db.execute('ALTER TABLE plans ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
+      await db.execute(
+        'ALTER TABLE plans ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'',
+      );
     }
     if (oldVersion < 12) {
       await _createMasterTables(db);
@@ -89,12 +110,21 @@ class DatabaseService {
       await db.execute('ALTER TABLE plans ADD COLUMN lastModified INTEGER;');
       await db.execute('ALTER TABLE subjects ADD COLUMN lastModified INTEGER;');
       await db.execute('ALTER TABLE topics ADD COLUMN lastModified INTEGER;');
-      await db.execute('ALTER TABLE study_records ADD COLUMN lastModified INTEGER;');
-      await db.execute('ALTER TABLE review_records ADD COLUMN lastModified INTEGER;');
-      await db.execute('ALTER TABLE simulado_records ADD COLUMN lastModified INTEGER;');
-      await db.execute('ALTER TABLE simulado_subjects ADD COLUMN lastModified INTEGER;');
+      await db.execute(
+        'ALTER TABLE study_records ADD COLUMN lastModified INTEGER;',
+      );
+      await db.execute(
+        'ALTER TABLE review_records ADD COLUMN lastModified INTEGER;',
+      );
+      await db.execute(
+        'ALTER TABLE simulado_records ADD COLUMN lastModified INTEGER;',
+      );
+      await db.execute(
+        'ALTER TABLE simulado_subjects ADD COLUMN lastModified INTEGER;',
+      );
     }
-    if (oldVersion < 14) { // NOVA MIGRAÇÃO PARA MULTI-TÓPICOS
+    if (oldVersion < 14) {
+      // NOVA MIGRAÇÃO PARA MULTI-TÓPICOS
       // Renomeia a tabela existente para não perder os dados
       await db.execute('ALTER TABLE study_records RENAME TO study_records_old');
 
@@ -123,14 +153,16 @@ class DatabaseService {
           FOREIGN KEY (subject_id) REFERENCES subjects (id) ON DELETE SET NULL
         )
       ''');
-      
+
       // Idealmente, aqui ocorreria a migração dos dados de study_records_old para study_records.
       // Como o schema antigo é incerto, manter a tabela _old previne a perda de dados
       // e resolve o erro de "no such table" caso algum trigger a referencie.
     }
     if (oldVersion < 15) {
       // 1. Renomear a tabela antiga
-      await db.execute('ALTER TABLE review_records RENAME TO review_records_old;');
+      await db.execute(
+        'ALTER TABLE review_records RENAME TO review_records_old;',
+      );
 
       // 2. Criar a nova tabela com a coluna 'topics' (TEXT) e sem a coluna 'topic'
       await db.execute('''
@@ -171,22 +203,42 @@ class DatabaseService {
       // 4. Apagar a tabela antiga
       await db.execute('DROP TABLE review_records_old;');
     }
-    if (oldVersion < 16) { // Migração para adicionar question_count à master_topics
-      await db.execute('ALTER TABLE master_topics ADD COLUMN question_count INTEGER;');
+    if (oldVersion < 16) {
+      // Migração para adicionar question_count à master_topics
+      await db.execute(
+        'ALTER TABLE master_topics ADD COLUMN question_count INTEGER;',
+      );
     }
-    if (oldVersion < 17) { // Migração para refatorar StudyRecord com TopicProgress
-      await db.execute('ALTER TABLE study_records ADD COLUMN topicsProgress TEXT NOT NULL DEFAULT \'[]\';');
+    if (oldVersion < 17) {
+      // Migração para refatorar StudyRecord com TopicProgress
+      await db.execute(
+        'ALTER TABLE study_records ADD COLUMN topicsProgress TEXT NOT NULL DEFAULT \'[]\';',
+      );
 
       // Migrar dados existentes de study_records para a nova estrutura de topicsProgress
-      final List<Map<String, dynamic>> oldRecords = await db.query('study_records');
+      final List<Map<String, dynamic>> oldRecords = await db.query(
+        'study_records',
+      );
 
       for (var oldRecordMap in oldRecords) {
         final String recordId = oldRecordMap['id'] as String;
-        final List<String> oldTopicTexts = List<String>.from(jsonDecode(oldRecordMap['topic_texts'] ?? '[]'));
-        final List<String> oldTopicIds = List<String>.from(jsonDecode(oldRecordMap['topic_ids'] ?? '[]'));
-        final Map<String, int> oldQuestions = Map<String, int>.from(jsonDecode(oldRecordMap['questions'] ?? '{}'));
-        final List<Map<String, int>> oldPages = (jsonDecode(oldRecordMap['pages'] ?? '[]') as List<dynamic>).map((e) => Map<String, int>.from(e)).toList();
-        final List<Map<String, String>> oldVideos = (jsonDecode(oldRecordMap['videos'] ?? '[]') as List<dynamic>).map((e) => Map<String, String>.from(e)).toList();
+        final List<String> oldTopicTexts = List<String>.from(
+          jsonDecode(oldRecordMap['topic_texts'] ?? '[]'),
+        );
+        final List<String> oldTopicIds = List<String>.from(
+          jsonDecode(oldRecordMap['topic_ids'] ?? '[]'),
+        );
+        final Map<String, int> oldQuestions = Map<String, int>.from(
+          jsonDecode(oldRecordMap['questions'] ?? '{}'),
+        );
+        final List<Map<String, int>> oldPages =
+            (jsonDecode(oldRecordMap['pages'] ?? '[]') as List<dynamic>)
+                .map((e) => Map<String, int>.from(e))
+                .toList();
+        final List<Map<String, String>> oldVideos =
+            (jsonDecode(oldRecordMap['videos'] ?? '[]') as List<dynamic>)
+                .map((e) => Map<String, String>.from(e))
+                .toList();
         final String? oldNotes = oldRecordMap['notes'] as String?;
         final bool oldTeoriaFinalizada = oldRecordMap['teoria_finalizada'] == 1;
 
@@ -194,36 +246,47 @@ class DatabaseService {
         // Se houver tópicos, criar um TopicProgress para cada um
         if (oldTopicIds.isNotEmpty) {
           for (int i = 0; i < oldTopicIds.length; i++) {
-            newTopicsProgress.add(TopicProgress(
-              topicId: oldTopicIds[i],
-              topicText: oldTopicTexts.length > i ? oldTopicTexts[i] : '', // Fallback para texto
-              questions: oldQuestions, // Duplicar para cada tópico (melhor abordagem na migração)
-              pages: oldPages,         // Duplicar para cada tópico
-              videos: oldVideos,       // Duplicar para cada tópico
-              notes: oldNotes,
-              isTheoryFinished: oldTeoriaFinalizada,
-              userWeight: null, // userWeight não existia no StudyRecord, então é nulo aqui
-            ));
+            newTopicsProgress.add(
+              TopicProgress(
+                topicId: oldTopicIds[i],
+                topicText: oldTopicTexts.length > i
+                    ? oldTopicTexts[i]
+                    : '', // Fallback para texto
+                questions:
+                    oldQuestions, // Duplicar para cada tópico (melhor abordagem na migração)
+                pages: oldPages, // Duplicar para cada tópico
+                videos: oldVideos, // Duplicar para cada tópico
+                notes: oldNotes,
+                isTheoryFinished: oldTeoriaFinalizada,
+                userWeight:
+                    null, // userWeight não existia no StudyRecord, então é nulo aqui
+              ),
+            );
           }
         } else {
           // Se não houver topic_ids, criar um TopicProgress genérico ou ignorar (decisão de negócio)
           // Para evitar perda de dados, vamos criar um TopicProgress com o subject_id se possível
           // ou um tópico genérico associado ao study_record_id
           final String subjectId = oldRecordMap['subject_id'] as String;
-          newTopicsProgress.add(TopicProgress(
-            topicId: subjectId, // Usar subject_id como fallback para topicId
-            topicText: 'Tópico Geral (${oldRecordMap['id']})', // Texto genérico
-            questions: oldQuestions,
-            pages: oldPages,
-            videos: oldVideos,
-            notes: oldNotes,
-            isTheoryFinished: oldTeoriaFinalizada,
-            userWeight: null,
-          ));
+          newTopicsProgress.add(
+            TopicProgress(
+              topicId: subjectId, // Usar subject_id como fallback para topicId
+              topicText:
+                  'Tópico Geral (${oldRecordMap['id']})', // Texto genérico
+              questions: oldQuestions,
+              pages: oldPages,
+              videos: oldVideos,
+              notes: oldNotes,
+              isTheoryFinished: oldTeoriaFinalizada,
+              userWeight: null,
+            ),
+          );
         }
 
         // Serializar a nova lista de TopicProgress para JSON
-        final String topicsProgressJson = jsonEncode(newTopicsProgress.map((tp) => tp.toMap()).toList());
+        final String topicsProgressJson = jsonEncode(
+          newTopicsProgress.map((tp) => tp.toMap()).toList(),
+        );
 
         // Atualizar o registro no banco de dados com a nova coluna
         await db.update(
@@ -239,7 +302,9 @@ class DatabaseService {
       await db.execute('ALTER TABLE study_records DROP COLUMN questions;');
       await db.execute('ALTER TABLE study_records DROP COLUMN material;');
       await db.execute('ALTER TABLE study_records DROP COLUMN notes;');
-      await db.execute('ALTER TABLE study_records DROP COLUMN teoria_finalizada;');
+      await db.execute(
+        'ALTER TABLE study_records DROP COLUMN teoria_finalizada;',
+      );
       await db.execute('ALTER TABLE study_records DROP COLUMN pages;');
       await db.execute('ALTER TABLE study_records DROP COLUMN videos;');
     }
@@ -274,7 +339,8 @@ class DatabaseService {
     const textType = 'TEXT NOT NULL';
     const textTypeNullable = 'TEXT';
     const integerType = 'INTEGER NOT NULL';
-    const boolType = 'INTEGER NOT NULL'; // SQLite uses INTEGER 0 (false) or 1 (true) for booleans
+    const boolType =
+        'INTEGER NOT NULL'; // SQLite uses INTEGER 0 (false) or 1 (true) for booleans
 
     await db.execute('''
       CREATE TABLE plans (
@@ -402,14 +468,28 @@ class DatabaseService {
     final db = await instance.database;
     final planMap = plan.toMap();
     planMap['userId'] = userId;
-    await db.insert('plans', planMap, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'plans',
+      planMap,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<Plan?> readPlan(String id, String userId) async {
     final db = await instance.database;
     final maps = await db.query(
       'plans',
-      columns: ['id', 'userId', 'name', 'observations', 'cargo', 'edital', 'banca', 'iconUrl', 'lastModified'],
+      columns: [
+        'id',
+        'userId',
+        'name',
+        'observations',
+        'cargo',
+        'edital',
+        'banca',
+        'iconUrl',
+        'lastModified',
+      ],
       where: 'id = ? AND userId = ?',
       whereArgs: [id, userId],
     );
@@ -424,7 +504,12 @@ class DatabaseService {
   Future<List<Plan>> readAllPlans(String userId) async {
     final db = await instance.database;
     const orderBy = 'name ASC';
-    final result = await db.query('plans', where: 'userId = ?', whereArgs: [userId], orderBy: orderBy);
+    final result = await db.query(
+      'plans',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: orderBy,
+    );
     return result.map((json) => Plan.fromMap(json)).toList();
   }
 
@@ -457,10 +542,16 @@ class DatabaseService {
   }
 
   // Subject and Topic CRUD methods
-  Future<void> _insertTopicsRecursively(Transaction txn, List<Topic> topics, String subjectId, int? parentId) async {
+  Future<void> _insertTopicsRecursively(
+    Transaction txn,
+    List<Topic> topics,
+    String subjectId,
+    int? parentId,
+  ) async {
     for (final topic in topics) {
       // Determine if this topic should be a grouping topic based on its sub_topics
-      final bool isCurrentlyGrouping = topic.sub_topics != null && topic.sub_topics!.isNotEmpty;
+      final bool isCurrentlyGrouping =
+          topic.sub_topics != null && topic.sub_topics!.isNotEmpty;
 
       final topicToInsert = Topic(
         subject_id: subjectId,
@@ -470,11 +561,16 @@ class DatabaseService {
         question_count: topic.question_count,
         userWeight: topic.userWeight,
       );
-      
+
       final newTopicId = await txn.insert('topics', topicToInsert.toMap());
 
       if (topic.sub_topics != null && topic.sub_topics!.isNotEmpty) {
-        await _insertTopicsRecursively(txn, topic.sub_topics!, subjectId, newTopicId);
+        await _insertTopicsRecursively(
+          txn,
+          topic.sub_topics!,
+          subjectId,
+          newTopicId,
+        );
       }
     }
   }
@@ -484,22 +580,37 @@ class DatabaseService {
     await db.transaction((txn) async {
       final subjectMap = subject.toMap();
       subjectMap['userId'] = userId;
-      await txn.insert('subjects', subjectMap, conflictAlgorithm: ConflictAlgorithm.replace);
+      await txn.insert(
+        'subjects',
+        subjectMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
       await _insertTopicsRecursively(txn, subject.topics, subject.id, null);
     });
   }
 
-  Future<List<Subject>> readSubjectsForPlan(String planId, String userId) async {
+  Future<List<Subject>> readSubjectsForPlan(
+    String planId,
+    String userId,
+  ) async {
     final db = await instance.database;
-    final subjectMaps = await db.query('subjects', where: 'plan_id = ? AND userId = ?', whereArgs: [planId, userId]);
+    final subjectMaps = await db.query(
+      'subjects',
+      where: 'plan_id = ? AND userId = ?',
+      whereArgs: [planId, userId],
+    );
 
     if (subjectMaps.isEmpty) return [];
 
     final List<Subject> subjects = [];
     for (final subjectMap in subjectMaps) {
-      final topicMaps = await db.query('topics', where: 'subject_id = ?', whereArgs: [subjectMap['id']]);
+      final topicMaps = await db.query(
+        'topics',
+        where: 'subject_id = ?',
+        whereArgs: [subjectMap['id']],
+      );
       final allTopics = topicMaps.map((map) => Topic.fromMap(map)).toList();
-      
+
       final topicMapById = <int, Topic>{};
       for (var t in allTopics) {
         if (t.id != null) {
@@ -519,7 +630,7 @@ class DatabaseService {
           }
         }
       }
-      
+
       subjects.add(Subject.fromMap(subjectMap, rootTopics));
     }
     return subjects;
@@ -530,17 +641,18 @@ class DatabaseService {
     return await db.transaction((txn) async {
       final subjectUpdateCount = await txn.update(
         'subjects',
-        {
-          'subject': subject.subject,
-          'color': subject.color,
-        },
+        {'subject': subject.subject, 'color': subject.color},
         where: 'id = ? AND userId = ?',
         whereArgs: [subject.id, userId],
       );
 
-      await txn.delete('topics', where: 'subject_id = ?', whereArgs: [subject.id]);
+      await txn.delete(
+        'topics',
+        where: 'subject_id = ?',
+        whereArgs: [subject.id],
+      );
       await _insertTopicsRecursively(txn, subject.topics, subject.id, null);
-      
+
       return subjectUpdateCount;
     });
   }
@@ -573,12 +685,21 @@ class DatabaseService {
   // StudyRecord CRUD methods
   Future<void> createStudyRecord(StudyRecord record) async {
     final db = await instance.database;
-    await db.insert('study_records', record.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'study_records',
+      record.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<StudyRecord>> readStudyRecordsForPlan(String planId) async {
     final db = await instance.database;
-    final maps = await db.query('study_records', where: 'plan_id = ?', whereArgs: [planId], orderBy: 'date DESC');
+    final maps = await db.query(
+      'study_records',
+      where: 'plan_id = ?',
+      whereArgs: [planId],
+      orderBy: 'date DESC',
+    );
     return maps.map((map) => StudyRecord.fromMap(map)).toList();
   }
 
@@ -594,16 +715,17 @@ class DatabaseService {
 
   Future<int> deleteStudyRecord(String id) async {
     final db = await instance.database;
-    return db.delete(
-      'study_records',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return db.delete('study_records', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<List<StudyRecord>> readStudyRecordsForUser(String userId) async {
     final db = await instance.database;
-    final maps = await db.query('study_records', where: 'userId = ?', whereArgs: [userId], orderBy: 'date DESC');
+    final maps = await db.query(
+      'study_records',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'date DESC',
+    );
     return maps.map((map) => StudyRecord.fromMap(map)).toList();
   }
 
@@ -612,12 +734,24 @@ class DatabaseService {
     final db = await instance.database;
     final recordMap = record.toMap();
     recordMap['userId'] = userId;
-    await db.insert('review_records', recordMap, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'review_records',
+      recordMap,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  Future<List<ReviewRecord>> readReviewRecordsForPlan(String planId, String userId) async {
+  Future<List<ReviewRecord>> readReviewRecordsForPlan(
+    String planId,
+    String userId,
+  ) async {
     final db = await instance.database;
-    final maps = await db.query('review_records', where: 'plan_id = ? AND userId = ?', whereArgs: [planId, userId], orderBy: 'scheduled_date ASC');
+    final maps = await db.query(
+      'review_records',
+      where: 'plan_id = ? AND userId = ?',
+      whereArgs: [planId, userId],
+      orderBy: 'scheduled_date ASC',
+    );
     return maps.map((map) => ReviewRecord.fromMap(map)).toList();
   }
 
@@ -642,11 +776,19 @@ class DatabaseService {
 
   Future<List<ReviewRecord>> getAllReviewRecords(String userId) async {
     final db = await instance.database;
-    final maps = await db.query('review_records', where: 'userId = ?', whereArgs: [userId], orderBy: 'scheduled_date ASC');
+    final maps = await db.query(
+      'review_records',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'scheduled_date ASC',
+    );
     return maps.map((map) => ReviewRecord.fromMap(map)).toList();
   }
 
-  Future<List<ReviewRecord>> readReviewRecordsForStudyRecord(String studyRecordId, String userId) async {
+  Future<List<ReviewRecord>> readReviewRecordsForStudyRecord(
+    String studyRecordId,
+    String userId,
+  ) async {
     final db = await instance.database;
     final maps = await db.query(
       'review_records',
@@ -658,21 +800,40 @@ class DatabaseService {
   }
 
   // SimuladoRecord CRUD methods
-  Future<void> createSimuladoRecord(SimuladoRecord record, String userId) async {
+  Future<void> createSimuladoRecord(
+    SimuladoRecord record,
+    String userId,
+  ) async {
     final db = await instance.database;
     await db.transaction((txn) async {
       final recordMap = record.toMap();
       recordMap['userId'] = userId;
-      await txn.insert('simulado_records', recordMap, conflictAlgorithm: ConflictAlgorithm.replace);
+      await txn.insert(
+        'simulado_records',
+        recordMap,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
       for (final subject in record.subjects) {
-        await txn.insert('simulado_subjects', subject.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'simulado_subjects',
+          subject.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
     });
   }
 
-  Future<List<SimuladoRecord>> readSimuladoRecordsForPlan(String planId, String userId) async {
+  Future<List<SimuladoRecord>> readSimuladoRecordsForPlan(
+    String planId,
+    String userId,
+  ) async {
     final db = await instance.database;
-    final recordMaps = await db.query('simulado_records', where: 'plan_id = ? AND userId = ?', whereArgs: [planId, userId], orderBy: 'date DESC');
+    final recordMaps = await db.query(
+      'simulado_records',
+      where: 'plan_id = ? AND userId = ?',
+      whereArgs: [planId, userId],
+      orderBy: 'date DESC',
+    );
 
     if (recordMaps.isEmpty) {
       return [];
@@ -680,16 +841,29 @@ class DatabaseService {
 
     final List<SimuladoRecord> records = [];
     for (final recordMap in recordMaps) {
-      final subjectMaps = await db.query('simulado_subjects', where: 'simulado_record_id = ?', whereArgs: [recordMap['id']]);
-      final subjects = subjectMaps.map((map) => SimuladoSubject.fromMap(map)).toList();
+      final subjectMaps = await db.query(
+        'simulado_subjects',
+        where: 'simulado_record_id = ?',
+        whereArgs: [recordMap['id']],
+      );
+      final subjects = subjectMaps
+          .map((map) => SimuladoSubject.fromMap(map))
+          .toList();
       records.add(SimuladoRecord.fromMap(recordMap, subjects));
     }
     return records;
   }
 
-  Future<List<SimuladoRecord>> readAllSimuladoRecordsForUser(String userId) async {
+  Future<List<SimuladoRecord>> readAllSimuladoRecordsForUser(
+    String userId,
+  ) async {
     final db = await instance.database;
-    final recordMaps = await db.query('simulado_records', where: 'userId = ?', whereArgs: [userId], orderBy: 'date DESC');
+    final recordMaps = await db.query(
+      'simulado_records',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'date DESC',
+    );
 
     if (recordMaps.isEmpty) {
       return [];
@@ -697,8 +871,14 @@ class DatabaseService {
 
     final List<SimuladoRecord> records = [];
     for (final recordMap in recordMaps) {
-      final subjectMaps = await db.query('simulado_subjects', where: 'simulado_record_id = ?', whereArgs: [recordMap['id']]);
-      final subjects = subjectMaps.map((map) => SimuladoSubject.fromMap(map)).toList();
+      final subjectMaps = await db.query(
+        'simulado_subjects',
+        where: 'simulado_record_id = ?',
+        whereArgs: [recordMap['id']],
+      );
+      final subjects = subjectMaps
+          .map((map) => SimuladoSubject.fromMap(map))
+          .toList();
       records.add(SimuladoRecord.fromMap(recordMap, subjects));
     }
     return records;
@@ -714,7 +894,11 @@ class DatabaseService {
         whereArgs: [record.id, userId],
       );
 
-      await txn.delete('simulado_subjects', where: 'simulado_record_id = ?', whereArgs: [record.id]);
+      await txn.delete(
+        'simulado_subjects',
+        where: 'simulado_record_id = ?',
+        whereArgs: [record.id],
+      );
       for (final subject in record.subjects) {
         await txn.insert('simulado_subjects', subject.toMap());
       }
@@ -736,17 +920,23 @@ class DatabaseService {
   // Count methods for stats
   Future<int> countSubjectsForPlan(String planId) async {
     final db = await instance.database;
-    final result = await db.rawQuery('SELECT COUNT(*) FROM subjects WHERE plan_id = ?', [planId]);
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) FROM subjects WHERE plan_id = ?',
+      [planId],
+    );
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
   Future<int> countTopicsForPlan(String planId) async {
     final db = await instance.database;
-    final result = await db.rawQuery('''
+    final result = await db.rawQuery(
+      '''
       SELECT COUNT(T.id) FROM topics AS T
       INNER JOIN subjects AS S ON T.subject_id = S.id
       WHERE S.plan_id = ?
-    ''', [planId]);
+    ''',
+      [planId],
+    );
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
@@ -756,7 +946,7 @@ class DatabaseService {
     }
     final dbPath = await getApplicationDocumentsDirectory();
     final path = join(dbPath.path, 'ouroboros.db');
-    
+
     await _database!.close();
     await deleteDatabase(path);
     _database = null;
@@ -766,8 +956,16 @@ class DatabaseService {
     await txn.delete('plans', where: 'userId = ?', whereArgs: [userId]);
     await txn.delete('subjects', where: 'userId = ?', whereArgs: [userId]);
     await txn.delete('study_records', where: 'userId = ?', whereArgs: [userId]);
-    await txn.delete('review_records', where: 'userId = ?', whereArgs: [userId]);
-    await txn.delete('simulado_records', where: 'userId = ?', whereArgs: [userId]);
+    await txn.delete(
+      'review_records',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+    await txn.delete(
+      'simulado_records',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
   }
 
   Future<void> deleteAllDataForUser(String userId) async {
@@ -784,30 +982,54 @@ class DatabaseService {
       for (final plan in backup.plans) {
         final planMap = plan.toMap();
         planMap['userId'] = userId;
-        await txn.insert('plans', planMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'plans',
+          planMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       // Inserir matérias e tópicos
       for (final subject in backup.subjects) {
         final subjectMap = subject.toMap();
         subjectMap['userId'] = userId;
-        await txn.insert('subjects', subjectMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'subjects',
+          subjectMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
         await _insertTopicsRecursively(txn, subject.topics, subject.id, null);
       }
       // Inserir registros de estudo
       for (final record in backup.studyRecords) {
-        await txn.insert('study_records', record.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'study_records',
+          record.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       // Inserir registros de revisão
       for (final record in backup.reviewRecords) {
-        await txn.insert('review_records', record.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'review_records',
+          record.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       // Inserir registros de simulado
       for (final record in backup.simuladoRecords) {
         final recordMap = record.toMap();
         recordMap['userId'] = userId;
-        await txn.insert('simulado_records', recordMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'simulado_records',
+          recordMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
         for (final subject in record.subjects) {
-          await txn.insert('simulado_subjects', subject.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+          await txn.insert(
+            'simulado_subjects',
+            subject.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
         }
       }
     });
@@ -815,15 +1037,23 @@ class DatabaseService {
 
   Future<List<Subject>> readAllSubjects(String userId) async {
     final db = await instance.database;
-    final subjectMaps = await db.query('subjects', where: 'userId = ?', whereArgs: [userId]);
+    final subjectMaps = await db.query(
+      'subjects',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
 
     if (subjectMaps.isEmpty) return [];
 
     final List<Subject> subjects = [];
     for (final subjectMap in subjectMaps) {
-      final topicMaps = await db.query('topics', where: 'subject_id = ?', whereArgs: [subjectMap['id']]);
+      final topicMaps = await db.query(
+        'topics',
+        where: 'subject_id = ?',
+        whereArgs: [subjectMap['id']],
+      );
       final allTopics = topicMaps.map((map) => Topic.fromMap(map)).toList();
-      
+
       final topicMapById = <int, Topic>{};
       for (var t in allTopics) {
         if (t.id != null) {
@@ -842,7 +1072,7 @@ class DatabaseService {
           }
         }
       }
-      
+
       subjects.add(Subject.fromMap(subjectMap, rootTopics));
     }
     return subjects;
@@ -850,7 +1080,9 @@ class DatabaseService {
 
   // Master Subject/Topic Import
   Future<void> importSubjectsAndTopicsFromJson(Database dbClient) async {
-    final String jsonString = await rootBundle.loadString('assets/data/materias_com_assuntos.json');
+    final String jsonString = await rootBundle.loadString(
+      'assets/data/materias_com_assuntos.json',
+    );
     final List<dynamic> subjectsJson = json.decode(jsonString);
 
     await dbClient.transaction((txn) async {
@@ -863,11 +1095,9 @@ class DatabaseService {
 
       for (var subjectData in subjectsJson) {
         final subjectName = subjectData['name'];
-        final masterSubjectId = await txn.insert(
-          'master_subjects',
-          {'name': subjectName},
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
+        final masterSubjectId = await txn.insert('master_subjects', {
+          'name': subjectName,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
 
         if (subjectData['assuntos'] != null) {
           await _insertMasterTopicsRecursive(
@@ -891,7 +1121,8 @@ class DatabaseService {
       final topicName = topicData['name'];
       final tecId = topicData['id'];
 
-      final questionCount = topicData['question_count']; // Obter question_count do JSON
+      final questionCount =
+          topicData['question_count']; // Obter question_count do JSON
 
       final masterTopicId = await txn.insert('master_topics', {
         'master_subject_id': masterSubjectId,
@@ -901,7 +1132,8 @@ class DatabaseService {
         'question_count': questionCount, // Inserir question_count
       });
 
-      if (topicData['children'] != null && (topicData['children'] as List).isNotEmpty) {
+      if (topicData['children'] != null &&
+          (topicData['children'] as List).isNotEmpty) {
         await _insertMasterTopicsRecursive(
           txn,
           masterSubjectId,
@@ -921,12 +1153,18 @@ class DatabaseService {
 
   Future<List<Topic>> readMasterTopicsForSubject(int masterSubjectId) async {
     final db = await instance.database;
-    final topicMaps = await db.query('master_topics', where: 'master_subject_id = ?', whereArgs: [masterSubjectId]);
-    
+    final topicMaps = await db.query(
+      'master_topics',
+      where: 'master_subject_id = ?',
+      whereArgs: [masterSubjectId],
+    );
+
     final allTopics = topicMaps.map((map) {
       // Converte o MasterTopic em um Topic para compatibilidade com o resto do app
       return Topic(
-        id: map['id'] as int, // Usamos o ID do master_topic para reconstruir a árvore
+        id:
+            map['id']
+                as int, // Usamos o ID do master_topic para reconstruir a árvore
         topic_text: map['name'] as String,
         parent_id: map['parent_id'] as int?,
         question_count: map['question_count'] as int?,
@@ -951,7 +1189,7 @@ class DatabaseService {
         }
       }
     }
-    
+
     return rootTopics;
   }
 
@@ -960,7 +1198,9 @@ class DatabaseService {
     final prefs = await SharedPreferences.getInstance();
 
     final plans = await db.readAllPlans(userId);
-    final subjects = await db.readAllSubjects(userId); // subjects here should have full hierarchy
+    final subjects = await db.readAllSubjects(
+      userId,
+    ); // subjects here should have full hierarchy
     final studyRecords = await db.readStudyRecordsForUser(userId);
     final reviewRecords = await db.getAllReviewRecords(userId);
     final simuladoRecords = await db.readAllSimuladoRecordsForUser(userId);
@@ -971,28 +1211,47 @@ class DatabaseService {
       final studyCycleString = prefs.getString('${userId}_studyCycle_$planId');
       final planningData = PlanningBackupData(
         studyCycle: studyCycleString != null
-            ? (jsonDecode(studyCycleString) as List).map((item) => StudySession.fromJson(item)).toList()
+            ? (jsonDecode(studyCycleString) as List)
+                  .map((item) => StudySession.fromJson(item))
+                  .toList()
             : null,
         completedCycles: prefs.getInt('${userId}_completedCycles_$planId') ?? 0,
-        currentProgressMinutes: prefs.getInt('${userId}_currentProgressMinutes_$planId') ?? 0,
-        sessionProgressMap: prefs.getString('${userId}_sessionProgressMap_$planId') != null
-            ? Map<String, int>.from(jsonDecode(prefs.getString('${userId}_sessionProgressMap_$planId')!))
+        currentProgressMinutes:
+            prefs.getInt('${userId}_currentProgressMinutes_$planId') ?? 0,
+        sessionProgressMap:
+            prefs.getString('${userId}_sessionProgressMap_$planId') != null
+            ? Map<String, int>.from(
+                jsonDecode(
+                  prefs.getString('${userId}_sessionProgressMap_$planId')!,
+                ),
+              )
             : {},
         studyHours: prefs.getString('${userId}_studyHours_$planId') ?? '0',
-        weeklyQuestionsGoal: prefs.getString('${userId}_weeklyQuestionsGoal_$planId') ?? '0',
-        subjectSettings: prefs.getString('${userId}_subjectSettings_$planId') != null
+        weeklyQuestionsGoal:
+            prefs.getString('${userId}_weeklyQuestionsGoal_$planId') ?? '0',
+        subjectSettings:
+            prefs.getString('${userId}_subjectSettings_$planId') != null
             ? Map<String, Map<String, double>>.from(
-                jsonDecode(prefs.getString('${userId}_subjectSettings_$planId')!).map((key, value) => MapEntry(key, Map<String, double>.from(value))))
+                jsonDecode(
+                  prefs.getString('${userId}_subjectSettings_$planId')!,
+                ).map(
+                  (key, value) =>
+                      MapEntry(key, Map<String, double>.from(value)),
+                ),
+              )
             : {},
         studyDays: prefs.getStringList('${userId}_studyDays_$planId') ?? [],
-        cycleGenerationTimestamp: prefs.getString('${userId}_cycleGenerationTimestamp_$planId'),
+        cycleGenerationTimestamp: prefs.getString(
+          '${userId}_cycleGenerationTimestamp_$planId',
+        ),
       );
       planningDataPerPlan[planId] = planningData;
     }
 
     return BackupData(
       plans: plans,
-      subjects: subjects, // Directly use subjects which already contain the hierarchy
+      subjects:
+          subjects, // Directly use subjects which already contain the hierarchy
       studyRecords: studyRecords,
       reviewRecords: reviewRecords,
       simuladoRecords: simuladoRecords,
@@ -1012,16 +1271,24 @@ class DatabaseService {
       for (final plan in backup.plans) {
         final planMap = plan.toMap();
         planMap['userId'] = userId;
-        await txn.insert('plans', planMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'plans',
+          planMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       // 3. Inserir matérias e tópicos
       for (final subject in backup.subjects) {
         final subjectMap = subject.toMap();
         subjectMap['userId'] = userId;
-        await txn.insert('subjects', subjectMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'subjects',
+          subjectMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
         // Garante que os IDs dos tópicos sejam null para serem auto-incrementados novamente
         // e reconstrói a árvore para ser imune a erros de deserialização.
-        
+
         // A lista de tópicos do backup agora deve ser hierárquica.
         List<Topic> topicsForInsert = _resetTopicIds(subject.topics);
         await _insertTopicsRecursively(txn, topicsForInsert, subject.id, null);
@@ -1031,21 +1298,37 @@ class DatabaseService {
         // Garante que o userId esteja correto no registro
         final recordMap = record.toMap();
         recordMap['userId'] = userId;
-        await txn.insert('study_records', recordMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'study_records',
+          recordMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       // 5. Inserir registros de revisão
       for (final record in backup.reviewRecords) {
         final recordMap = record.toMap();
         recordMap['userId'] = userId;
-        await txn.insert('review_records', recordMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'review_records',
+          recordMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       // 6. Inserir registros de simulado
       for (final record in backup.simuladoRecords) {
         final recordMap = record.toMap();
         recordMap['userId'] = userId;
-        await txn.insert('simulado_records', recordMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'simulado_records',
+          recordMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
         for (final subject in record.subjects) {
-          await txn.insert('simulado_subjects', subject.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+          await txn.insert(
+            'simulado_subjects',
+            subject.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
         }
       }
 
@@ -1054,17 +1337,46 @@ class DatabaseService {
         final planId = entry.key;
         final planningData = entry.value;
         if (planningData.studyCycle != null) {
-          await prefs.setString('${userId}_studyCycle_$planId', jsonEncode(planningData.studyCycle!.map((s) => s.toJson()).toList()));
+          await prefs.setString(
+            '${userId}_studyCycle_$planId',
+            jsonEncode(
+              planningData.studyCycle!.map((s) => s.toJson()).toList(),
+            ),
+          );
         }
-        await prefs.setInt('${userId}_completedCycles_$planId', planningData.completedCycles);
-        await prefs.setInt('${userId}_currentProgressMinutes_$planId', planningData.currentProgressMinutes);
-        await prefs.setString('${userId}_sessionProgressMap_$planId', jsonEncode(planningData.sessionProgressMap));
-        await prefs.setString('${userId}_studyHours_$planId', planningData.studyHours);
-        await prefs.setString('${userId}_weeklyQuestionsGoal_$planId', planningData.weeklyQuestionsGoal);
-        await prefs.setString('${userId}_subjectSettings_$planId', jsonEncode(planningData.subjectSettings));
-        await prefs.setStringList('${userId}_studyDays_$planId', planningData.studyDays);
+        await prefs.setInt(
+          '${userId}_completedCycles_$planId',
+          planningData.completedCycles,
+        );
+        await prefs.setInt(
+          '${userId}_currentProgressMinutes_$planId',
+          planningData.currentProgressMinutes,
+        );
+        await prefs.setString(
+          '${userId}_sessionProgressMap_$planId',
+          jsonEncode(planningData.sessionProgressMap),
+        );
+        await prefs.setString(
+          '${userId}_studyHours_$planId',
+          planningData.studyHours,
+        );
+        await prefs.setString(
+          '${userId}_weeklyQuestionsGoal_$planId',
+          planningData.weeklyQuestionsGoal,
+        );
+        await prefs.setString(
+          '${userId}_subjectSettings_$planId',
+          jsonEncode(planningData.subjectSettings),
+        );
+        await prefs.setStringList(
+          '${userId}_studyDays_$planId',
+          planningData.studyDays,
+        );
         if (planningData.cycleGenerationTimestamp != null) {
-          await prefs.setString('${userId}_cycleGenerationTimestamp_$planId', planningData.cycleGenerationTimestamp!);
+          await prefs.setString(
+            '${userId}_cycleGenerationTimestamp_$planId',
+            planningData.cycleGenerationTimestamp!,
+          );
         }
       }
     });
@@ -1079,15 +1391,27 @@ class DatabaseService {
       for (final plan in backup.plans) {
         final planMap = plan.toMap();
         planMap['userId'] = userId;
-        await txn.insert('plans', planMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'plans',
+          planMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       // Matérias e tópicos
       for (final subject in backup.subjects) {
         final subjectMap = subject.toMap();
         subjectMap['userId'] = userId;
-        await txn.insert('subjects', subjectMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'subjects',
+          subjectMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
         // Excluir e reinserir tópicos para garantir consistência
-        await txn.delete('topics', where: 'subject_id = ?', whereArgs: [subject.id]);
+        await txn.delete(
+          'topics',
+          where: 'subject_id = ?',
+          whereArgs: [subject.id],
+        );
         List<Topic> topicsForInsert = _resetTopicIds(subject.topics);
         await _insertTopicsRecursively(txn, topicsForInsert, subject.id, null);
       }
@@ -1095,23 +1419,43 @@ class DatabaseService {
       for (final record in backup.studyRecords) {
         final recordMap = record.toMap();
         recordMap['userId'] = userId;
-        await txn.insert('study_records', recordMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'study_records',
+          recordMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       // Registros de revisão
       for (final record in backup.reviewRecords) {
         final recordMap = record.toMap();
         recordMap['userId'] = userId;
-        await txn.insert('review_records', recordMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'review_records',
+          recordMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
       // Registros de simulado
       for (final record in backup.simuladoRecords) {
         final recordMap = record.toMap();
         recordMap['userId'] = userId;
-        await txn.insert('simulado_records', recordMap, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'simulado_records',
+          recordMap,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
         // Excluir e reinserir simulado_subjects
-        await txn.delete('simulado_subjects', where: 'simulado_record_id = ?', whereArgs: [record.id]);
+        await txn.delete(
+          'simulado_subjects',
+          where: 'simulado_record_id = ?',
+          whereArgs: [record.id],
+        );
         for (final subject in record.subjects) {
-          await txn.insert('simulado_subjects', subject.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+          await txn.insert(
+            'simulado_subjects',
+            subject.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
         }
       }
 
@@ -1120,17 +1464,46 @@ class DatabaseService {
         final planId = entry.key;
         final planningData = entry.value;
         if (planningData.studyCycle != null) {
-          await prefs.setString('${userId}_studyCycle_$planId', jsonEncode(planningData.studyCycle!.map((s) => s.toJson()).toList()));
+          await prefs.setString(
+            '${userId}_studyCycle_$planId',
+            jsonEncode(
+              planningData.studyCycle!.map((s) => s.toJson()).toList(),
+            ),
+          );
         }
-        await prefs.setInt('${userId}_completedCycles_$planId', planningData.completedCycles);
-        await prefs.setInt('${userId}_currentProgressMinutes_$planId', planningData.currentProgressMinutes);
-        await prefs.setString('${userId}_sessionProgressMap_$planId', jsonEncode(planningData.sessionProgressMap));
-        await prefs.setString('${userId}_studyHours_$planId', planningData.studyHours);
-        await prefs.setString('${userId}_weeklyQuestionsGoal_$planId', planningData.weeklyQuestionsGoal);
-        await prefs.setString('${userId}_subjectSettings_$planId', jsonEncode(planningData.subjectSettings));
-        await prefs.setStringList('${userId}_studyDays_$planId', planningData.studyDays);
+        await prefs.setInt(
+          '${userId}_completedCycles_$planId',
+          planningData.completedCycles,
+        );
+        await prefs.setInt(
+          '${userId}_currentProgressMinutes_$planId',
+          planningData.currentProgressMinutes,
+        );
+        await prefs.setString(
+          '${userId}_sessionProgressMap_$planId',
+          jsonEncode(planningData.sessionProgressMap),
+        );
+        await prefs.setString(
+          '${userId}_studyHours_$planId',
+          planningData.studyHours,
+        );
+        await prefs.setString(
+          '${userId}_weeklyQuestionsGoal_$planId',
+          planningData.weeklyQuestionsGoal,
+        );
+        await prefs.setString(
+          '${userId}_subjectSettings_$planId',
+          jsonEncode(planningData.subjectSettings),
+        );
+        await prefs.setStringList(
+          '${userId}_studyDays_$planId',
+          planningData.studyDays,
+        );
         if (planningData.cycleGenerationTimestamp != null) {
-          await prefs.setString('${userId}_cycleGenerationTimestamp_$planId', planningData.cycleGenerationTimestamp!);
+          await prefs.setString(
+            '${userId}_cycleGenerationTimestamp_$planId',
+            planningData.cycleGenerationTimestamp!,
+          );
         }
       }
     });
@@ -1141,10 +1514,10 @@ class DatabaseService {
     return topics.map((topic) {
       return topic.copyWith(
         id: null,
-        sub_topics: topic.sub_topics != null ? _resetTopicIds(topic.sub_topics!) : null,
+        sub_topics: topic.sub_topics != null
+            ? _resetTopicIds(topic.sub_topics!)
+            : null,
       );
     }).toList();
   }
-
-
 }

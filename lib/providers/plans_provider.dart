@@ -33,7 +33,7 @@ class PlansProvider with ChangeNotifier {
     try {
       _plans = await _dbService.readAllPlans(_authProvider!.currentUser!.name);
       print('PlansProvider: Planos lidos: ${_plans.length}');
-      
+
       // Helper to count only leaf topics
       int _countLeafTopics(List<Topic> topics) {
         int count = 0;
@@ -50,12 +50,18 @@ class PlansProvider with ChangeNotifier {
       // Fetch stats for each plan
       final newStats = <String, ({int subjectCount, int topicCount})>{};
       for (final plan in _plans) {
-        final subjects = await _dbService.readSubjectsForPlan(plan.id, _authProvider!.currentUser!.name);
+        final subjects = await _dbService.readSubjectsForPlan(
+          plan.id,
+          _authProvider!.currentUser!.name,
+        );
         int totalLeafTopics = 0;
         for (final subject in subjects) {
           totalLeafTopics += _countLeafTopics(subject.topics);
         }
-        newStats[plan.id] = (subjectCount: subjects.length, topicCount: totalLeafTopics);
+        newStats[plan.id] = (
+          subjectCount: subjects.length,
+          topicCount: totalLeafTopics,
+        );
       }
       _planStats = newStats;
     } finally {
@@ -80,7 +86,8 @@ class PlansProvider with ChangeNotifier {
     String? banca,
     String? iconUrl,
   }) async {
-    if (_authProvider?.currentUser == null) throw Exception('Usuário não logado');
+    if (_authProvider?.currentUser == null)
+      throw Exception('Usuário não logado');
     final newPlan = Plan(
       id: const Uuid().v4(),
       name: name,
@@ -91,7 +98,7 @@ class PlansProvider with ChangeNotifier {
       iconUrl: iconUrl,
       lastModified: DateTime.now().millisecondsSinceEpoch,
     );
-    
+
     _setLoading(true);
     await _dbService.createPlan(newPlan, _authProvider!.currentUser!.name);
     await fetchPlans(); // Atualiza a lista de planos após a criação
@@ -102,7 +109,9 @@ class PlansProvider with ChangeNotifier {
   Future<void> updatePlan(Plan plan) async {
     if (_authProvider?.currentUser == null) return;
     _setLoading(true);
-    final updatedPlan = plan.copyWith(lastModified: DateTime.now().millisecondsSinceEpoch);
+    final updatedPlan = plan.copyWith(
+      lastModified: DateTime.now().millisecondsSinceEpoch,
+    );
     await _dbService.updatePlan(updatedPlan, _authProvider!.currentUser!.name);
     await fetchPlans(); // Refresh the list and stats
   }
@@ -118,10 +127,14 @@ class PlansProvider with ChangeNotifier {
         final file = File(planToDelete.iconUrl!);
         if (await file.exists()) {
           await file.delete();
-          print('PlansProvider: Imagem ${planToDelete.iconUrl} deletada com sucesso.');
+          print(
+            'PlansProvider: Imagem ${planToDelete.iconUrl} deletada com sucesso.',
+          );
         }
       } catch (e) {
-        print('PlansProvider: Erro ao deletar imagem ${planToDelete.iconUrl}: $e');
+        print(
+          'PlansProvider: Erro ao deletar imagem ${planToDelete.iconUrl}: $e',
+        );
         // Decide how to handle the error (e.g., log it, show a message, or ignore if not critical)
       }
     }

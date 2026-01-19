@@ -45,7 +45,8 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
 
   double _getTotalScore(SimuladoRecord simulado) {
     return simulado.subjects.fold(0.0, (sum, sub) {
-      if (simulado.style == 'certo_errado') { // Comparar com a string correta
+      if (simulado.style == 'certo_errado') {
+        // Comparar com a string correta
         return sum + (sub.correct - sub.incorrect);
       } else {
         return sum + (sub.correct * sub.weight);
@@ -67,7 +68,10 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 24),
-                _buildSummarySection(simulados, latestSimulado), // Passa simulados e latestSimulado
+                _buildSummarySection(
+                  simulados,
+                  latestSimulado,
+                ), // Passa simulados e latestSimulado
                 const SizedBox(height: 24),
                 _buildPerformanceChart(context, simulados), // Passa simulados
                 const SizedBox(height: 24),
@@ -80,7 +84,10 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
     );
   }
 
-  Widget _buildSummarySection(List<SimuladoRecord> simulados, SimuladoRecord? latestSimulado) {
+  Widget _buildSummarySection(
+    List<SimuladoRecord> simulados,
+    SimuladoRecord? latestSimulado,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -92,11 +99,18 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  Text('Simulados Realizados', style: TextStyle(color: Colors.grey[600])),
+                  Text(
+                    'Simulados Realizados',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     simulados.length.toString(),
-                    style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.teal),
+                    style: const TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                    ),
                   ),
                 ],
               ),
@@ -113,14 +127,29 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    Text('Último Simulado', style: TextStyle(color: Colors.grey[600])),
+                    Text(
+                      'Último Simulado',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                      _buildStatColumn('Acertos', _getTotalCorrect(latestSimulado).toString(), Colors.green),
-                        _buildStatColumn('Erros', _getTotalIncorrect(latestSimulado).toString(), Colors.red),
-                        _buildStatColumn('Brancos', _getTotalBlank(latestSimulado).toString(), Colors.grey),
+                        _buildStatColumn(
+                          'Acertos',
+                          _getTotalCorrect(latestSimulado).toString(),
+                          Colors.green,
+                        ),
+                        _buildStatColumn(
+                          'Erros',
+                          _getTotalIncorrect(latestSimulado).toString(),
+                          Colors.red,
+                        ),
+                        _buildStatColumn(
+                          'Brancos',
+                          _getTotalBlank(latestSimulado).toString(),
+                          Colors.grey,
+                        ),
                       ],
                     ),
                   ],
@@ -136,12 +165,22 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
     return Column(
       children: [
         Text(label, style: const TextStyle(fontSize: 12)),
-        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildPerformanceChart(BuildContext context, List<SimuladoRecord> simulados) {
+  Widget _buildPerformanceChart(
+    BuildContext context,
+    List<SimuladoRecord> simulados,
+  ) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -152,23 +191,37 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Seu Desempenho', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Seu Desempenho',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 ToggleButtons(
-                  isSelected: [_chartType == 'desempenho', _chartType == 'pontuacao'],
+                  isSelected: [
+                    _chartType == 'desempenho',
+                    _chartType == 'pontuacao',
+                  ],
                   onPressed: (index) {
                     setState(() {
                       _chartType = index == 0 ? 'desempenho' : 'pontuacao';
                     });
                   },
                   borderRadius: BorderRadius.circular(8),
-                  selectedColor: Colors.white, // Texto branco para o selecionado
+                  selectedColor:
+                      Colors.white, // Texto branco para o selecionado
                   fillColor: Colors.teal, // Fundo teal para o selecionado
                   color: Colors.teal, // Texto teal para o não selecionado
                   borderColor: Colors.teal, // Borda teal para o não selecionado
-                  selectedBorderColor: Colors.teal, // Borda teal para o selecionado
+                  selectedBorderColor:
+                      Colors.teal, // Borda teal para o selecionado
                   children: const [
-                    Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('Desempenho')),
-                    Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('Pontuação')),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('Desempenho'),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('Pontuação'),
+                    ),
                   ],
                 ),
               ],
@@ -195,12 +248,17 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              const Text('Você ainda não registrou nenhum simulado.', style: TextStyle(fontSize: 16)),
+              const Text(
+                'Você ainda não registrou nenhum simulado.',
+                style: TextStyle(fontSize: 16),
+              ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const AddEditSimuladoScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const AddEditSimuladoScreen(),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.add),
@@ -218,7 +276,9 @@ class _SimuladosScreenState extends State<SimuladosScreen> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: simulados.map((simulado) => SimuladoCard(simulado: simulado)).toList(),
+      children: simulados
+          .map((simulado) => SimuladoCard(simulado: simulado))
+          .toList(),
     );
   }
 }

@@ -37,7 +37,9 @@ class PlanningSection extends StatelessWidget {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.0),
-                      child: Text('Nenhum ciclo de estudos ativo. Crie um na página de planejamento.'),
+                      child: Text(
+                        'Nenhum ciclo de estudos ativo. Crie um na página de planejamento.',
+                      ),
                     ),
                   );
                 }
@@ -51,12 +53,16 @@ class PlanningSection extends StatelessWidget {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.0),
-                      child: Text('Todas as sessões do planejamento foram concluídas!'),
+                      child: Text(
+                        'Todas as sessões do planejamento foram concluídas!',
+                      ),
                     ),
                   );
                 }
 
-                final displayedCycle = uncompletedSessions.take(displayLimit).toList();
+                final displayedCycle = uncompletedSessions
+                    .take(displayLimit)
+                    .toList();
                 final hasMore = uncompletedSessions.length > displayLimit;
 
                 return Column(
@@ -73,7 +79,10 @@ class PlanningSection extends StatelessWidget {
                           child: ListTile(
                             title: Text(
                               session.subject,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         );
@@ -89,8 +98,12 @@ class PlanningSection extends StatelessWidget {
                           child: Text(
                             'Ver Mais (${uncompletedSessions.length - displayLimit} sessões restantes)',
                             style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.bold
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),

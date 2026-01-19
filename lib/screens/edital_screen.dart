@@ -27,7 +27,8 @@ class _ComputedTopic {
     this.subTopics = const [],
   });
 
-  double get performance => totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0.0;
+  double get performance =>
+      totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0.0;
   bool get isGroupingTopic => subTopics.isNotEmpty;
 }
 
@@ -49,7 +50,11 @@ class _OverallStats {
   final int total;
   final int completed;
   final double progress;
-  _OverallStats({required this.total, required this.completed, required this.progress});
+  _OverallStats({
+    required this.total,
+    required this.completed,
+    required this.progress,
+  });
 }
 
 class _LeafTopicCount {
@@ -66,26 +71,39 @@ class EditalScreen extends StatelessWidget {
     print('EditalScreen: build chamado.');
     return Consumer3<ActivePlanProvider, AllSubjectsProvider, HistoryProvider>(
       builder: (context, activePlanProvider, subjectsProvider, historyProvider, child) {
-        print('EditalScreen Consumer: subjectsProvider.isLoading=${subjectsProvider.isLoading}, historyProvider.isLoading=${historyProvider.isLoading}');
+        print(
+          'EditalScreen Consumer: subjectsProvider.isLoading=${subjectsProvider.isLoading}, historyProvider.isLoading=${historyProvider.isLoading}',
+        );
         if (subjectsProvider.isLoading || historyProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator(color: Colors.teal));
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.teal),
+          );
         }
 
         // Filter subjects and records based on the active plan
         final activePlanId = activePlanProvider.activePlanId;
         print('EditalScreen Consumer: activePlanId=$activePlanId');
-        
+
         final subjectsToDisplay = activePlanId == null
             ? subjectsProvider.subjects
-            : subjectsProvider.subjects.where((s) => s.plan_id == activePlanId).toList();
+            : subjectsProvider.subjects
+                  .where((s) => s.plan_id == activePlanId)
+                  .toList();
 
         final recordsToDisplay = activePlanProvider.activePlanId == null
             ? historyProvider.records
-            : historyProvider.records.where((r) => r.plan_id == activePlanId).toList();
+            : historyProvider.records
+                  .where((r) => r.plan_id == activePlanId)
+                  .toList();
 
-        print('EditalScreen Consumer: subjectsToDisplay.length=${subjectsToDisplay.length}, recordsToDisplay.length=${recordsToDisplay.length}');
+        print(
+          'EditalScreen Consumer: subjectsToDisplay.length=${subjectsToDisplay.length}, recordsToDisplay.length=${recordsToDisplay.length}',
+        );
 
-        final computedSubjects = _computeSubjectStats(subjectsToDisplay, recordsToDisplay);
+        final computedSubjects = _computeSubjectStats(
+          subjectsToDisplay,
+          recordsToDisplay,
+        );
         final overallStats = _computeOverallStats(computedSubjects);
 
         return Scaffold(
@@ -99,19 +117,28 @@ class EditalScreen extends StatelessWidget {
                 overallStats.progress,
               ),
               const SizedBox(height: 24),
-              ...computedSubjects.map((subject) => _SubjectCard(
-                    subject: subject,
-                    onToggleCompletion: (subjectId, topicText, planId) {
-                      context.read<HistoryProvider>().toggleTopicCompletion(
-                            subjectId: subjectId,
-                            topicText: topicText,
-                            planId: planId,
-                          );
-                    },
-                    onRegisterStudy: (topic) {
-                      _showStudyRegisterModalForTopic(context, subject.originalSubject, topic, activePlanProvider);
-                    },
-                  )).toList(),
+              ...computedSubjects
+                  .map(
+                    (subject) => _SubjectCard(
+                      subject: subject,
+                      onToggleCompletion: (subjectId, topicText, planId) {
+                        context.read<HistoryProvider>().toggleTopicCompletion(
+                          subjectId: subjectId,
+                          topicText: topicText,
+                          planId: planId,
+                        );
+                      },
+                      onRegisterStudy: (topic) {
+                        _showStudyRegisterModalForTopic(
+                          context,
+                          subject.originalSubject,
+                          topic,
+                          activePlanProvider,
+                        );
+                      },
+                    ),
+                  )
+                  .toList(),
             ],
           ),
         );
@@ -119,8 +146,16 @@ class EditalScreen extends StatelessWidget {
     );
   }
 
-  void _showStudyRegisterModalForTopic(BuildContext context, Subject subject, _ComputedTopic topic, ActivePlanProvider activePlanProvider) {
-    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+  void _showStudyRegisterModalForTopic(
+    BuildContext context,
+    Subject subject,
+    _ComputedTopic topic,
+    ActivePlanProvider activePlanProvider,
+  ) {
+    final historyProvider = Provider.of<HistoryProvider>(
+      context,
+      listen: false,
+    );
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final initialRecord = StudyRecord(
       id: Uuid().v4(),
@@ -137,7 +172,7 @@ class EditalScreen extends StatelessWidget {
             'correct': topic.correctQuestions,
             'total': topic.totalQuestions,
           },
-        )
+        ),
       ],
       study_time: 0,
       category: 'teoria',
@@ -172,7 +207,10 @@ class EditalScreen extends StatelessWidget {
     );
   }
 
-  List<_ComputedSubject> _computeSubjectStats(List<Subject> allSubjects, List<StudyRecord> allRecords) {
+  List<_ComputedSubject> _computeSubjectStats(
+    List<Subject> allSubjects,
+    List<StudyRecord> allRecords,
+  ) {
     List<_ComputedSubject> computedList = [];
 
     for (final subject in allSubjects) {
@@ -183,7 +221,7 @@ class EditalScreen extends StatelessWidget {
             .expand((r) => r.topicsProgress)
             .where((tp) => tp.topicText == topic.topic_text)
             .toList();
-        
+
         int correct = 0;
         int total = 0;
         bool completed = false;
@@ -202,7 +240,9 @@ class EditalScreen extends StatelessWidget {
           correctQuestions: correct,
           totalQuestions: total,
           isCompleted: completed,
-          subTopics: (topic.sub_topics ?? []).map((st) => processTopic(st, level + 1)).toList(),
+          subTopics: (topic.sub_topics ?? [])
+              .map((st) => processTopic(st, level + 1))
+              .toList(),
         );
 
         if (computed.isGroupingTopic) {
@@ -218,12 +258,12 @@ class EditalScreen extends StatelessWidget {
           computed.totalQuestions = subTotal;
           computed.isCompleted = subCompleted;
         }
-        
+
         return computed;
       }
 
       final topicTree = subject.topics.map((t) => processTopic(t, 0)).toList();
-      
+
       _LeafTopicCount _countLeafTopics(List<_ComputedTopic> topics) {
         int total = 0;
         int completed = 0;
@@ -242,17 +282,24 @@ class EditalScreen extends StatelessWidget {
 
       final leafCounts = _countLeafTopics(topicTree);
 
-      computedList.add(_ComputedSubject(
-        originalSubject: subject,
-        topics: topicTree,
-        totalLeafTopics: leafCounts.total,
-        completedLeafTopics: leafCounts.completed,
-      ));
+      computedList.add(
+        _ComputedSubject(
+          originalSubject: subject,
+          topics: topicTree,
+          totalLeafTopics: leafCounts.total,
+          completedLeafTopics: leafCounts.completed,
+        ),
+      );
     }
     return computedList;
   }
 
-  Widget _buildOverallProgress(BuildContext context, int completed, int total, double progress) {
+  Widget _buildOverallProgress(
+    BuildContext context,
+    int completed,
+    int total,
+    double progress,
+  ) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -263,14 +310,24 @@ class EditalScreen extends StatelessWidget {
           children: [
             Text(
               'PROGRESSO GERAL NO EDITAL',
-              style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold, fontSize: 12),
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('$completed de $total Tópicos concluídos'),
-                Text('${(progress * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Text(
+                  '${(progress * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -280,7 +337,9 @@ class EditalScreen extends StatelessWidget {
                 value: progress,
                 minHeight: 12,
                 backgroundColor: Colors.grey[300],
-                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).primaryColor,
+                ),
               ),
             ),
           ],
@@ -303,8 +362,12 @@ class _SubjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double subjectCompletion = subject.totalLeafTopics > 0 ? (subject.completedLeafTopics / subject.totalLeafTopics) : 0.0;
-    final subjectColor = Color(int.parse(subject.originalSubject.color.replaceFirst('#', '0xFF')));
+    double subjectCompletion = subject.totalLeafTopics > 0
+        ? (subject.completedLeafTopics / subject.totalLeafTopics)
+        : 0.0;
+    final subjectColor = Color(
+      int.parse(subject.originalSubject.color.replaceFirst('#', '0xFF')),
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -313,7 +376,10 @@ class _SubjectCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
         leading: Container(width: 8, color: subjectColor),
-        title: Text(subject.originalSubject.subject, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(
+          subject.originalSubject.subject,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 8.0),
           child: Row(
@@ -329,7 +395,10 @@ class _SubjectCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text('${(subjectCompletion * 100).toStringAsFixed(0)}%', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                '${(subjectCompletion * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
         ),
@@ -345,18 +414,42 @@ class _SubjectCard extends StatelessWidget {
       dataRowMaxHeight: double.infinity, // Allow rows to expand vertically
       columns: const [
         DataColumn(label: Text('')), // New column for checkbox
-        DataColumn(label: Expanded(child: Text('Tópico', style: TextStyle(fontWeight: FontWeight.bold)))),
-        DataColumn(label: Icon(Icons.check_circle, color: Colors.green), tooltip: 'Corretas'),
-        DataColumn(label: Icon(Icons.cancel, color: Colors.red), tooltip: 'Erradas'),
-        DataColumn(label: Icon(Icons.functions, color: Colors.blue), tooltip: 'Total'),
-        DataColumn(label: Text('%', style: TextStyle(fontWeight: FontWeight.bold)), tooltip: 'Performance'),
-        DataColumn(label: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(
+          label: Expanded(
+            child: Text(
+              'Tópico',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        DataColumn(
+          label: Icon(Icons.check_circle, color: Colors.green),
+          tooltip: 'Corretas',
+        ),
+        DataColumn(
+          label: Icon(Icons.cancel, color: Colors.red),
+          tooltip: 'Erradas',
+        ),
+        DataColumn(
+          label: Icon(Icons.functions, color: Colors.blue),
+          tooltip: 'Total',
+        ),
+        DataColumn(
+          label: Text('%', style: TextStyle(fontWeight: FontWeight.bold)),
+          tooltip: 'Performance',
+        ),
+        DataColumn(
+          label: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
       ],
       rows: _buildTopicRows(context, subject.topics),
     );
   }
 
-  List<DataRow> _buildTopicRows(BuildContext context, List<_ComputedTopic> topics) {
+  List<DataRow> _buildTopicRows(
+    BuildContext context,
+    List<_ComputedTopic> topics,
+  ) {
     List<DataRow> rows = [];
 
     Color getPerformanceColor(double percentage) {
@@ -369,15 +462,22 @@ class _SubjectCard extends StatelessWidget {
       rows.add(
         DataRow(
           cells: [
-            DataCell( // New DataCell for checkbox
+            DataCell(
+              // New DataCell for checkbox
               !topic.isGroupingTopic
                   ? Checkbox(
                       value: topic.isCompleted,
                       onChanged: (val) {
-                        onToggleCompletion(topic.originalTopic.subject_id!, topic.originalTopic.topic_text, subject.originalSubject.plan_id);
+                        onToggleCompletion(
+                          topic.originalTopic.subject_id!,
+                          topic.originalTopic.topic_text,
+                          subject.originalSubject.plan_id,
+                        );
                       },
-                      activeColor: Colors.teal, // Adicionado para mudar a cor para teal
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap, // Make checkbox more compact
+                      activeColor:
+                          Colors.teal, // Adicionado para mudar a cor para teal
+                      materialTapTargetSize: MaterialTapTargetSize
+                          .shrinkWrap, // Make checkbox more compact
                     )
                   : const SizedBox.shrink(),
             ),
@@ -385,15 +485,55 @@ class _SubjectCard extends StatelessWidget {
               Row(
                 children: [
                   SizedBox(width: 20.0 * topic.level),
-                  if (topic.isGroupingTopic) const Icon(Icons.folder, color: Colors.teal, size: 18),
+                  if (topic.isGroupingTopic)
+                    const Icon(Icons.folder, color: Colors.teal, size: 18),
                   if (topic.isGroupingTopic) const SizedBox(width: 4),
-                  Expanded(child: Text(topic.originalTopic.topic_text, style: TextStyle(fontWeight: topic.isGroupingTopic ? FontWeight.bold : FontWeight.normal))),
+                  Expanded(
+                    child: Text(
+                      topic.originalTopic.topic_text,
+                      style: TextStyle(
+                        fontWeight: topic.isGroupingTopic
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-            DataCell(Center(child: Text(topic.correctQuestions.toString(), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)))),
-            DataCell(Center(child: Text((topic.totalQuestions - topic.correctQuestions).toString(), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)))),
-            DataCell(Center(child: Text(topic.totalQuestions.toString(), style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)))),
+            DataCell(
+              Center(
+                child: Text(
+                  topic.correctQuestions.toString(),
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            DataCell(
+              Center(
+                child: Text(
+                  (topic.totalQuestions - topic.correctQuestions).toString(),
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            DataCell(
+              Center(
+                child: Text(
+                  topic.totalQuestions.toString(),
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
             DataCell(
               Row(
                 children: [
@@ -413,7 +553,12 @@ class _SubjectCard extends StatelessWidget {
             DataCell(
               Row(
                 children: [
-                  if (!topic.isGroupingTopic) IconButton(icon: const Icon(Icons.add_circle), onPressed: () => onRegisterStudy(topic), tooltip: 'Registrar Estudo'),
+                  if (!topic.isGroupingTopic)
+                    IconButton(
+                      icon: const Icon(Icons.add_circle),
+                      onPressed: () => onRegisterStudy(topic),
+                      tooltip: 'Registrar Estudo',
+                    ),
                 ],
               ),
             ),

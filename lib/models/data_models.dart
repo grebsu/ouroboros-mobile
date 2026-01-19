@@ -22,13 +22,7 @@ MaterialColor createMaterialColor(Color color) {
   return MaterialColor(color.value, swatch);
 }
 
-enum StudyCategory {
-  teoria,
-  revisao,
-  questoes,
-  leituraLei,
-  jurisprudencia,
-}
+enum StudyCategory { teoria, revisao, questoes, leituraLei, jurisprudencia }
 
 // Data Models
 
@@ -63,7 +57,9 @@ class Topic {
     List<Topic> subTopics = [];
     if (map['sub_topics'] != null) {
       subTopics = (map['sub_topics'] as List<dynamic>)
-          .map((t) => Topic.fromMap(t as Map<String, dynamic>)) // Recursive call with cast
+          .map(
+            (t) => Topic.fromMap(t as Map<String, dynamic>),
+          ) // Recursive call with cast
           .toList();
     }
 
@@ -72,11 +68,13 @@ class Topic {
       subject_id: map['subject_id'],
       topic_text: map['topic_text'],
       parent_id: map['parent_id'],
-      sub_topics: subTopics, // Initially empty, will be populated by DatabaseService
+      sub_topics:
+          subTopics, // Initially empty, will be populated by DatabaseService
       is_grouping_topic: map['is_grouping_topic'] == 1, // Directly read from DB
       question_count: map['question_count'],
       userWeight: map['userWeight'],
-      lastModified: map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
+      lastModified:
+          map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -89,7 +87,7 @@ class Topic {
     }
 
     return Topic(
-      id: map['id'], 
+      id: map['id'],
       subject_id: map['subject_id'],
       topic_text: map['topic_text'],
       parent_id: map['parent_id'],
@@ -97,7 +95,8 @@ class Topic {
       is_grouping_topic: map['is_grouping_topic'] ?? false,
       question_count: map['question_count'],
       userWeight: map['userWeight'],
-      lastModified: map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
+      lastModified:
+          map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -160,7 +159,8 @@ class Topic {
 // NEW CLASS: TopicProgress
 class TopicProgress {
   final String topicId;
-  final String topicText; // Para facilitar a exibição sem precisar buscar o Topic
+  final String
+  topicText; // Para facilitar a exibição sem precisar buscar o Topic
   final Map<String, int> questions; // {'total':..., 'correct':...}
   final List<Map<String, int>> pages; // [{'start':..., 'end':...}]
   final List<Map<String, String>> videos; // [{'url':..., 'description':...}]
@@ -183,9 +183,19 @@ class TopicProgress {
     return TopicProgress(
       topicId: map['topicId'],
       topicText: map['topicText'],
-      questions: Map<String, int>.from(map['questions'] ?? {'total': 0, 'correct': 0}),
-      pages: (map['pages'] as List<dynamic>?)?.map((e) => Map<String, int>.from(e)).toList() ?? [],
-      videos: (map['videos'] as List<dynamic>?)?.map((e) => Map<String, String>.from(e)).toList() ?? [],
+      questions: Map<String, int>.from(
+        map['questions'] ?? {'total': 0, 'correct': 0},
+      ),
+      pages:
+          (map['pages'] as List<dynamic>?)
+              ?.map((e) => Map<String, int>.from(e))
+              .toList() ??
+          [],
+      videos:
+          (map['videos'] as List<dynamic>?)
+              ?.map((e) => Map<String, String>.from(e))
+              .toList() ??
+          [],
       notes: map['notes'],
       isTheoryFinished: map['isTheoryFinished'] ?? false,
       userWeight: map['userWeight'],
@@ -258,7 +268,8 @@ class Subject {
       topics: topics,
       total_topics_count: map['total_topics_count'],
       import_source: map['import_source'],
-      lastModified: map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
+      lastModified:
+          map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -362,7 +373,8 @@ class StudyRecord {
   final String subject_id;
   final String category;
   final int study_time;
-  final List<TopicProgress> topicsProgress; // NOVO: Lista de progresso por tópico
+  final List<TopicProgress>
+  topicsProgress; // NOVO: Lista de progresso por tópico
   final List<String> review_periods;
   final bool count_in_planning;
   final int lastModified;
@@ -390,11 +402,13 @@ class StudyRecord {
       subject_id: map['subject_id'],
       category: map['category'],
       study_time: map['study_time'],
-      topicsProgress: (jsonDecode(map['topicsProgress'] ?? '[]') as List<dynamic>)
+      topicsProgress:
+          (jsonDecode(map['topicsProgress'] ?? '[]') as List<dynamic>)
               .map((e) => TopicProgress.fromMap(e as Map<String, dynamic>))
               .toList(), // NOVO
-      review_periods:
-          List<String>.from(jsonDecode(map['review_periods'] ?? '[]')),
+      review_periods: List<String>.from(
+        jsonDecode(map['review_periods'] ?? '[]'),
+      ),
       count_in_planning: map['count_in_planning'] == 1,
       lastModified:
           map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
@@ -410,7 +424,9 @@ class StudyRecord {
       'subject_id': subject_id,
       'category': category,
       'study_time': study_time,
-      'topicsProgress': jsonEncode(topicsProgress.map((e) => e.toMap()).toList()),
+      'topicsProgress': jsonEncode(
+        topicsProgress.map((e) => e.toMap()).toList(),
+      ),
       'review_periods': jsonEncode(review_periods),
       'count_in_planning': count_in_planning ? 1 : 0,
       'lastModified': lastModified,
@@ -450,10 +466,7 @@ class SubjectSettings {
   final int importance;
   final int knowledge;
 
-  SubjectSettings({
-    required this.importance,
-    required this.knowledge,
-  });
+  SubjectSettings({required this.importance, required this.knowledge});
 
   factory SubjectSettings.fromJson(Map<String, dynamic> json) {
     return SubjectSettings(
@@ -463,10 +476,7 @@ class SubjectSettings {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'importance': importance,
-      'knowledge': knowledge,
-    };
+    return {'importance': importance, 'knowledge': knowledge};
   }
 }
 
@@ -502,7 +512,8 @@ class Plan {
       edital: map['edital'],
       banca: map['banca'],
       iconUrl: map['iconUrl'],
-      lastModified: map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
+      lastModified:
+          map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -619,7 +630,8 @@ class ReviewRecord {
       review_period: map['review_period'],
       completed_date: map['completed_date'],
       ignored: map['ignored'] == 1,
-      lastModified: map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
+      lastModified:
+          map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -692,7 +704,8 @@ class SimuladoSubject {
       correct: map['correct'],
       incorrect: map['incorrect'],
       color: map['color'],
-      lastModified: map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
+      lastModified:
+          map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -765,7 +778,10 @@ class SimuladoRecord {
     required this.lastModified,
   });
 
-  factory SimuladoRecord.fromMap(Map<String, dynamic> map, List<SimuladoSubject> subjects) {
+  factory SimuladoRecord.fromMap(
+    Map<String, dynamic> map,
+    List<SimuladoSubject> subjects,
+  ) {
     return SimuladoRecord(
       id: map['id'],
       userId: map['userId'],
@@ -777,7 +793,8 @@ class SimuladoRecord {
       time_spent: map['time_spent'],
       comments: map['comments'],
       subjects: subjects,
-      lastModified: map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
+      lastModified:
+          map['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -837,96 +854,50 @@ class SubjectPerformanceData {
     required this.totalQuestions,
   });
 
-  double get correctPercentage => totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0.0;
-  double get incorrectPercentage => totalQuestions > 0 ? ((totalQuestions - correctQuestions) / totalQuestions) * 100 : 0.0;
+  double get correctPercentage =>
+      totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0.0;
+  double get incorrectPercentage => totalQuestions > 0
+      ? ((totalQuestions - correctQuestions) / totalQuestions) * 100
+      : 0.0;
 }
 
 class ReminderNote {
-
   final String id;
 
   final String text;
 
   final bool completed;
 
-
-
-  ReminderNote({
-
-    required this.id,
-
-    required this.text,
-
-    required this.completed,
-
-  });
-
-
+  ReminderNote({required this.id, required this.text, required this.completed});
 
   factory ReminderNote.fromJson(Map<String, dynamic> json) {
-
     return ReminderNote(
-
       id: json['id'],
 
       text: json['text'],
 
       completed: json['completed'],
-
     );
-
   }
-
-
 
   Map<String, dynamic> toJson() {
-
-    return {
-
-      'id': id,
-
-      'text': text,
-
-      'completed': completed,
-
-    };
-
+    return {'id': id, 'text': text, 'completed': completed};
   }
-
 }
 
-
-
 class MasterSubject {
-
   final int id;
 
   final String name;
 
-
-
   MasterSubject({required this.id, required this.name});
 
-
-
   factory MasterSubject.fromMap(Map<String, dynamic> map) {
-
-    return MasterSubject(
-
-      id: map['id'],
-
-      name: map['name'],
-
-    );
-
+    return MasterSubject(id: map['id'], name: map['name']);
   }
-
 }
 
-
-
 class MasterTopic {
-
   final int id;
 
   final int masterSubjectId;
@@ -939,10 +910,7 @@ class MasterTopic {
 
   List<MasterTopic> children;
 
-
-
   MasterTopic({
-
     required this.id,
 
     required this.masterSubjectId,
@@ -954,15 +922,10 @@ class MasterTopic {
     this.parentId,
 
     this.children = const [],
-
   });
 
-
-
-    factory MasterTopic.fromMap(Map<String, dynamic> map) {
-
+  factory MasterTopic.fromMap(Map<String, dynamic> map) {
     return MasterTopic(
-
       id: map['id'],
 
       masterSubjectId: map['master_subject_id'],
@@ -974,11 +937,8 @@ class MasterTopic {
       parentId: map['parent_id'],
 
       children: [], // Inicializado como vazio, será populado depois
-
     );
-
   }
-
 }
 
 // Helper para agregar dados de TopicProgress
@@ -1002,7 +962,8 @@ class AggregatedTopicProgress {
   });
 
   int get incorrectQuestions => totalQuestions - correctQuestions;
-  double get performance => totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0.0;
+  double get performance =>
+      totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0.0;
 
   factory AggregatedTopicProgress.fromStudyRecord(StudyRecord record) {
     int totalQ = 0;

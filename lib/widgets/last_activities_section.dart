@@ -34,10 +34,19 @@ class LastActivitiesSection extends StatelessWidget {
             Consumer<HistoryProvider>(
               builder: (context, historyProvider, child) {
                 if (historyProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.teal));
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.teal),
+                  );
                 }
 
-                final latestActivities = (historyProvider.allStudyRecords..sort((a, b) => DateTime.parse(b.date).compareTo(DateTime.parse(a.date)))).take(2).toList();
+                final latestActivities =
+                    (historyProvider.allStudyRecords..sort(
+                          (a, b) => DateTime.parse(
+                            b.date,
+                          ).compareTo(DateTime.parse(a.date)),
+                        ))
+                        .take(2)
+                        .toList();
 
                 if (latestActivities.isEmpty) {
                   return const Center(
@@ -56,8 +65,12 @@ class LastActivitiesSection extends StatelessWidget {
                       itemCount: latestActivities.length,
                       itemBuilder: (context, index) {
                         final activity = latestActivities[index];
-                        final subject = historyProvider.allSubjectsMap[activity.subject_id];
-                        return ActivityCard(activity: activity, subject: subject);
+                        final subject =
+                            historyProvider.allSubjectsMap[activity.subject_id];
+                        return ActivityCard(
+                          activity: activity,
+                          subject: subject,
+                        );
                       },
                     ),
                     if (historyProvider.allStudyRecords.length > 2)
@@ -65,11 +78,18 @@ class LastActivitiesSection extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 16.0),
                         child: TextButton(
                           onPressed: () {
-                            Navigator.of(context).push(MaterialPageRoute(builder: (context) => const HistoryScreen()));
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const HistoryScreen(),
+                              ),
+                            );
                           },
                           child: Text(
                             'Ver Mais (${historyProvider.allStudyRecords.length - 2} sessões restantes)',
-                            style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -88,7 +108,8 @@ class ActivityCard extends StatelessWidget {
   final StudyRecord activity;
   final Subject? subject;
 
-  const ActivityCard({Key? key, required this.activity, this.subject}) : super(key: key);
+  const ActivityCard({Key? key, required this.activity, this.subject})
+    : super(key: key);
 
   String _formatDuration(int milliseconds) {
     final duration = Duration(milliseconds: milliseconds);
@@ -99,7 +120,9 @@ class ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final aggregatedProgress = AggregatedTopicProgress.fromStudyRecord(activity);
+    final aggregatedProgress = AggregatedTopicProgress.fromStudyRecord(
+      activity,
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -115,12 +138,18 @@ class ActivityCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(MaterialCommunityIcons.book_open_page_variant_outline, color: Colors.tealAccent),
+                Icon(
+                  MaterialCommunityIcons.book_open_page_variant_outline,
+                  color: Colors.tealAccent,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     subject?.subject ?? 'Desconhecido',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -139,13 +168,22 @@ class ActivityCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(MaterialCommunityIcons.calendar_month, color: Colors.grey.shade500, size: 16),
+                Icon(
+                  MaterialCommunityIcons.calendar_month,
+                  color: Colors.grey.shade500,
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
-                const Text('Data:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Data:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    DateFormat('dd/MM/yyyy').format(DateTime.parse(activity.date)),
+                    DateFormat(
+                      'dd/MM/yyyy',
+                    ).format(DateTime.parse(activity.date)),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -154,9 +192,16 @@ class ActivityCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(MaterialCommunityIcons.clock_time_three_outline, color: Colors.grey.shade500, size: 16),
+                Icon(
+                  MaterialCommunityIcons.clock_time_three_outline,
+                  color: Colors.grey.shade500,
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
-                const Text('Tempo de Estudo:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Tempo de Estudo:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -169,9 +214,16 @@ class ActivityCard extends StatelessWidget {
             if (aggregatedProgress.totalQuestions > 0)
               Row(
                 children: [
-                  Icon(MaterialCommunityIcons.comment_question, color: Colors.grey.shade500, size: 16),
+                  Icon(
+                    MaterialCommunityIcons.comment_question,
+                    color: Colors.grey.shade500,
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
-                  const Text('Questões:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Questões:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(

@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class ImportGuideModal extends StatefulWidget {
   final Function(String guideUrl) onImport;
 
-  const ImportGuideModal({
-    super.key,
-    required this.onImport,
-  });
+  const ImportGuideModal({super.key, required this.onImport});
 
   @override
   State<ImportGuideModal> createState() => _ImportGuideModalState();
@@ -53,12 +50,24 @@ class _ImportGuideModalState extends State<ImportGuideModal> {
               TextFormField(
                 decoration: InputDecoration(
                   labelText: 'URL do Guia',
-                  labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                  labelStyle: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.teal,
+                  ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.teal,
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey
+                          : Colors.teal,
+                    ),
                   ),
                 ),
                 keyboardType: TextInputType.url,
@@ -81,7 +90,9 @@ class _ImportGuideModalState extends State<ImportGuideModal> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal,
+            foregroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.teal,
           ),
           child: const Text('Cancelar'),
         ),
@@ -95,7 +106,10 @@ class _ImportGuideModalState extends State<ImportGuideModal> {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.teal,
+                  ),
                 )
               : const Text('Importar'),
         ),

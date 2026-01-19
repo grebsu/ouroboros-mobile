@@ -22,7 +22,7 @@ class AuthProvider with ChangeNotifier {
     if (!prefs.containsKey('username')) {
       return;
     }
-    
+
     final username = prefs.getString('username');
     final password = prefs.getString('password');
 
@@ -53,7 +53,9 @@ class AuthProvider with ChangeNotifier {
     await Future.delayed(const Duration(seconds: 1));
 
     try {
-      final user = _users.firstWhere((user) => user.name == name && user.password == password);
+      final user = _users.firstWhere(
+        (user) => user.name == name && user.password == password,
+      );
       _isLoggedIn = true;
       _currentUser = user;
 
@@ -72,7 +74,7 @@ class AuthProvider with ChangeNotifier {
     await Future.delayed(const Duration(seconds: 1));
     _isLoggedIn = false;
     _currentUser = null;
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('username');
     await prefs.remove('password');

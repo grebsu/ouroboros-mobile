@@ -16,7 +16,8 @@ class PulsingGlowingIcon extends StatefulWidget {
   State<PulsingGlowingIcon> createState() => _PulsingGlowingIconState();
 }
 
-class _PulsingGlowingIconState extends State<PulsingGlowingIcon> with SingleTickerProviderStateMixin {
+class _PulsingGlowingIconState extends State<PulsingGlowingIcon>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _glowAnimation;
@@ -29,13 +30,15 @@ class _PulsingGlowingIconState extends State<PulsingGlowingIcon> with SingleTick
       duration: const Duration(milliseconds: 1000),
     )..repeat(reverse: true);
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.2,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
-    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _glowAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -62,11 +65,7 @@ class _PulsingGlowingIconState extends State<PulsingGlowingIcon> with SingleTick
                 ),
               ],
             ),
-            child: Icon(
-              widget.icon,
-              color: widget.color,
-              size: widget.size,
-            ),
+            child: Icon(widget.icon, color: widget.color, size: widget.size),
           ),
         );
       },

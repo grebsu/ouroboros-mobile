@@ -46,7 +46,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   void _openStudyRegisterModal({StudyRecord? record}) {
-    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+    final historyProvider = Provider.of<HistoryProvider>(
+      context,
+      listen: false,
+    );
 
     showModalBottomSheet(
       context: context,
@@ -54,11 +57,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       builder: (ctx) => StudyRegisterModal(
         planId: record!.plan_id,
         initialRecord: record,
-        onSave: (newRecord) { // Embora seja edição, onSave pode ser usado para criar um novo se a lógica mudar
+        onSave: (newRecord) {
+          // Embora seja edição, onSave pode ser usado para criar um novo se a lógica mudar
           historyProvider.addStudyRecord(newRecord);
         },
         onUpdate: (updatedRecord) {
-          final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
+          final planningProvider = Provider.of<PlanningProvider>(
+            context,
+            listen: false,
+          );
           historyProvider.updateStudyRecord(updatedRecord);
           // Recalcula todo o progresso para garantir consistência.
           planningProvider.recalculateProgress(historyProvider.allStudyRecords);
@@ -79,13 +86,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
       context: context,
       builder: (context) => ConfirmationModal(
         title: 'Confirmar Exclusão',
-        message: 'Tem certeza que deseja excluir este registro? Esta ação não poderá ser desfeita.',
+        message:
+            'Tem certeza que deseja excluir este registro? Esta ação não poderá ser desfeita.',
         onConfirm: () async {
           if (_recordToDeleteId != null) {
-            final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
-            final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
+            final historyProvider = Provider.of<HistoryProvider>(
+              context,
+              listen: false,
+            );
+            final planningProvider = Provider.of<PlanningProvider>(
+              context,
+              listen: false,
+            );
             await historyProvider.deleteStudyRecord(_recordToDeleteId!);
-            planningProvider.recalculateProgress(historyProvider.allStudyRecords);
+            planningProvider.recalculateProgress(
+              historyProvider.allStudyRecords,
+            );
             Navigator.of(context).pop();
             setState(() {
               _recordToDeleteId = null;
@@ -107,16 +123,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
     print('HistoryScreen: build chamado.');
     return Consumer<HistoryProvider>(
       builder: (context, provider, child) {
-        print('HistoryScreen Consumer: isLoading=${provider.isLoading}, records.isEmpty=${provider.records.isEmpty}');
+        print(
+          'HistoryScreen Consumer: isLoading=${provider.isLoading}, records.isEmpty=${provider.records.isEmpty}',
+        );
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator(color: Colors.teal));
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.teal),
+          );
         }
 
-        final filteredRecords = provider.records; // Records are already filtered by provider
+        final filteredRecords =
+            provider.records; // Records are already filtered by provider
 
         if (filteredRecords.isEmpty) {
-          final filterProvider = Provider.of<FilterProvider>(context, listen: false);
-          final bool filtersAreActive = filterProvider.historyStartDate != null ||
+          final filterProvider = Provider.of<FilterProvider>(
+            context,
+            listen: false,
+          );
+          final bool filtersAreActive =
+              filterProvider.historyStartDate != null ||
               filterProvider.historyEndDate != null ||
               filterProvider.historyMinDuration != null ||
               filterProvider.historyMaxDuration != null ||
@@ -140,12 +165,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
         // Group records by date
         final groupedRecords = <String, List<StudyRecord>>{};
         for (var record in filteredRecords) {
-          final dateKey = DateFormat('dd/MM/yyyy').format(DateTime.parse(record.date));
+          final dateKey = DateFormat(
+            'dd/MM/yyyy',
+          ).format(DateTime.parse(record.date));
           groupedRecords.putIfAbsent(dateKey, () => []).add(record);
         }
 
         final sortedDates = groupedRecords.keys.toList()
-          ..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
+          ..sort(
+            (a, b) => DateFormat(
+              'dd/MM/yyyy',
+            ).parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)),
+          );
 
         return ListView(
           padding: const EdgeInsets.all(16.0),
@@ -156,9 +187,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(date, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      date,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                  ...groupedRecords[date]!.map((record) => _buildRecordCard(context, record)).toList(),
+                  ...groupedRecords[date]!
+                      .map((record) => _buildRecordCard(context, record))
+                      .toList(),
                   const SizedBox(height: 16),
                 ],
               );
@@ -180,10 +218,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
         : 'Nenhuma questão registrada';
     final category = _categoryDisplayMap[record.category] ?? record.category;
 
-    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+    final historyProvider = Provider.of<HistoryProvider>(
+      context,
+      listen: false,
+    );
     final subject = historyProvider.allSubjectsMap[record.subject_id];
     final subjectName = subject?.subject ?? 'Desconhecido';
-    final subjectColor = subject != null ? Color(int.parse(subject.color.replaceFirst('#', '0xFF'))) : Colors.grey; // Default color
+    final subjectColor = subject != null
+        ? Color(int.parse(subject.color.replaceFirst('#', '0xFF')))
+        : Colors.grey; // Default color
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -202,29 +245,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(subjectName, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    subjectName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   Text(
                     aggregatedProgress.topicTexts.isNotEmpty
                         ? aggregatedProgress.topicTexts.join(', ')
                         : 'N/A', // Exibe todos os tópicos ou 'N/A'
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  Wrap( // Novo Wrap para agrupar os elementos lado a lado
+                  Wrap(
+                    // Novo Wrap para agrupar os elementos lado a lado
                     spacing: 8.0, // Espaçamento entre os elementos
                     runSpacing: 4.0, // Espaçamento entre as linhas, se quebrar
                     children: [
-                      Chip( // Categoria
+                      Chip(
+                        // Categoria
                         label: Text(
                           category,
                           style: TextStyle(color: Colors.white, fontSize: 10),
                         ),
-                        backgroundColor: _categoryColors[record.category] ?? Colors.grey,
+                        backgroundColor:
+                            _categoryColors[record.category] ?? Colors.grey,
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      Chip( // Tempo
+                      Chip(
+                        // Tempo
                         label: Text(
                           time,
                           style: TextStyle(color: Colors.white, fontSize: 10),
@@ -235,7 +287,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       if (totalQuestions > 0) ...[
-                        Chip( // Acertos
+                        Chip(
+                          // Acertos
                           label: Text(
                             '$correctQuestions acertos',
                             style: TextStyle(color: Colors.white, fontSize: 10),
@@ -243,9 +296,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           backgroundColor: Colors.green.shade700,
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         ),
-                        Chip( // Erros
+                        Chip(
+                          // Erros
                           label: Text(
                             '$incorrectQuestions erros',
                             style: TextStyle(color: Colors.white, fontSize: 10),
@@ -253,10 +308,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           backgroundColor: Colors.red.shade700,
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         ),
                       ] else ...[
-                        Chip( // Nenhuma questão registrada
+                        Chip(
+                          // Nenhuma questão registrada
                           label: Text(
                             'Nenhuma questão registrada',
                             style: TextStyle(color: Colors.white, fontSize: 10),
@@ -264,7 +321,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           backgroundColor: Colors.grey,
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         ),
                       ],
                     ],

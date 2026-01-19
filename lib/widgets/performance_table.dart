@@ -20,7 +20,8 @@ class PerformanceData {
 class PerformanceTable extends StatelessWidget {
   final List<PerformanceData> performanceData;
 
-  const PerformanceTable({Key? key, required this.performanceData}) : super(key: key);
+  const PerformanceTable({Key? key, required this.performanceData})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +35,9 @@ class PerformanceTable extends StatelessWidget {
       itemCount: performanceData.length,
       itemBuilder: (context, index) {
         final data = performanceData[index];
-        final subjectColor = Color(int.parse(data.subject.color.replaceFirst('#', '0xFF')));
+        final subjectColor = Color(
+          int.parse(data.subject.color.replaceFirst('#', '0xFF')),
+        );
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 4.0),
           color: subjectColor, // Set card color to subject color
@@ -46,7 +49,10 @@ class PerformanceTable extends StatelessWidget {
                   flex: 3, // Give more space to the title
                   child: Text(
                     data.subject.subject,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -59,7 +65,11 @@ class PerformanceTable extends StatelessWidget {
                       value: data.performance / 100,
                       backgroundColor: Colors.black.withOpacity(0.3),
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        data.performance >= 80 ? Colors.teal : (data.performance >= 50 ? Colors.yellow : Colors.redAccent)
+                        data.performance >= 80
+                            ? Colors.teal
+                            : (data.performance >= 50
+                                  ? Colors.yellow
+                                  : Colors.redAccent),
                       ),
                       minHeight: 8,
                     ),
@@ -121,8 +131,14 @@ class PerformanceTable extends StatelessWidget {
         text: TextSpan(
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           children: [
-            TextSpan(text: '$label: ', style: TextStyle(color: labelColor)),
-            TextSpan(text: value, style: const TextStyle(color: Colors.white)),
+            TextSpan(
+              text: '$label: ',
+              style: TextStyle(color: labelColor),
+            ),
+            TextSpan(
+              text: value,
+              style: const TextStyle(color: Colors.white),
+            ),
           ],
         ),
       ),

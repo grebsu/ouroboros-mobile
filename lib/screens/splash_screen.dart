@@ -25,9 +25,10 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     // Rotação: 0.0 → 360 graus (2 * PI radianos) durante toda a duração
-    _rotationAnimation = Tween<double>(begin: 0.0, end: 2 * math.pi).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    _rotationAnimation = Tween<double>(
+      begin: 0.0,
+      end: 2 * math.pi,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
 
     // Inicia animação
     _controller.forward();
@@ -51,7 +52,9 @@ class _SplashScreenState extends State<SplashScreen>
     const logoSize = 400.0;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF),
+      backgroundColor: isDark
+          ? const Color(0xFF000000)
+          : const Color(0xFFFFFFFF),
       body: Center(
         child: AnimatedBuilder(
           animation: _controller,

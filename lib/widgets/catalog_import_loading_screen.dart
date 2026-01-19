@@ -4,10 +4,12 @@ class CatalogImportLoadingScreen extends StatefulWidget {
   const CatalogImportLoadingScreen({super.key});
 
   @override
-  State<CatalogImportLoadingScreen> createState() => _CatalogImportLoadingScreenState();
+  State<CatalogImportLoadingScreen> createState() =>
+      _CatalogImportLoadingScreenState();
 }
 
-class _CatalogImportLoadingScreenState extends State<CatalogImportLoadingScreen> with SingleTickerProviderStateMixin {
+class _CatalogImportLoadingScreenState extends State<CatalogImportLoadingScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -28,10 +30,14 @@ class _CatalogImportLoadingScreenState extends State<CatalogImportLoadingScreen>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final logoAsset = isDarkMode ? 'logo/logo-modo-escuro.png' : 'logo/logo.png';
+    final logoAsset = isDarkMode
+        ? 'logo/logo-modo-escuro.png'
+        : 'logo/logo.png';
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.black.withOpacity(0.8) : Colors.white.withOpacity(0.8),
+      backgroundColor: isDarkMode
+          ? Colors.black.withOpacity(0.8)
+          : Colors.white.withOpacity(0.8),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -40,11 +46,7 @@ class _CatalogImportLoadingScreenState extends State<CatalogImportLoadingScreen>
             children: [
               RotationTransition(
                 turns: _controller,
-                child: Image.asset(
-                  logoAsset,
-                  height: 80,
-                  width: 80,
-                ),
+                child: Image.asset(logoAsset, height: 80, width: 80),
               ),
               const SizedBox(height: 24),
               Text(
@@ -68,7 +70,8 @@ class _CatalogImportLoadingScreenState extends State<CatalogImportLoadingScreen>
               const SizedBox(height: 24),
               const LinearProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
-                backgroundColor: Colors.tealAccent, // Adiciona um fundo para a barra de progresso
+                backgroundColor: Colors
+                    .tealAccent, // Adiciona um fundo para a barra de progresso
               ),
             ],
           ),

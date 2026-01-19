@@ -15,7 +15,9 @@ class SupportScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'Apoie a Missão Ouroboros',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -41,7 +43,9 @@ class SupportScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Escaneie o QR code com seu aplicativo de banco.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.teal),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.teal),
               textAlign: TextAlign.center,
             ),
           ],
@@ -55,7 +59,9 @@ class SupportScreen extends StatelessWidget {
             icon: const Icon(Icons.copy),
             label: const Text('Copiar Chave PIX (E-mail)'),
             onPressed: () {
-              Clipboard.setData(const ClipboardData(text: 'ouroboros743@gmail.com'));
+              Clipboard.setData(
+                const ClipboardData(text: 'ouroboros743@gmail.com'),
+              );
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Chave PIX copiada!'),
@@ -69,7 +75,7 @@ class SupportScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
           ),
-        )
+        ),
       ],
     );
   }

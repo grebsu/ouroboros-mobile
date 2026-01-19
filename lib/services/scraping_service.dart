@@ -27,7 +27,9 @@ class ScrapingService {
       onLoadStop: _onPageLoaded,
       onReceivedError: (controller, url, error) {
         // print('ScrapingService: Erro ao carregar $url: Código ${error.type}, Mensagem: ${error.description}');
-        _completer.completeError('Erro ao carregar a página: ${error.description}');
+        _completer.completeError(
+          'Erro ao carregar a página: ${error.description}',
+        );
       },
       onConsoleMessage: (controller, consoleMessage) {
         // print('ScrapingService: WebView Console [${consoleMessage.messageLevel.toString().split('.').last}]: ${consoleMessage.message}');
@@ -41,7 +43,10 @@ class ScrapingService {
     return _completer.future;
   }
 
-  Future<void> _onPageLoaded(InAppWebViewController controller, WebUri? url) async {
+  Future<void> _onPageLoaded(
+    InAppWebViewController controller,
+    WebUri? url,
+  ) async {
     if (url == null) return;
 
     try {
@@ -61,9 +66,14 @@ class ScrapingService {
     }
   }
 
-  Future<void> _extractHeaderAndSubjectLinks(InAppWebViewController controller) async {
+  Future<void> _extractHeaderAndSubjectLinks(
+    InAppWebViewController controller,
+  ) async {
     // Aguarda o seletor principal estar presente
-    await _waitForSelector(controller, 'div.guias-cabecalho, div.cadernos-agrupamento, div.detalhes-cabecalho');
+    await _waitForSelector(
+      controller,
+      'div.guias-cabecalho, div.cadernos-agrupamento, div.detalhes-cabecalho',
+    );
 
     // Extrai os dados do cabeçalho
     String getHeaderJs = """
@@ -85,7 +95,9 @@ class ScrapingService {
         return { name, cargo, edital, iconUrl, banca };
       })();
     """;
-    _headerData = await controller.evaluateJavascript(source: getHeaderJs) as Map<String, dynamic>;
+    _headerData =
+        await controller.evaluateJavascript(source: getHeaderJs)
+            as Map<String, dynamic>;
 
     // Extrai os links das matérias
     String getLinksJs = """
@@ -120,15 +132,21 @@ class ScrapingService {
         return links;
       })();
     """;
-    final linksResult = await controller.evaluateJavascript(source: getLinksJs) as List<dynamic>;
-    _subjectLinks = linksResult.map((item) => Map<String, String>.from(item)).toList();
+    final linksResult =
+        await controller.evaluateJavascript(source: getLinksJs)
+            as List<dynamic>;
+    _subjectLinks = linksResult
+        .map((item) => Map<String, String>.from(item))
+        .toList();
   }
 
   Future<void> _scrapeNextSubject(InAppWebViewController controller) async {
     if (_subjectIndex < _subjectLinks.length) {
       final subjectLink = _subjectLinks[_subjectIndex];
       _subjectIndex++;
-      await controller.loadUrl(urlRequest: URLRequest(url: WebUri(subjectLink['url']!)));
+      await controller.loadUrl(
+        urlRequest: URLRequest(url: WebUri(subjectLink['url']!)),
+      );
     } else {
       // Processo finalizado
       _finishScraping();
@@ -195,7 +213,8 @@ class ScrapingService {
       topicsResult = [];
     }
 
-    if (topicsResult == null || (topicsResult is List && topicsResult.isEmpty)) {
+    if (topicsResult == null ||
+        (topicsResult is List && topicsResult.isEmpty)) {
       // print('AVISO: Nenhum tópico extraído para a matéria: ${_subjectLinks[_subjectIndex - 1]['name']}');
       topicsResult = [];
     }
@@ -219,7 +238,8 @@ class ScrapingService {
 
         list.add(topic);
 
-        if (map['sub_topics'] is List && (map['sub_topics'] as List).isNotEmpty) {
+        if (map['sub_topics'] is List &&
+            (map['sub_topics'] as List).isNotEmpty) {
           list.addAll(flattenTopics(map['sub_topics'], parentId: topic.id));
         }
       }
@@ -249,12 +269,14 @@ class ScrapingService {
 
     final subjectsWithPlanId = _finalSubjects.map((s) {
       final subjectId = s.id;
-      final topicsWithSubjectId = s.topics.map((t) => t.copyWith(subject_id: subjectId)).toList();
-      
+      final topicsWithSubjectId = s.topics
+          .map((t) => t.copyWith(subject_id: subjectId))
+          .toList();
+
       return s.copyWith(
         plan_id: planId,
         topics: topicsWithSubjectId,
-        lastModified: now
+        lastModified: now,
       );
     }).toList();
 
@@ -272,18 +294,26 @@ class ScrapingService {
     _headlessWebView.dispose();
   }
 
-  Future<void> _waitForSelector(InAppWebViewController controller, String selector, {int timeout = 30000}) async {
+  Future<void> _waitForSelector(
+    InAppWebViewController controller,
+    String selector, {
+    int timeout = 30000,
+  }) async {
     final completer = Completer<void>();
     final stopwatch = Stopwatch()..start();
 
     Timer.periodic(const Duration(milliseconds: 100), (timer) async {
-      final result = await controller.evaluateJavascript(source: 'document.querySelector("$selector") != null');
+      final result = await controller.evaluateJavascript(
+        source: 'document.querySelector("$selector") != null',
+      );
       if (result == true) {
         timer.cancel();
         completer.complete();
       } else if (stopwatch.elapsedMilliseconds > timeout) {
         timer.cancel();
-        completer.completeError(Exception('Timeout esperando pelo seletor: $selector'));
+        completer.completeError(
+          Exception('Timeout esperando pelo seletor: $selector'),
+        );
       }
     });
 

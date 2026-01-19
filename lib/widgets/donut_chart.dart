@@ -78,7 +78,9 @@ class _DonutChartPainter extends CustomPainter {
 
       // Main ring (session color or transparent if completed)
       final sessionPaint = Paint()
-        ..color = isCompleted ? Colors.transparent : Color(int.parse(session.color.replaceFirst('#', '0xFF')))
+        ..color = isCompleted
+            ? Colors.transparent
+            : Color(int.parse(session.color.replaceFirst('#', '0xFF')))
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth;
 
@@ -95,7 +97,7 @@ class _DonutChartPainter extends CustomPainter {
         ..color = isCompleted ? Colors.teal : Colors.transparent
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth;
-      
+
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: progressRingRadius),
         startAngle,
@@ -112,7 +114,9 @@ class _DonutChartPainter extends CustomPainter {
       text: TextSpan(
         text: studyHours,
         style: TextStyle(
-          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black,
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
@@ -122,7 +126,13 @@ class _DonutChartPainter extends CustomPainter {
     );
 
     textPainter.layout();
-    textPainter.paint(canvas, Offset(center.dx - textPainter.width / 2, center.dy - textPainter.height / 2));
+    textPainter.paint(
+      canvas,
+      Offset(
+        center.dx - textPainter.width / 2,
+        center.dy - textPainter.height / 2,
+      ),
+    );
   }
 
   @override

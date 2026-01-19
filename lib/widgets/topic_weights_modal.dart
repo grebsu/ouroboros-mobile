@@ -54,11 +54,13 @@ class _TopicWeightsModalState extends State<TopicWeightsModal> {
         width: double.maxFinite,
         height: 400,
         child: widget.subject.topics.isEmpty
-            ? const Center(child: Text('Nenhum tópico encontrado para esta matéria.'))
-            : Scrollbar( // Adicionado Scrollbar
+            ? const Center(
+                child: Text('Nenhum tópico encontrado para esta matéria.'),
+              )
+            : Scrollbar(
+                // Adicionado Scrollbar
                 controller: _scrollController,
                 thumbVisibility: true,
-
 
                 child: ListView(
                   controller: _scrollController,
@@ -71,7 +73,10 @@ class _TopicWeightsModalState extends State<TopicWeightsModal> {
       actions: [
         TextButton(
           onPressed: () {
-            final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
+            final allSubjectsProvider = Provider.of<AllSubjectsProvider>(
+              context,
+              listen: false,
+            );
             allSubjectsProvider.updateTopicWeights(_topicWeights);
             Navigator.of(context).pop();
           },
@@ -86,7 +91,9 @@ class _TopicWeightsModalState extends State<TopicWeightsModal> {
   }
 
   Widget _buildTopicRow(Topic topic, int level) {
-    final isGroupingTopic = topic.is_grouping_topic == true || (topic.sub_topics != null && topic.sub_topics!.isNotEmpty);
+    final isGroupingTopic =
+        topic.is_grouping_topic == true ||
+        (topic.sub_topics != null && topic.sub_topics!.isNotEmpty);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +105,11 @@ class _TopicWeightsModalState extends State<TopicWeightsModal> {
             children: [
               Text(
                 isGroupingTopic ? '* ${topic.topic_text}' : topic.topic_text,
-                style: TextStyle(fontWeight: isGroupingTopic ? FontWeight.bold : FontWeight.normal),
+                style: TextStyle(
+                  fontWeight: isGroupingTopic
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                ),
               ),
               if (!isGroupingTopic && topic.id != null)
                 Row(
@@ -122,7 +133,9 @@ class _TopicWeightsModalState extends State<TopicWeightsModal> {
           ),
         ),
         if (topic.sub_topics != null)
-          ...topic.sub_topics!.map((subTopic) => _buildTopicRow(subTopic, level + 1)),
+          ...topic.sub_topics!.map(
+            (subTopic) => _buildTopicRow(subTopic, level + 1),
+          ),
       ],
     );
   }

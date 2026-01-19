@@ -12,7 +12,11 @@ class HistoryProvider with ChangeNotifier {
   final FilterProvider _filterProvider;
   final AuthProvider? _authProvider;
 
-  HistoryProvider(this._reviewProvider, this._filterProvider, this._authProvider) {
+  HistoryProvider(
+    this._reviewProvider,
+    this._filterProvider,
+    this._authProvider,
+  ) {
     _filterProvider.addListener(fetchHistory);
     fetchHistory();
   }
@@ -35,6 +39,7 @@ class HistoryProvider with ChangeNotifier {
     ];
     return categories;
   }
+
   Map<String, Subject> get allSubjectsMap => _allSubjectsMap;
   bool get isLoading => _isLoading;
 
@@ -56,28 +61,43 @@ class HistoryProvider with ChangeNotifier {
     if (_authProvider?.currentUser == null) return;
     print('HistoryProvider: Iniciando fetchHistory...');
     _setLoading(true);
-    _allStudyRecords = await _dbService.readStudyRecordsForUser(_authProvider!.currentUser!.name);
-    List<Subject> allSubjects = await _dbService.readAllSubjects(_authProvider!.currentUser!.name);
+    _allStudyRecords = await _dbService.readStudyRecordsForUser(
+      _authProvider!.currentUser!.name,
+    );
+    List<Subject> allSubjects = await _dbService.readAllSubjects(
+      _authProvider!.currentUser!.name,
+    );
 
-    _allSubjectsMap = { for (var s in allSubjects) s.id: s };
-    print('HistoryProvider: Registros de estudo lidos: ${_allStudyRecords.length}');
+    _allSubjectsMap = {for (var s in allSubjects) s.id: s};
+    print(
+      'HistoryProvider: Registros de estudo lidos: ${_allStudyRecords.length}',
+    );
     print('HistoryProvider: Todas as disciplinas lidas: ${allSubjects.length}');
 
     // Apply filters
     _records = _allStudyRecords.where((record) {
       // Date filter
-      if (_filterProvider.historyStartDate != null && DateTime.parse(record.date).isBefore(_filterProvider.historyStartDate!)) {
+      if (_filterProvider.historyStartDate != null &&
+          DateTime.parse(
+            record.date,
+          ).isBefore(_filterProvider.historyStartDate!)) {
         return false;
       }
-      if (_filterProvider.historyEndDate != null && DateTime.parse(record.date).isAfter(_filterProvider.historyEndDate!)) {
+      if (_filterProvider.historyEndDate != null &&
+          DateTime.parse(
+            record.date,
+          ).isAfter(_filterProvider.historyEndDate!)) {
         return false;
       }
 
       // Duration filter
-      if (_filterProvider.historyMinDuration != null && record.study_time < _filterProvider.historyMinDuration! * 60000) { // convert minutes to ms
+      if (_filterProvider.historyMinDuration != null &&
+          record.study_time < _filterProvider.historyMinDuration! * 60000) {
+        // convert minutes to ms
         return false;
       }
-      if (_filterProvider.historyMaxDuration != null && record.study_time > _filterProvider.historyMaxDuration! * 60000) {
+      if (_filterProvider.historyMaxDuration != null &&
+          record.study_time > _filterProvider.historyMaxDuration! * 60000) {
         return false;
       }
 
@@ -88,23 +108,33 @@ class HistoryProvider with ChangeNotifier {
         totalQuestionsSum += tp.questions['total'] ?? 0;
         correctQuestionsSum += tp.questions['correct'] ?? 0;
       }
-      final performance = totalQuestionsSum > 0 ? (correctQuestionsSum / totalQuestionsSum) * 100 : 0.0;
-      if (_filterProvider.historyMinPerformance != null && performance < _filterProvider.historyMinPerformance!) {
+      final performance = totalQuestionsSum > 0
+          ? (correctQuestionsSum / totalQuestionsSum) * 100
+          : 0.0;
+      if (_filterProvider.historyMinPerformance != null &&
+          performance < _filterProvider.historyMinPerformance!) {
         return false;
       }
-      if (_filterProvider.historyMaxPerformance != null && performance > _filterProvider.historyMaxPerformance!) {
+      if (_filterProvider.historyMaxPerformance != null &&
+          performance > _filterProvider.historyMaxPerformance!) {
         return false;
       }
 
       // Category filter
-      if (_filterProvider.historySelectedCategories.isNotEmpty && !_filterProvider.historySelectedCategories.contains(record.category)) {
+      if (_filterProvider.historySelectedCategories.isNotEmpty &&
+          !_filterProvider.historySelectedCategories.contains(
+            record.category,
+          )) {
         return false;
       }
 
       // Subject filter
       if (_filterProvider.historySelectedSubjects.isNotEmpty) {
         final subject = _allSubjectsMap[record.subject_id];
-        if (subject == null || !_filterProvider.historySelectedSubjects.contains(subject.subject)) {
+        if (subject == null ||
+            !_filterProvider.historySelectedSubjects.contains(
+              subject.subject,
+            )) {
           return false;
         }
       }
@@ -155,7 +185,10 @@ class HistoryProvider with ChangeNotifier {
     _setLoading(true);
     try {
       // 1. Obter e excluir os ReviewRecords antigos associados a este StudyRecord
-      final oldReviewRecords = await _dbService.readReviewRecordsForStudyRecord(record.id, _authProvider!.currentUser!.name);
+      final oldReviewRecords = await _dbService.readReviewRecordsForStudyRecord(
+        record.id,
+        _authProvider!.currentUser!.name,
+      );
       for (var oldReview in oldReviewRecords) {
         await _reviewProvider.deleteReview(oldReview.id);
       }
@@ -176,11 +209,17 @@ class HistoryProvider with ChangeNotifier {
     }
   }
 
-  Future<void> toggleTopicCompletion({required String subjectId, required String topicText, required String planId}) async {
+  Future<void> toggleTopicCompletion({
+    required String subjectId,
+    required String topicText,
+    required String planId,
+  }) async {
     if (_authProvider?.currentUser == null) return;
     _setLoading(true);
     try {
-      final allRecords = await _dbService.readStudyRecordsForUser(_authProvider!.currentUser!.name);
+      final allRecords = await _dbService.readStudyRecordsForUser(
+        _authProvider!.currentUser!.name,
+      );
       StudyRecord? existingRecord;
 
       // Encontrar o StudyRecord que contém o TopicProgress correspondente
@@ -198,12 +237,15 @@ class HistoryProvider with ChangeNotifier {
 
       if (existingRecord != null) {
         // Encontrar o TopicProgress específico e modificar isTheoryFinished
-        final List<TopicProgress> updatedTopicsProgress = existingRecord.topicsProgress.map((tp) {
-          if (tp.topicText == topicText) {
-            return tp.copyWith(isTheoryFinished: !tp.isTheoryFinished);
-          }
-          return tp;
-        }).toList();
+        final List<TopicProgress> updatedTopicsProgress = existingRecord
+            .topicsProgress
+            .map((tp) {
+              if (tp.topicText == topicText) {
+                return tp.copyWith(isTheoryFinished: !tp.isTheoryFinished);
+              }
+              return tp;
+            })
+            .toList();
 
         final recordToSave = existingRecord.copyWith(
           topicsProgress: updatedTopicsProgress,
@@ -216,7 +258,8 @@ class HistoryProvider with ChangeNotifier {
         final newTopicProgress = TopicProgress(
           topicId: Uuid().v4(), // Será um novo ID para o TopicProgress
           topicText: topicText,
-          isTheoryFinished: true, // Se estamos toggling para completar, começa como true
+          isTheoryFinished:
+              true, // Se estamos toggling para completar, começa como true
         );
 
         final newRecord = StudyRecord(
@@ -226,7 +269,7 @@ class HistoryProvider with ChangeNotifier {
           date: DateTime.now().toIso8601String(),
           subject_id: subjectId,
           category: 'teoria', // Default
-          study_time: 0,      // Default
+          study_time: 0, // Default
           topicsProgress: [newTopicProgress],
           review_periods: [],
           count_in_planning: false,
@@ -261,11 +304,19 @@ class HistoryProvider with ChangeNotifier {
         DateTime scheduledDate = originalDate;
 
         if (period.endsWith('d')) {
-          scheduledDate = originalDate.add(Duration(days: int.parse(period.replaceAll('d', ''))));
+          scheduledDate = originalDate.add(
+            Duration(days: int.parse(period.replaceAll('d', ''))),
+          );
         } else if (period.endsWith('w')) {
-          scheduledDate = originalDate.add(Duration(days: int.parse(period.replaceAll('w', '')) * 7));
+          scheduledDate = originalDate.add(
+            Duration(days: int.parse(period.replaceAll('w', '')) * 7),
+          );
         } else if (period.endsWith('m')) {
-          scheduledDate = DateTime(originalDate.year, originalDate.month + int.parse(period.replaceAll('m', '')), originalDate.day);
+          scheduledDate = DateTime(
+            originalDate.year,
+            originalDate.month + int.parse(period.replaceAll('m', '')),
+            originalDate.day,
+          );
         }
 
         newReviewRecords.add(
@@ -280,7 +331,9 @@ class HistoryProvider with ChangeNotifier {
             subject_id: studyRecord.subject_id,
             // O ReviewRecord agora espera uma lista de tópicos.
             // Precisamos coletar os topicText de todos os TopicProgress
-            topics: studyRecord.topicsProgress.map((tp) => tp.topicText).toList(),
+            topics: studyRecord.topicsProgress
+                .map((tp) => tp.topicText)
+                .toList(),
             review_period: period,
             completed_date: null,
             ignored: false,

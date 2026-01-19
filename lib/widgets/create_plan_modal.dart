@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -90,7 +89,11 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
     } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permissão de armazenamento negada. Não é possível importar a imagem.')),
+          const SnackBar(
+            content: Text(
+              'Permissão de armazenamento negada. Não é possível importar a imagem.',
+            ),
+          ),
         );
       }
     }
@@ -99,16 +102,21 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
   Future<void> _savePlan() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      
+
       final plansProvider = Provider.of<PlansProvider>(context, listen: false);
-      final planningProvider = Provider.of<PlanningProvider>(context, listen: false); // Get PlanningProvider
+      final planningProvider = Provider.of<PlanningProvider>(
+        context,
+        listen: false,
+      ); // Get PlanningProvider
 
       // Show a loading indicator while saving
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return const Center(child: CircularProgressIndicator(color: Colors.teal));
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.teal),
+          );
         },
       );
 
@@ -145,9 +153,9 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
         // Pop the loading indicator
         Navigator.of(context, rootNavigator: true).pop();
         // Show an error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao salvar o plano: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao salvar o plano: $e')));
       }
     }
   }
@@ -162,7 +170,11 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               print('Error loading image with Image.file: $error');
-              return const Icon(Icons.broken_image, color: Colors.grey, size: 48);
+              return const Icon(
+                Icons.broken_image,
+                color: Colors.grey,
+                size: 48,
+              );
             },
           ),
         );
@@ -179,9 +191,9 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
   Widget build(BuildContext context) {
     return Theme(
       data: Theme.of(context).copyWith(
-        colorScheme: Theme.of(context).colorScheme.copyWith(
-          surfaceTint: Colors.transparent,
-        ),
+        colorScheme: Theme.of(
+          context,
+        ).colorScheme.copyWith(surfaceTint: Colors.transparent),
       ),
       child: AlertDialog(
         title: Text(widget.initialPlan == null ? 'Novo Plano' : 'Editar Plano'),
@@ -206,26 +218,43 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
                     TextButton(
                       onPressed: _pickImage,
                       style: TextButton.styleFrom(
-                        foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal,
+                        foregroundColor:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.teal,
                       ),
                       child: const Text('Importar Imagem'),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24), // Spacing between image section and form fields
+                const SizedBox(
+                  height: 24,
+                ), // Spacing between image section and form fields
                 // Form fields
                 TextFormField(
                   initialValue: _planName,
                   decoration: InputDecoration(
                     labelText: 'NOME',
-                    labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.teal,
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.teal,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey
+                            : Colors.teal,
+                      ),
                     ),
                   ),
                   validator: (value) {
@@ -243,14 +272,26 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
                   initialValue: _cargo,
                   decoration: InputDecoration(
                     labelText: 'CARGO (Opcional)',
-                    labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.teal,
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.teal,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey
+                            : Colors.teal,
+                      ),
                     ),
                   ),
                   onSaved: (value) {
@@ -262,14 +303,26 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
                   initialValue: _edital,
                   decoration: InputDecoration(
                     labelText: 'EDITAL (Opcional)',
-                    labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.teal,
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.teal,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey
+                            : Colors.teal,
+                      ),
                     ),
                   ),
                   onSaved: (value) {
@@ -281,14 +334,26 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
                   initialValue: _banca,
                   decoration: InputDecoration(
                     labelText: 'BANCA (Opcional)',
-                    labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.teal,
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.teal,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey
+                            : Colors.teal,
+                      ),
                     ),
                   ),
                   onSaved: (value) {
@@ -300,14 +365,26 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
                   initialValue: _observations,
                   decoration: InputDecoration(
                     labelText: 'OBSERVAÇÕES (Opcional)',
-                    labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.teal,
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.teal,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey : Colors.teal),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey
+                            : Colors.teal,
+                      ),
                     ),
                   ),
                   maxLines: 3,
@@ -325,7 +402,9 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
               Navigator.of(context).pop();
             },
             style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.teal,
+              foregroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.teal,
             ),
             child: const Text('Cancelar'),
           ),

@@ -27,7 +27,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.login(_nameController.text, _passwordController.text);
+    final success = await authProvider.login(
+      _nameController.text,
+      _passwordController.text,
+    );
 
     if (mounted) {
       if (!success) {
@@ -68,7 +71,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: 'Nome de Usuário',
                     border: OutlineInputBorder(),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: theme.brightness == Brightness.dark ? Colors.white : Colors.black, width: 1.0),
+                      borderSide: BorderSide(
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                        width: 1.0,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.teal, width: 2.0),
@@ -90,7 +98,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: 'Senha',
                     border: OutlineInputBorder(),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: theme.brightness == Brightness.dark ? Colors.white : Colors.black, width: 1.0),
+                      borderSide: BorderSide(
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                        width: 1.0,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.teal, width: 2.0),
@@ -113,7 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ElevatedButton(
                     onPressed: _login,
                     style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50), // Botão largo
+                      minimumSize: const Size(
+                        double.infinity,
+                        50,
+                      ), // Botão largo
                       backgroundColor: Colors.teal,
                       foregroundColor: Colors.white,
                     ),
@@ -123,7 +139,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const RegisterScreen(),
+                      ),
                     );
                   },
                   child: const Text(
