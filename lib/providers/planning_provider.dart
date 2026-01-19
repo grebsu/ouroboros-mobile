@@ -367,6 +367,9 @@ class PlanningProvider with ChangeNotifier {
     required List<Subject> subjects,
     required String weeklyQuestionsGoal,
   }) {
+    // NOVO: Zera completamente o estado do ciclo anterior
+    resetStudyCycle();
+
     if (subjects.isEmpty) {
       _studyCycle = [];
       saveData();
@@ -425,6 +428,9 @@ class PlanningProvider with ChangeNotifier {
   }
 
   void setManualStudyCycle(List<StudySession> manualCycle) {
+    // NOVO: Zera completamente o estado do ciclo anterior
+    resetStudyCycle();
+
     _studyCycle = manualCycle;
     _cycleGenerationTimestamp = DateTime.now().toIso8601String();
     saveData();
