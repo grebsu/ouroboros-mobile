@@ -50,11 +50,11 @@ class DatabaseService {
     final path = join(dbPath.path, filePath);
     return await openDatabase(
       path,
-      version: 17,
+      version: 18, // VERSÃO ATUALIZADA
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
       onConfigure: _onConfigure,
-    ); // VERSÃO ATUALIZADA PARA 17
+    );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -308,6 +308,9 @@ class DatabaseService {
       await db.execute('ALTER TABLE study_records DROP COLUMN pages;');
       await db.execute('ALTER TABLE study_records DROP COLUMN videos;');
     }
+    if (oldVersion < 18) {
+      await db.execute('ALTER TABLE study_records ADD COLUMN cycleId TEXT');
+    }
   }
 
   Future<void> _onConfigure(Database db) async {
@@ -389,6 +392,7 @@ class DatabaseService {
         id $idType,
         userId $textType,
         plan_id $textType,
+        cycleId $textTypeNullable, -- NOVO
         date $textType,
         subject_id $textType,
         category $textType,

@@ -4,6 +4,7 @@ import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
 import 'package:ouroboros_mobile/screens/mentoria_screen.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
 import 'package:ouroboros_mobile/providers/history_provider.dart'; // Import adicionado
@@ -24,7 +25,7 @@ class PlanningProvider with ChangeNotifier {
   String _weeklyQuestionsGoal = '0';
   Map<String, Map<String, double>> _subjectSettings = {};
   List<String> _studyDays = [];
-  String? _cycleGenerationTimestamp;
+  String? _currentCycleId;
 
   PlanningProvider({
     this.mentoriaProvider,
@@ -45,7 +46,7 @@ class PlanningProvider with ChangeNotifier {
   String get weeklyQuestionsGoal => _weeklyQuestionsGoal;
   Map<String, Map<String, double>> get subjectSettings => _subjectSettings;
   List<String> get studyDays => _studyDays;
-  String? get cycleGenerationTimestamp => _cycleGenerationTimestamp;
+  String? get currentCycleId => _currentCycleId;
 
   String _key(String base) {
     final userId = _authProvider?.currentUser?.name ?? 'default_user';
@@ -72,7 +73,7 @@ class PlanningProvider with ChangeNotifier {
     _weeklyQuestionsGoal = '0';
     _subjectSettings = {};
     _studyDays = [];
-    _cycleGenerationTimestamp = null;
+    _currentCycleId = null;
     notifyListeners();
   }
 
@@ -131,16 +132,12 @@ class PlanningProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setCycleGenerationTimestamp(String? timestamp) {
-    _cycleGenerationTimestamp = timestamp;
-    saveData();
-    notifyListeners();
-  }
-
   void updateProgress(StudyRecord record) {
-    _applyProgress(record);
-    saveData();
-    notifyListeners();
+    if (record.cycleId == _currentCycleId) {
+      _applyProgress(record);
+      saveData();
+      notifyListeners();
+    }
   }
 
   void _applyProgress(StudyRecord record) {
@@ -199,33 +196,36 @@ class PlanningProvider with ChangeNotifier {
   }
 
   void recalculateProgress(List<StudyRecord> allRecords) {
-    print('PlanningProvider: recalculateProgress - _planId: $_planId');
-    print(
-      'PlanningProvider: recalculateProgress - studyCycle is null: ${studyCycle == null}',
-    );
-    if (studyCycle == null)
-      return; // Se não há ciclo de estudo, não há nada para recalcular o progresso.
+    if (studyCycle == null || _currentCycleId == null) {
+      // Se não há ciclo ou ID, zera o progresso e retorna.
+      _currentProgressMinutes = 0;
+      _completedCycles = 0;
+      _sessionProgressMap = {};
+      _extraStudyTimeBySubjectId = {};
+      return;
+    }
 
     // 1. Resetar progresso
     _currentProgressMinutes = 0;
     _completedCycles = 0;
     _sessionProgressMap = {};
-    _extraStudyTimeBySubjectId = {}; // LIMPAR NOVO ESTADO
+    _extraStudyTimeBySubjectId = {};
 
-    // 2. Filter and sort records
-    final relevantRecords = allRecords
-        .where((r) => r.count_in_planning)
-        .toList();
+    // 2. Filtrar e ordenar os registros
+    final relevantRecords = allRecords.where((r) {
+      return r.cycleId == _currentCycleId && r.count_in_planning;
+    }).toList();
+
     relevantRecords.sort(
       (a, b) => DateTime.parse(a.date).compareTo(DateTime.parse(b.date)),
     );
 
-    // 3. Apply progress for each record
+    // 3. Aplicar o progresso para cada registro relevante
     for (final record in relevantRecords) {
       _applyProgress(record);
     }
 
-    // 4. Save and notify
+    // 4. Salvar e notificar
     saveData();
     notifyListeners();
   }
@@ -287,9 +287,7 @@ class PlanningProvider with ChangeNotifier {
     }
 
     _studyDays = prefs.getStringList(_key('studyDays')) ?? [];
-    _cycleGenerationTimestamp = prefs.getString(
-      _key('cycleGenerationTimestamp'),
-    );
+    _currentCycleId = prefs.getString(_key('currentCycleId'));
 
     // Após carregar os dados salvos, recalcular o progresso a partir do histórico
     if (_historyProvider != null) {
@@ -332,13 +330,10 @@ class PlanningProvider with ChangeNotifier {
       jsonEncode(_subjectSettings),
     );
     await prefs.setStringList(_key('studyDays'), _studyDays);
-    if (_cycleGenerationTimestamp != null) {
-      await prefs.setString(
-        _key('cycleGenerationTimestamp'),
-        _cycleGenerationTimestamp!,
-      );
+    if (_currentCycleId != null) {
+      await prefs.setString(_key('currentCycleId'), _currentCycleId!);
     } else {
-      await prefs.remove(_key('cycleGenerationTimestamp'));
+      await prefs.remove(_key('currentCycleId'));
     }
   }
 
@@ -361,33 +356,49 @@ class PlanningProvider with ChangeNotifier {
 
   void generateStudyCycle({
     required int studyHours,
+
     required int minSession,
+
     required int maxSession,
+
     required Map<String, Map<String, double>> subjectSettings,
+
     required List<Subject> subjects,
+
     required String weeklyQuestionsGoal,
   }) {
     // NOVO: Zera completamente o estado do ciclo anterior
+
     resetStudyCycle();
 
     if (subjects.isEmpty) {
       _studyCycle = [];
+
       saveData();
+
       notifyListeners();
+
       return;
     }
 
     final List<StudySession> generatedCycle = [];
+
     final Map<String, double> subjectWeights = {};
+
     double totalWeight = 0;
 
     for (final subject in subjects) {
       final settings =
           subjectSettings[subject.id] ?? {'importance': 3, 'knowledge': 3};
+
       final importance = settings['importance']!;
+
       final knowledge = settings['knowledge']!;
+
       final weight = importance / knowledge;
+
       subjectWeights[subject.id] = weight;
+
       totalWeight += weight;
     }
 
@@ -395,24 +406,33 @@ class PlanningProvider with ChangeNotifier {
 
     for (final subject in subjects) {
       final weight = subjectWeights[subject.id]!;
+
       final subjectStudyMinutes = (totalStudyMinutes * (weight / totalWeight));
+
       final averageSessionDuration = (minSession + maxSession) / 2;
+
       int numberOfSessions = (subjectStudyMinutes / averageSessionDuration)
           .round();
 
       if (numberOfSessions == 0) continue;
 
       int sessionDuration = (subjectStudyMinutes / numberOfSessions).round();
+
       if (sessionDuration < minSession) sessionDuration = minSession;
+
       if (sessionDuration > maxSession) sessionDuration = maxSession;
 
       for (int i = 0; i < numberOfSessions; i++) {
         generatedCycle.add(
           StudySession(
             id: '${subject.id}_$i',
+
             subject: subject.subject,
+
             subjectId: subject.id,
+
             duration: sessionDuration,
+
             color: subject.color,
           ),
         );
@@ -422,18 +442,25 @@ class PlanningProvider with ChangeNotifier {
     generatedCycle.shuffle();
 
     _studyCycle = generatedCycle;
-    _cycleGenerationTimestamp = DateTime.now().toIso8601String();
+
+    _currentCycleId = Uuid().v4();
+
     saveData();
+
     notifyListeners();
   }
 
   void setManualStudyCycle(List<StudySession> manualCycle) {
     // NOVO: Zera completamente o estado do ciclo anterior
+
     resetStudyCycle();
 
     _studyCycle = manualCycle;
-    _cycleGenerationTimestamp = DateTime.now().toIso8601String();
+
+    _currentCycleId = Uuid().v4();
+
     saveData();
+
     notifyListeners();
   }
 
@@ -442,7 +469,7 @@ class PlanningProvider with ChangeNotifier {
     _completedCycles = 0;
     _currentProgressMinutes = 0;
     _sessionProgressMap = {};
-    _cycleGenerationTimestamp = null;
+    _currentCycleId = null;
     saveData();
     notifyListeners();
   }

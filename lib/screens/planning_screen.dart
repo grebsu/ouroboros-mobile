@@ -101,10 +101,15 @@ class _PlanningScreenState extends State<PlanningScreen> {
 
       if (subjectId != null && topic != null) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final planningProvider = Provider.of<PlanningProvider>(
+          context,
+          listen: false,
+        ); // NOVO
         final newRecord = StudyRecord(
           id: Uuid().v4(),
           userId: authProvider.currentUser!.name,
           plan_id: activePlanProvider.activePlan!.id,
+          cycleId: planningProvider.currentCycleId, // NOVO
           date: DateTime.now().toIso8601String(),
           subject_id: subjectId,
           topicsProgress: topic != null
@@ -154,6 +159,10 @@ class _PlanningScreenState extends State<PlanningScreen> {
       listen: false,
     );
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final planningProvider = Provider.of<PlanningProvider>(
+      context,
+      listen: false,
+    ); // NOVO
     final planId = activePlanProvider.activePlan?.id;
 
     if (planId == null) {
@@ -169,6 +178,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
       id: const Uuid().v4(),
       userId: authProvider.currentUser!.name,
       plan_id: planId,
+      cycleId: planningProvider.currentCycleId, // NOVO
       date: DateTime.now().toIso8601String().split('T')[0],
       study_time: session.duration * 60 * 1000,
       subject_id: session.subjectId,
@@ -476,6 +486,8 @@ class _PlanningScreenState extends State<PlanningScreen> {
                             planningProvider.currentProgressMinutes,
                       ),
                       sessionProgressMap: planningProvider.sessionProgressMap,
+                      currentProgressMinutes:
+                          planningProvider.currentProgressMinutes, // NOVO
                     ),
                     const SizedBox(height: 20),
                     if (widget.isEditMode)

@@ -369,6 +369,7 @@ class StudyRecord {
   final String id;
   final String userId;
   final String plan_id;
+  final String? cycleId; // NOVO
   final String date;
   final String subject_id;
   final String category;
@@ -383,6 +384,7 @@ class StudyRecord {
     required this.id,
     required this.userId,
     required this.plan_id,
+    this.cycleId, // NOVO
     required this.date,
     required this.subject_id,
     required this.category,
@@ -398,6 +400,7 @@ class StudyRecord {
       id: map['id'],
       userId: map['userId'],
       plan_id: map['plan_id'],
+      cycleId: map['cycleId'], // NOVO
       date: map['date'],
       subject_id: map['subject_id'],
       category: map['category'],
@@ -420,6 +423,7 @@ class StudyRecord {
       'id': id,
       'userId': userId,
       'plan_id': plan_id,
+      'cycleId': cycleId, // NOVO
       'date': date,
       'subject_id': subject_id,
       'category': category,
@@ -437,6 +441,7 @@ class StudyRecord {
     String? id,
     String? userId,
     String? plan_id,
+    String? cycleId, // NOVO
     String? date,
     String? subject_id,
     String? category,
@@ -450,6 +455,7 @@ class StudyRecord {
       id: id ?? this.id,
       userId: userId ?? this.userId,
       plan_id: plan_id ?? this.plan_id,
+      cycleId: cycleId ?? this.cycleId, // NOVO
       date: date ?? this.date,
       subject_id: subject_id ?? this.subject_id,
       category: category ?? this.category,

@@ -8,6 +8,8 @@ import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/providers/active_plan_provider.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
 
+import 'package:ouroboros_mobile/providers/planning_provider.dart';
+
 class StudyRegisterModal extends StatefulWidget {
   final String planId;
   final Function(StudyRecord) onSave;
@@ -482,11 +484,16 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
       context,
       listen: false,
     );
+    final planningProvider = Provider.of<PlanningProvider>(
+      context,
+      listen: false,
+    ); // NOVO
 
     final record = StudyRecord(
       id: widget.initialRecord?.id ?? const Uuid().v4(),
       userId: authProvider.currentUser!.name,
       plan_id: activePlanProvider.activePlan!.id,
+      cycleId: planningProvider.currentCycleId, // NOVO
       date: DateFormat('yyyy-MM-dd').format(_selectedDate),
       subject_id: _selectedSubject!.id,
       category: _selectedCategory!,

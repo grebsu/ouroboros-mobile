@@ -7,6 +7,7 @@ class DonutChart extends StatelessWidget {
   final double size;
   final String studyHours;
   final Map<String, int> sessionProgressMap;
+  final int currentProgressMinutes; // NOVO PARÂMETRO
 
   const DonutChart({
     Key? key,
@@ -14,6 +15,7 @@ class DonutChart extends StatelessWidget {
     this.size = 300,
     required this.studyHours,
     required this.sessionProgressMap,
+    required this.currentProgressMinutes, // NOVO PARÂMETRO
   }) : super(key: key);
 
   @override
@@ -27,6 +29,7 @@ class DonutChart extends StatelessWidget {
           cycle: cycle,
           studyHours: studyHours,
           sessionProgressMap: sessionProgressMap,
+          currentProgressMinutes: currentProgressMinutes, // NOVO PARÂMETRO
         ),
       ),
     );
@@ -38,78 +41,119 @@ class _DonutChartPainter extends CustomPainter {
   final String studyHours;
   final Map<String, int> sessionProgressMap;
   final BuildContext context; // Add BuildContext here
+  final int currentProgressMinutes; // NOVO PARÂMETRO
 
   _DonutChartPainter({
     required this.context, // Require context in the constructor
     required this.cycle,
     required this.studyHours,
     required this.sessionProgressMap,
+    required this.currentProgressMinutes, // NOVO PARÂMETRO
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final strokeWidth = 40.0;
-    final gap = 5.0;
-
-    final mainRingRadius = size.width / 2 - strokeWidth - gap;
-    final progressRingRadius = size.width / 2 - (strokeWidth / 2);
+    final strokeWidth = 25.0; // Largura de cada anel
+    final gap = 8.0; // Espaço entre os anéis
+    const startAngleOffset = -math.pi / 2;
 
     final center = Offset(size.width / 2, size.height / 2);
+    // Raio do anel interno (ciclo)
+    final innerRingRadius = size.width / 2 - strokeWidth - gap;
+    // Raio do anel externo (progresso)
+    final outerRingRadius = size.width / 2 - (strokeWidth / 2);
 
-    // Draw the background rings
-    final backgroundPaint = Paint()
-      ..color = Colors.grey[300]!
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    canvas.drawCircle(center, progressRingRadius, backgroundPaint);
-    canvas.drawCircle(center, mainRingRadius, backgroundPaint);
+    // 1. Calcular a duração total do ciclo
+    final totalCycleDuration = cycle.fold<int>(
+      0,
+      (sum, session) => sum + session.duration,
+    );
 
-    if (cycle.isEmpty) return;
-
-    final totalSessions = cycle.length;
-    final anglePerSession = 2 * math.pi / totalSessions;
-
-    double startAngle = -math.pi / 2;
-
-    for (int i = 0; i < cycle.length; i++) {
-      final session = cycle[i];
-      final progress = sessionProgressMap[session.id] ?? 0;
-      final isCompleted = progress >= session.duration;
-
-      // Main ring (session color or transparent if completed)
-      final sessionPaint = Paint()
-        ..color = isCompleted
-            ? Colors.transparent
-            : Color(int.parse(session.color.replaceFirst('#', '0xFF')))
+    // 2. Se o ciclo está vazio ou não tem duração, desenha anéis cinzas e para.
+    if (totalCycleDuration == 0) {
+      final backgroundPaint = Paint()
+        ..color = Colors.grey[300]!
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth;
+      canvas.drawCircle(center, innerRingRadius, backgroundPaint);
+      canvas.drawCircle(center, outerRingRadius, backgroundPaint);
+    } else {
+      // 3. Desenhar o anel INTERNO (fundo do ciclo)
+      double cumulativeAngleForInnerRing = startAngleOffset;
 
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: mainRingRadius),
-        startAngle,
-        anglePerSession,
-        false,
-        sessionPaint,
-      );
+      // Reordena as sessões para a visualização do anel interno
+      final List<StudySession> sessionsWithProgress = cycle.where((session) {
+        final progress = sessionProgressMap[session.id] ?? 0;
+        return progress > 0;
+      }).toList();
+      final List<StudySession> sessionsWithoutProgress = cycle.where((session) {
+        final progress = sessionProgressMap[session.id] ?? 0;
+        return progress == 0;
+      }).toList();
 
-      // Progress ring (teal if completed, transparent otherwise)
-      final progressPaint = Paint()
-        ..color = isCompleted ? Colors.teal : Colors.transparent
+      final List<StudySession> reorderedCycleForInnerRing = [
+        ...sessionsWithProgress,
+        ...sessionsWithoutProgress,
+      ];
+
+      for (final session in reorderedCycleForInnerRing) {
+        final progress = sessionProgressMap[session.id] ?? 0;
+        final isCompleted = progress >= session.duration;
+
+        final sessionPaint = Paint()
+          ..color = isCompleted
+              ? Colors.grey[300]! // Cor neutra para sessões concluídas
+              : Color(int.parse(session.color.replaceFirst('#', '0xFF')))
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth;
+
+        // Se a sessão foi pulada e não há progresso, ela ainda ocupará seu espaço no anel interno,
+        // mas sua cor pode ser mais suave ou transparente para indicar que não foi tocada.
+        // No momento, ela manterá a cor da matéria se não estiver completa.
+
+        final sessionAngle =
+            (session.duration / totalCycleDuration) * 2 * math.pi;
+
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: innerRingRadius),
+          cumulativeAngleForInnerRing,
+          sessionAngle,
+          false,
+          sessionPaint,
+        );
+        cumulativeAngleForInnerRing += sessionAngle;
+      }
+
+      // 4. Desenhar o anel EXTERNO (progresso)
+      // Fundo cinza para o anel de progresso
+      final progressBackgroundPaint = Paint()
+        ..color = Colors.grey[300]!
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth;
+      canvas.drawCircle(center, outerRingRadius, progressBackgroundPaint);
 
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: progressRingRadius),
-        startAngle,
-        anglePerSession,
-        false,
-        progressPaint,
-      );
+      // Arco de progresso em Teal
+      if (currentProgressMinutes > 0) {
+        final progressPaint = Paint()
+          ..color = Colors.teal
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.butt
+          ..strokeWidth = strokeWidth;
 
-      startAngle += anglePerSession;
+        final progressAngle =
+            (currentProgressMinutes / totalCycleDuration) * 2 * math.pi;
+
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: outerRingRadius),
+          startAngleOffset,
+          progressAngle,
+          false,
+          progressPaint,
+        );
+      }
     }
 
-    // Draw the center text
+    // 5. Desenhar o texto no centro
     final textPainter = TextPainter(
       text: TextSpan(
         text: studyHours,
