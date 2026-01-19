@@ -51,6 +51,26 @@ Eu sou o único desenvolvedor do Ouroboros e, além de cuidar do projeto sozinho
 
 Mesmo assim, cada atualização será feita com o mesmo cuidado e a mesma dedicação de sempre.
 
+## 🆕 Novidades na Versão v1.1.0 (2026-01-19)
+
+Esta atualização foca em aprimorar a estabilidade, a precisão do seu planejamento e a clareza visual, corrigindo bugs importantes e refatorando sistemas internos.
+
+*   **Persistência e Integridade do Ciclo de Estudos Aprimoradas:**
+    *   Corrigido um bug crítico onde o progresso do ciclo de estudos podia ser perdido ou dados de ciclos antigos eram indevidamente carregados após a reinicialização do aplicativo ou a criação de um novo ciclo.
+    *   Agora, cada ciclo de estudos possui um identificador único (`cycleId`), garantindo que os registros de estudo sejam corretamente vinculados ao seu ciclo correspondente. A lógica de filtragem e migração do banco de dados foi atualizada para suportar esta nova abordagem, proporcionando maior confiabilidade e consistência aos seus dados de progresso.
+
+*   **Gráfico de Rosca (Donut Chart) do Planejamento Totalmente Reformulado:**
+    *   O gráfico na tela de planejamento foi redesenhado para uma visualização mais clara e intuitiva do seu progresso.
+    *   **Design de Anel Duplo:**
+        *   O **anel interno** exibe a composição completa do seu ciclo de estudos, com as fatias de cada sessão em suas cores originais. Sessões já concluídas neste anel são agora renderizadas em um tom de cinza, indicando que foram estudadas sem perder a noção da matéria.
+        *   O **anel externo** representa o progresso total acumulado no seu ciclo como um único arco contínuo na cor Teal. Esta nova representação elimina os "buracos" visuais que ocorriam quando sessões eram puladas, garantindo uma progressão suave e em sentido horário.
+
+*   **Correção na Sobrescrita de Dados de Vídeos/Aulas no Registro de Estudos:**
+    *   Resolvido um bug no modal de registro de estudos onde informações de vídeo/aulas eram incorretamente sobrescritas ou perdidas ao alternar entre múltiplos tópicos em um mesmo registro. A gestão interna dos campos de entrada foi refatorada para garantir a integridade dos dados para cada tópico.
+
+*   **Atualização da Versão:**
+    *   A versão do aplicativo foi atualizada para `1.1.0+1`.
+
 ## ❤️ Apoie o Projeto
 
 O Ouroboros é um projeto totalmente independente, feito por uma única pessoa... eu. Se você gostou da proposta, se o app te ajudou de alguma forma, ou se você acredita nessa missão de democratizar o acesso ao estudo, considere apoiar o projeto.
