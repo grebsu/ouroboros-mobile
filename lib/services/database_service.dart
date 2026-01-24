@@ -309,7 +309,18 @@ class DatabaseService {
       await db.execute('ALTER TABLE study_records DROP COLUMN videos;');
     }
     if (oldVersion < 18) {
-      await db.execute('ALTER TABLE study_records ADD COLUMN cycleId TEXT');
+      // Verificar se a coluna 'cycleId' já existe
+      var tableInfo = await db.rawQuery("PRAGMA table_info(study_records);");
+      bool columnExists = false;
+      for (var row in tableInfo) {
+        if (row['name'] == 'cycleId') {
+          columnExists = true;
+          break;
+        }
+      }
+      if (!columnExists) {
+        await db.execute('ALTER TABLE study_records ADD COLUMN cycleId TEXT');
+      }
     }
   }
 
@@ -1248,7 +1259,7 @@ class DatabaseService {
         cycleGenerationTimestamp: prefs.getString(
           '${userId}_cycleGenerationTimestamp_$planId',
         ),
-        currentCycleId: prefs.getString('${userId}_currentCycleId_$planId'), // NOVO
+        currentCycleId: prefs.getString('${userId}_currentCycleId_$planId'),
       );
       planningDataPerPlan[planId] = planningData;
     }

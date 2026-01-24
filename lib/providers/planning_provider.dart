@@ -58,8 +58,22 @@ class PlanningProvider with ChangeNotifier {
   void updateForPlan(String? newPlanId) {
     if (_planId == newPlanId) return;
 
+    // Se o plano atual é nulo E o novo plano também é nulo,
+    // significa que não há plano ativo, então não faz nada.
+    // Isso evita limpar dados de backup que podem estar esperando um planId válido.
+    if (_planId == null && newPlanId == null) {
+      return;
+    }
+
     _planId = newPlanId;
-    loadData();
+
+    // Se o _planId agora é nulo (o plano ativo foi desativado), limpar os dados.
+    if (_planId == null) {
+      _clearDataInMemory();
+    } else {
+      // Caso contrário, um planId válido foi definido ou mudou, então carregamos os novos dados.
+      loadData();
+    }
   }
 
   void _clearDataInMemory() {
@@ -230,77 +244,108 @@ class PlanningProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadData() async {
-    if (_planId == null) {
-      _clearDataInMemory();
-      return;
-    }
-    final prefs = await SharedPreferences.getInstance();
-
-    final studyCycleString = prefs.getString(_key('studyCycle'));
-    if (studyCycleString != null) {
-      final List<dynamic> decodedCycle = jsonDecode(studyCycleString);
-      _studyCycle = decodedCycle
-          .map((item) => StudySession.fromJson(item))
-          .toList();
-    } else {
-      _studyCycle = null;
-    }
-
-    _completedCycles = prefs.getInt(_key('completedCycles')) ?? 0;
-    _currentProgressMinutes = prefs.getInt(_key('currentProgressMinutes')) ?? 0;
-
-    final sessionProgressMapString = prefs.getString(
-      _key('sessionProgressMap'),
-    );
-    if (sessionProgressMapString != null) {
-      _sessionProgressMap = Map<String, int>.from(
-        jsonDecode(sessionProgressMapString),
+    Future<void> loadData() async {
+      if (_planId == null) {
+        _clearDataInMemory();
+        return;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload(); // NOVO: Recarregar prefs antes de ler
+  
+      final studyCycleString = prefs.getString(_key('studyCycle'));
+      if (studyCycleString != null) {
+        final List<dynamic> decodedCycle = jsonDecode(studyCycleString);
+        _studyCycle = decodedCycle
+            .map((item) => StudySession.fromJson(item))
+            .toList();
+      } else {
+        _studyCycle = null;
+      }
+  
+      _completedCycles = prefs.getInt(_key('completedCycles')) ?? 0;
+      _currentProgressMinutes = prefs.getInt(_key('currentProgressMinutes')) ?? 0;
+  
+      final sessionProgressMapString = prefs.getString(
+        _key('sessionProgressMap'),
       );
-    } else {
-      _sessionProgressMap = {};
-    }
-
-    final extraStudyTimeString = prefs.getString(
-      _key('extraStudyTimeBySubjectId'),
-    );
-    if (extraStudyTimeString != null) {
-      _extraStudyTimeBySubjectId = Map<String, int>.from(
-        jsonDecode(extraStudyTimeString),
+      if (sessionProgressMapString != null) {
+        _sessionProgressMap = Map<String, int>.from(
+          jsonDecode(sessionProgressMapString),
+        );
+      } else {
+        _sessionProgressMap = {};
+      }
+  
+      final extraStudyTimeString = prefs.getString(
+        _key('extraStudyTimeBySubjectId'),
       );
-    } else {
-      _extraStudyTimeBySubjectId = {};
+      if (extraStudyTimeString != null) {
+        _extraStudyTimeBySubjectId = Map<String, int>.from(
+          jsonDecode(extraStudyTimeString),
+        );
+      } else {
+        _extraStudyTimeBySubjectId = {};
+      }
+  
+      _studyHours = prefs.getString(_key('studyHours')) ?? '0';
+      _weeklyQuestionsGoal = prefs.getString(_key('weeklyQuestionsGoal')) ?? '0';
+  
+      final subjectSettingsString = prefs.getString(_key('subjectSettings'));
+      if (subjectSettingsString != null) {
+        _subjectSettings = Map<String, Map<String, double>>.from(
+          jsonDecode(
+            subjectSettingsString,
+          ).map((key, value) => MapEntry(key, Map<String, double>.from(value))),
+        );
+      } else {
+        _subjectSettings = {};
+      }
+  
+      _studyDays = prefs.getStringList(_key('studyDays')) ?? [];
+          _currentCycleId = prefs.getString(_key('currentCycleId'));
+      
+          // NOVA LÓGICA – decide se precisamos criar ou reutilizar o cycleId
+          if (_studyCycle != null && _currentCycleId == null) {
+            if (_historyProvider != null) {
+              await _historyProvider!.fetchHistory(); // garante que o histórico está atualizado
+      
+              // Procura o cycleId mais comum ou mais recente usado com as disciplinas desse plano
+              final candidateIds = _historyProvider!.allStudyRecords
+                  .where((r) => r.cycleId != null && r.count_in_planning)
+                  .map((r) => r.cycleId!)
+                  .toList();
+      
+              if (candidateIds.isNotEmpty) {
+                // Heurística: pega o cycleId mais frequente
+                final mostCommon = candidateIds
+                    .fold<Map<String, int>>({}, (map, id) => map..update(id, (v) => v + 1, ifAbsent: () => 1))
+                    .entries
+                    .reduce((a, b) => a.value > b.value ? a : b)
+                    .key;
+      
+                _currentCycleId = mostCommon;
+              } else {
+                // Nenhum registro com cycleId → ciclo novo ou realmente vazio
+                _currentCycleId = const Uuid().v4();
+              }
+            } else {
+              // Sem historyProvider → gera um novo
+              _currentCycleId = const Uuid().v4();
+            }
+      
+            await saveData(); // salva o ID recuperado ou novo
+          }  
+      // Após carregar os dados salvos, recalcular o progresso a partir do histórico
+      if (_historyProvider != null) {
+        // Assegurar que _historyProvider carregou seus dados primeiro
+        await _historyProvider!
+            .fetchHistory(); // Garantir que o histórico esteja atualizado
+        recalculateProgress(_historyProvider!.allStudyRecords);
+      } else {
+        // Fallback: se historyProvider for nulo, ainda notificar os listeners
+        notifyListeners();
+      }
     }
-
-    _studyHours = prefs.getString(_key('studyHours')) ?? '0';
-    _weeklyQuestionsGoal = prefs.getString(_key('weeklyQuestionsGoal')) ?? '0';
-
-    final subjectSettingsString = prefs.getString(_key('subjectSettings'));
-    if (subjectSettingsString != null) {
-      _subjectSettings = Map<String, Map<String, double>>.from(
-        jsonDecode(
-          subjectSettingsString,
-        ).map((key, value) => MapEntry(key, Map<String, double>.from(value))),
-      );
-    } else {
-      _subjectSettings = {};
-    }
-
-    _studyDays = prefs.getStringList(_key('studyDays')) ?? [];
-    _currentCycleId = prefs.getString(_key('currentCycleId'));
-
-    // Após carregar os dados salvos, recalcular o progresso a partir do histórico
-    if (_historyProvider != null) {
-      // Assegurar que _historyProvider carregou seus dados primeiro
-      await _historyProvider!
-          .fetchHistory(); // Garantir que o histórico esteja atualizado
-      recalculateProgress(_historyProvider!.allStudyRecords);
-    } else {
-      // Fallback: se historyProvider for nulo, ainda notificar os listeners
-      notifyListeners();
-    }
-  }
-
   Future<void> saveData() async {
     if (_planId == null) return;
     final prefs = await SharedPreferences.getInstance();
@@ -356,49 +401,33 @@ class PlanningProvider with ChangeNotifier {
 
   void generateStudyCycle({
     required int studyHours,
-
     required int minSession,
-
     required int maxSession,
-
     required Map<String, Map<String, double>> subjectSettings,
-
     required List<Subject> subjects,
-
     required String weeklyQuestionsGoal,
   }) {
     // NOVO: Zera completamente o estado do ciclo anterior
-
     resetStudyCycle();
 
     if (subjects.isEmpty) {
       _studyCycle = [];
-
       saveData();
-
       notifyListeners();
-
       return;
     }
 
     final List<StudySession> generatedCycle = [];
-
     final Map<String, double> subjectWeights = {};
-
     double totalWeight = 0;
 
     for (final subject in subjects) {
       final settings =
           subjectSettings[subject.id] ?? {'importance': 3, 'knowledge': 3};
-
       final importance = settings['importance']!;
-
       final knowledge = settings['knowledge']!;
-
       final weight = importance / knowledge;
-
       subjectWeights[subject.id] = weight;
-
       totalWeight += weight;
     }
 
@@ -406,33 +435,23 @@ class PlanningProvider with ChangeNotifier {
 
     for (final subject in subjects) {
       final weight = subjectWeights[subject.id]!;
-
       final subjectStudyMinutes = (totalStudyMinutes * (weight / totalWeight));
-
       final averageSessionDuration = (minSession + maxSession) / 2;
-
       int numberOfSessions = (subjectStudyMinutes / averageSessionDuration)
           .round();
-
       if (numberOfSessions == 0) continue;
 
       int sessionDuration = (subjectStudyMinutes / numberOfSessions).round();
-
       if (sessionDuration < minSession) sessionDuration = minSession;
-
       if (sessionDuration > maxSession) sessionDuration = maxSession;
 
       for (int i = 0; i < numberOfSessions; i++) {
         generatedCycle.add(
           StudySession(
             id: '${subject.id}_$i',
-
             subject: subject.subject,
-
             subjectId: subject.id,
-
             duration: sessionDuration,
-
             color: subject.color,
           ),
         );
@@ -440,27 +459,23 @@ class PlanningProvider with ChangeNotifier {
     }
 
     generatedCycle.shuffle();
-
     _studyCycle = generatedCycle;
-
     _currentCycleId = Uuid().v4();
+    // print('PlanningProvider: generateStudyCycle - Novo _currentCycleId gerado: $_currentCycleId'); // REMOVIDO
 
     saveData();
-
     notifyListeners();
   }
 
   void setManualStudyCycle(List<StudySession> manualCycle) {
     // NOVO: Zera completamente o estado do ciclo anterior
-
     resetStudyCycle();
 
     _studyCycle = manualCycle;
-
     _currentCycleId = Uuid().v4();
+    // print('PlanningProvider: setManualStudyCycle - Novo _currentCycleId definido: $_currentCycleId'); // REMOVIDO
 
     saveData();
-
     notifyListeners();
   }
 
