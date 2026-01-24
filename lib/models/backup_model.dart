@@ -11,6 +11,7 @@ class PlanningBackupData {
   final Map<String, Map<String, double>> subjectSettings;
   final List<String> studyDays;
   final String? cycleGenerationTimestamp;
+  final String? currentCycleId; // NOVO CAMPO
 
   PlanningBackupData({
     this.studyCycle,
@@ -22,6 +23,7 @@ class PlanningBackupData {
     required this.subjectSettings,
     required this.studyDays,
     this.cycleGenerationTimestamp,
+    this.currentCycleId, // NOVO CAMPO NO CONSTRUTOR
   });
 
   Map<String, dynamic> toMap() {
@@ -35,6 +37,7 @@ class PlanningBackupData {
       'subjectSettings': subjectSettings,
       'studyDays': studyDays,
       'cycleGenerationTimestamp': cycleGenerationTimestamp,
+      'currentCycleId': currentCycleId, // NOVO CAMPO NO TO_MAP
     };
   }
 
@@ -60,6 +63,7 @@ class PlanningBackupData {
       ),
       studyDays: List<String>.from(map['studyDays'] ?? []),
       cycleGenerationTimestamp: map['cycleGenerationTimestamp'],
+      currentCycleId: map['currentCycleId'], // NOVO CAMPO NO FROM_MAP
     );
   }
 }

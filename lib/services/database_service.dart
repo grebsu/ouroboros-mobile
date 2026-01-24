@@ -1248,6 +1248,7 @@ class DatabaseService {
         cycleGenerationTimestamp: prefs.getString(
           '${userId}_cycleGenerationTimestamp_$planId',
         ),
+        currentCycleId: prefs.getString('${userId}_currentCycleId_$planId'), // NOVO
       );
       planningDataPerPlan[planId] = planningData;
     }
@@ -1382,6 +1383,12 @@ class DatabaseService {
             planningData.cycleGenerationTimestamp!,
           );
         }
+        if (planningData.currentCycleId != null) {
+          await prefs.setString(
+            '${userId}_currentCycleId_$planId',
+            planningData.currentCycleId!,
+          );
+        }
       }
     });
   }
@@ -1507,6 +1514,12 @@ class DatabaseService {
           await prefs.setString(
             '${userId}_cycleGenerationTimestamp_$planId',
             planningData.cycleGenerationTimestamp!,
+          );
+        }
+        if (planningData.currentCycleId != null) {
+          await prefs.setString(
+            '${userId}_currentCycleId_$planId',
+            planningData.currentCycleId!,
           );
         }
       }

@@ -416,13 +416,19 @@ class _MyAppState extends State<MyApp> {
             mergedBackupData,
             userId,
           );
+          final historyProvider =
+              Provider.of<HistoryProvider>(context, listen: false);
+          final planningProvider =
+              Provider.of<PlanningProvider>(context, listen: false);
+
+          await historyProvider.fetchHistory();
+          await planningProvider.loadData();
+
           snackbarKey.currentState?.showSnackBar(
             const SnackBar(
-              content: Text('Sincronização rápida concluída com sucesso!'),
+              content: Text('Sincronização concluída e dados atualizados!'),
             ),
           );
-          // Restart app to reflect changes
-          restartNotifier.value++;
           break;
         case 403:
           snackbarKey.currentState?.showSnackBar(
