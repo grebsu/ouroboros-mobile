@@ -31,8 +31,22 @@ class PlanningProvider with ChangeNotifier {
     this.mentoriaProvider,
     AuthProvider? authProvider,
     HistoryProvider? historyProvider,
-  }) : _authProvider = authProvider,
-       _historyProvider = historyProvider;
+  })  : _authProvider = authProvider,
+        _historyProvider = historyProvider {
+    _historyProvider?.addListener(_onHistoryChanged);
+  }
+
+  void _onHistoryChanged() {
+    if (_historyProvider != null) {
+      recalculateProgress(_historyProvider!.allStudyRecords);
+    }
+  }
+
+  @override
+  void dispose() {
+    _historyProvider?.removeListener(_onHistoryChanged);
+    super.dispose();
+  }
 
   // Getters
   List<Subject> get subjects => _subjects;
