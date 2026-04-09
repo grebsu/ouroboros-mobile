@@ -1,0 +1,45 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze project
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Run tests
+        run: flutter test --coverage
+
+      - name: Upload coverage to Codecov (opcional)
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage/lcov.info
+
+      - name: Build APK (debug)
+        run: flutter build apk --debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ouroboros-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk

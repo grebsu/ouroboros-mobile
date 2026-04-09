@@ -1,3 +1,5 @@
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 <div align="center">
   <img src="logo/logo-marca-modo-escuro.png#gh-dark-mode-only" alt="Ouroboros Logo" width="400"/>
   <img src="logo/logo-marca.png#gh-light-mode-only" alt="Ouroboros Logo" width="400"/>
@@ -84,3 +86,11 @@ Esse tipo de apoio realmente ajuda. Mantém o projeto vivo, incentiva novas atua
 </div>
 
 Se você puder ajudar, de coração, muito obrigado. Se não puder, muito obrigado do mesmo jeito — só de você estar aqui, apoiando a ideia, já é enorme pra mim.
+
+## Licença
+
+Ouroboros Mobile é um software livre: você pode redistribuí-lo e/ou modificá-lo sob os termos da **GNU General Public License** versão 3 ou posterior.
+
+Veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+© 2025 Glebson (grebsu)
