@@ -73,7 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Calculate Total Study Time
     final totalMs = allRecords.fold<int>(
       0,
-      (sum, record) => sum + record.study_time,
+          (sum, record) => sum + record.study_time,
     );
     final totalStudyTime = Duration(milliseconds: totalMs);
 
@@ -118,12 +118,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .toList();
       final totalTopics = subjectsInPlan.fold<int>(
         0,
-        (sum, subject) => sum + (subject.total_topics_count ?? 0),
+            (sum, subject) => sum + (subject.total_topics_count ?? 0),
       );
 
       final studiedTopics = <String>{};
       for (var record in allRecords.where((r) => r.plan_id == activePlanId)) {
-        // Adiciona todos os topic_texts dos TopicProgress do registro à lista de tópicos estudados
         studiedTopics.addAll(record.topicsProgress.map((tp) => tp.topicText));
       }
 
@@ -138,13 +137,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (allRecords.isNotEmpty) {
       final uniqueStudyDays = allRecords
           .map((record) {
-            try {
-              final date = DateTime.parse(record.date).toLocal();
-              return DateTime(date.year, date.month, date.day);
-            } catch (e) {
-              return null;
-            }
-          })
+        try {
+          final date = DateTime.parse(record.date).toLocal();
+          return DateTime(date.year, date.month, date.day);
+        } catch (e) {
+          return null;
+        }
+      })
           .where((d) => d != null)
           .cast<DateTime>()
           .toSet();
@@ -185,7 +184,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final dayName = dayFormatter.format(date);
       final isStudied = studiedDays.contains(date);
       final isStudyDay = studyDaysPlanning.any(
-        (d) => dayName.toLowerCase().startsWith(d.toLowerCase()),
+            (d) => dayName.toLowerCase().startsWith(d.toLowerCase()),
       );
       final isRestDay = !isStudyDay;
 
@@ -205,7 +204,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'date': date,
         'status': status,
         'active':
-            date.isBefore(todayWithoutTime) ||
+        date.isBefore(todayWithoutTime) ||
             date.isAtSameMomentAs(todayWithoutTime),
       });
     }
@@ -219,21 +218,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (subjectId != null) {
         subjectPerformance.putIfAbsent(
           subjectId,
-          () => {'total': 0, 'correct': 0},
+              () => {'total': 0, 'correct': 0},
         );
         subjectStudyTimeMs.update(
           subjectId,
-          (value) => value + record.study_time,
+              (value) => value + record.study_time,
           ifAbsent: () => record.study_time,
         );
 
         for (var tp in record.topicsProgress) {
           subjectPerformance[subjectId]!['total'] =
               (subjectPerformance[subjectId]!['total'] ?? 0) +
-              (tp.questions['total'] ?? 0);
+                  (tp.questions['total'] ?? 0);
           subjectPerformance[subjectId]!['correct'] =
               (subjectPerformance[subjectId]!['correct'] ?? 0) +
-              (tp.questions['correct'] ?? 0);
+                  (tp.questions['correct'] ?? 0);
         }
       }
     }
@@ -241,7 +240,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     List<PerformanceData> performanceData = [];
     for (var entry in subjectPerformance.entries) {
       final subject = allSubjectsProvider.subjects.firstWhere(
-        (s) => s.id == entry.key,
+            (s) => s.id == entry.key,
         orElse: () => Subject(
           id: '',
           plan_id: '',
@@ -308,20 +307,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final subjectName = allSubjectsProvider.subjects
             .firstWhere(
               (s) => s.id == record.subject_id,
-              orElse: () => Subject(
-                id: '',
-                plan_id: '',
-                subject: 'Desconhecido',
-                color: '#808080',
-                topics: [],
-                lastModified: DateTime.now().millisecondsSinceEpoch,
-              ),
-            )
+          orElse: () => Subject(
+            id: '',
+            plan_id: '',
+            subject: 'Desconhecido',
+            color: '#808080',
+            topics: [],
+            lastModified: DateTime.now().millisecondsSinceEpoch,
+          ),
+        )
             .subject;
         dailySubjectStudyTime.putIfAbsent(dateKey, () => {});
         dailySubjectStudyTime[dateKey]!.update(
           subjectName,
-          (value) => value + record.study_time,
+              (value) => value + record.study_time,
           ifAbsent: () => record.study_time,
         );
       } catch (e) {
@@ -590,18 +589,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 24),
             const LastActivitiesSection(),
             const SizedBox(height: 24),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: DailyStudySection(
-                    dailySubjectStudyTime: dailySubjectStudyTime,
-                    subjectColors: subjectColors,
-                  ),
-                ),
-                const SizedBox(width: 24), // Spacing between sections
-                Expanded(child: const RemindersSection()),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth > 600) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: DailyStudySection(
+                          dailySubjectStudyTime: dailySubjectStudyTime,
+                          subjectColors: subjectColors,
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(child: const RemindersSection()),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      DailyStudySection(
+                        dailySubjectStudyTime: dailySubjectStudyTime,
+                        subjectColors: subjectColors,
+                      ),
+                      const SizedBox(height: 24),
+                      const RemindersSection(),
+                    ],
+                  );
+                }
+              },
             ),
           ],
         ),
@@ -615,7 +631,7 @@ class SummaryCard extends StatelessWidget {
   final String title;
   final String value;
   final Color color;
-  final Color iconColor; // New property for icon color
+  final Color iconColor;
   final bool isLandscape;
 
   const SummaryCard({
@@ -624,7 +640,7 @@ class SummaryCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.color,
-    required this.iconColor, // Required in constructor
+    required this.iconColor,
     this.isLandscape = false,
   }) : super(key: key);
 
@@ -648,7 +664,7 @@ class SummaryCard extends StatelessWidget {
                 icon,
                 size: isLandscape ? 24 : 32,
                 color: iconColor,
-              ), // Use iconColor here
+              ),
             ),
             SizedBox(width: isLandscape ? 8 : 12),
             Expanded(
@@ -704,12 +720,12 @@ class StudyConsistencyTracker extends StatelessWidget {
   Widget build(BuildContext context) {
     final isNextDisabled =
         endDate.isAfter(DateTime.now()) ||
-        DateTime(endDate.year, endDate.month, endDate.day) ==
-            DateTime(
-              DateTime.now().year,
-              DateTime.now().month,
-              DateTime.now().day,
-            );
+            DateTime(endDate.year, endDate.month, endDate.day) ==
+                DateTime(
+                  DateTime.now().year,
+                  DateTime.now().month,
+                  DateTime.now().day,
+                );
 
     return Card(
       elevation: 2,
@@ -719,41 +735,13 @@ class StudyConsistencyTracker extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'CONSTÂNCIA NOS ESTUDOS',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text('Você está há $studyStreak dias sem falhar!'),
-                    ],
-                  ),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: onPrev,
-                    ),
-                    Text(
-                      '${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: isNextDisabled ? null : onNext,
-                    ),
-                  ],
-                ),
-              ],
+            ResponsiveConsistencyHeader(
+              studyStreak: studyStreak,
+              startDate: startDate,
+              endDate: endDate,
+              onPrev: onPrev,
+              onNext: onNext,
+              isNextDisabled: isNextDisabled,
             ),
             const SizedBox(height: 16),
             StudyConsistencyGrid(daysData: daysData),
@@ -764,11 +752,131 @@ class StudyConsistencyTracker extends StatelessWidget {
   }
 }
 
+class ResponsiveConsistencyHeader extends StatelessWidget {
+  final int studyStreak;
+  final DateTime startDate;
+  final DateTime endDate;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+  final bool isNextDisabled;
+
+  const ResponsiveConsistencyHeader({
+    Key? key,
+    required this.studyStreak,
+    required this.startDate,
+    required this.endDate,
+    required this.onPrev,
+    required this.onNext,
+    required this.isNextDisabled,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 400) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'CONSTÂNCIA NOS ESTUDOS',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text('Você está há $studyStreak dias sem falhar!'),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: onPrev,
+                    constraints: const BoxConstraints(minWidth: 40),
+                    padding: EdgeInsets.zero,
+                  ),
+                  Expanded(
+                    child: Text(
+                      '${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: isNextDisabled ? null : onNext,
+                    constraints: const BoxConstraints(minWidth: 40),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'CONSTÂNCIA NOS ESTUDOS',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text('Você está há $studyStreak dias sem falhar!'),
+                ],
+              ),
+            ),
+            const Spacer(),
+            Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: onPrev,
+                    constraints: const BoxConstraints(minWidth: 40),
+                    padding: EdgeInsets.zero,
+                  ),
+                  Flexible(
+                    child: Text(
+                      '${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: isNextDisabled ? null : onNext,
+                    constraints: const BoxConstraints(minWidth: 40),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class PerformancePanel extends StatelessWidget {
   final List<PerformanceData> performanceData;
 
   const PerformancePanel({Key? key, required this.performanceData})
-    : super(key: key);
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -874,23 +982,31 @@ class WeeklyStudyGoals extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            Expanded(
+              flex: 2,
+              child: Text(
+                title,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            Text(
-              '$currentValue / $goalValue',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: Text(
+                '$currentValue / $goalValue',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+              ),
             ),
           ],
         ),
         const SizedBox(height: 8),
         ClipRRect(
-          borderRadius: BorderRadius.circular(
-            6.0,
-          ), // Half of minHeight for rounded ends
+          borderRadius: BorderRadius.circular(6.0),
           child: LinearProgressIndicator(
             value: percentage / 100,
             backgroundColor: Colors.grey.shade300,
@@ -905,8 +1021,8 @@ class WeeklyStudyGoals extends StatelessWidget {
             '${percentage.toStringAsFixed(1)}%',
             style: TextStyle(
               fontSize: 12,
-              color: barColor, // Use the bar's color
-              fontWeight: FontWeight.bold, // Make it bold
+              color: barColor,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -939,59 +1055,126 @@ class WeeklyStudyChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Text(
-                  'ESTUDO SEMANAL',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                ToggleButtons(
-                  isSelected: [
-                    currentView == ChartView.time,
-                    currentView == ChartView.questions,
-                  ],
-                  onPressed: (int index) {
-                    if (index == 0) {
-                      onViewModeChanged(ChartView.time);
-                    } else {
-                      onViewModeChanged(ChartView.questions);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  selectedColor: Colors.white,
-                  fillColor: Colors.teal,
-                  color: Colors.grey, // Color for unselected items
-                  borderColor: Colors.grey, // Border for unselected items
-                  selectedBorderColor: Colors.teal,
-                  constraints: const BoxConstraints(
-                    minHeight: 32.0,
-                    minWidth: 64.0,
-                  ),
-                  children: const <Widget>[
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text(
-                        'TEMPO',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+            // CORRIGIDO: Row responsivo com layout empilhado para telas pequenas
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Se a largura for muito pequena, empilha verticalmente
+                if (constraints.maxWidth < 300) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'ESTUDO SEMANAL',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: ToggleButtons(
+                          isSelected: [
+                            currentView == ChartView.time,
+                            currentView == ChartView.questions,
+                          ],
+                          onPressed: (int index) {
+                            if (index == 0) {
+                              onViewModeChanged(ChartView.time);
+                            } else {
+                              onViewModeChanged(ChartView.questions);
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          selectedColor: Colors.white,
+                          fillColor: Colors.teal,
+                          color: Colors.grey,
+                          borderColor: Colors.grey,
+                          selectedBorderColor: Colors.teal,
+                          constraints: const BoxConstraints(
+                            minHeight: 28.0,
+                            minWidth: 50.0,
+                          ),
+                          children: const <Widget>[
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+                              child: Text(
+                                'TEMPO',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+                              child: Text(
+                                'QUESTÕES',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                    ],
+                  );
+                }
+
+                // Layout padrão para telas maiores
+                return Row(
+                  children: [
+                    const Text(
+                      'ESTUDO SEMANAL',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text(
-                        'QUESTÕES',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    const Spacer(),
+                    ToggleButtons(
+                      isSelected: [
+                        currentView == ChartView.time,
+                        currentView == ChartView.questions,
+                      ],
+                      onPressed: (int index) {
+                        if (index == 0) {
+                          onViewModeChanged(ChartView.time);
+                        } else {
+                          onViewModeChanged(ChartView.questions);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      selectedColor: Colors.white,
+                      fillColor: Colors.teal,
+                      color: Colors.grey,
+                      borderColor: Colors.grey,
+                      selectedBorderColor: Colors.teal,
+                      constraints: const BoxConstraints(
+                        minHeight: 28.0,
+                        minWidth: 50.0,
                       ),
+                      children: const <Widget>[
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                          child: Text(
+                            'TEMPO',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                          child: Text(
+                            'QUESTÕES',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
             const SizedBox(height: 16),
             WeeklyBarChart(
@@ -1005,5 +1188,3 @@ class WeeklyStudyChart extends StatelessWidget {
     );
   }
 }
-
-// Placeholder Widgets for other sections

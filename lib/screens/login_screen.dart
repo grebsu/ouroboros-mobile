@@ -55,101 +55,104 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.all(32.0),
           child: Form(
             key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  Theme.of(context).brightness == Brightness.dark
-                      ? 'logo/logo-marca-modo-escuro.png'
-                      : 'logo/logo-marca.png',
-                  height: 80,
-                ),
-                const SizedBox(height: 40),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Nome de Usuário',
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: theme.brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black,
-                        width: 1.0,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? 'logo/logo-marca-modo-escuro.png'
+                        : 'logo/logo-marca.png',
+                    height: 80,
+                  ),
+                  const SizedBox(height: 40),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Nome de Usuário',
+                      border: const OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
+                          width: 1.0,
+                        ),
                       ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.teal, width: 2.0),
-                    ),
-                    focusColor: Colors.teal,
-                    labelStyle: TextStyle(color: Colors.teal),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira seu nome de usuário';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: 'Senha',
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: theme.brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black,
-                        width: 1.0,
+                      focusedBorder: const OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.teal, width: 2.0),
                       ),
+                      focusColor: Colors.teal,
+                      labelStyle: const TextStyle(color: Colors.teal),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.teal, width: 2.0),
-                    ),
-                    focusColor: Colors.teal,
-                    labelStyle: TextStyle(color: Colors.teal),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, insira seu nome de usuário';
+                      }
+                      return null;
+                    },
                   ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, insira sua senha';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                if (_isLoading)
-                  const CircularProgressIndicator(color: Colors.teal)
-                else
-                  ElevatedButton(
-                    onPressed: _login,
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(
-                        double.infinity,
-                        50,
-                      ), // Botão largo
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Entrar'),
-                  ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const RegisterScreen(),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: 'Senha',
+                      border: const OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
+                          width: 1.0,
+                        ),
                       ),
-                    );
-                  },
-                  child: const Text(
-                    'Não tem uma conta? Registre-se',
-                    style: TextStyle(color: Colors.teal),
+                      focusedBorder: const OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.teal, width: 2.0),
+                      ),
+                      focusColor: Colors.teal,
+                      labelStyle: const TextStyle(color: Colors.teal),
+                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, insira sua senha';
+                      }
+                      return null;
+                    },
                   ),
-                ),
-              ],
+                  const SizedBox(height: 24),
+                  if (_isLoading)
+                    const CircularProgressIndicator(color: Colors.teal)
+                  else
+                    ElevatedButton(
+                      onPressed: _login,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(
+                          double.infinity,
+                          50,
+                        ),
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Entrar'),
+                    ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const RegisterScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Não tem uma conta? Registre-se',
+                      style: TextStyle(color: Colors.teal),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
