@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:ouroboros_mobile/providers/plans_provider.dart';
 import 'package:ouroboros_mobile/providers/planning_provider.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:image/image.dart' as img;
@@ -40,10 +39,8 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
   }
 
   Future<void> _pickImage() async {
-    PermissionStatus photoStatus = await Permission.photos.request();
-    PermissionStatus storageStatus = await Permission.storage.request();
-
-    if (photoStatus.isGranted || storageStatus.isGranted) {
+    try {
+      // No Linux, tenta selecionar a imagem diretamente sem pedir permissão
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         allowMultiple: false,
@@ -86,14 +83,12 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
           }
         }
       }
-    } else {
+    } catch (e) {
+      // Se ocorrer um erro, mostra mensagem
+      print('Erro ao selecionar imagem: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Permissão de armazenamento negada. Não é possível importar a imagem.',
-            ),
-          ),
+          SnackBar(content: Text('Erro ao selecionar imagem: $e')),
         );
       }
     }
@@ -107,7 +102,7 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
       final planningProvider = Provider.of<PlanningProvider>(
         context,
         listen: false,
-      ); // Get PlanningProvider
+      );
 
       // Show a loading indicator while saving
       showDialog(
@@ -129,7 +124,7 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
             edital: _edital,
             banca: _banca,
             observations: _observations,
-            iconUrl: _selectedImagePath, // Pass the selected image path
+            iconUrl: _selectedImagePath,
           );
           planningProvider.updateForPlan(newPlan.id);
         } else {
@@ -140,7 +135,7 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
             edital: _edital,
             banca: _banca,
             observations: _observations,
-            iconUrl: _selectedImagePath, // Pass the selected image path
+            iconUrl: _selectedImagePath,
           );
           await plansProvider.updatePlan(updatedPlan);
         }
@@ -219,7 +214,7 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
                       onPressed: _pickImage,
                       style: TextButton.styleFrom(
                         foregroundColor:
-                            Theme.of(context).brightness == Brightness.dark
+                        Theme.of(context).brightness == Brightness.dark
                             ? Colors.white
                             : Colors.teal,
                       ),
@@ -229,7 +224,7 @@ class _CreatePlanModalState extends State<CreatePlanModal> {
                 ),
                 const SizedBox(
                   height: 24,
-                ), // Spacing between image section and form fields
+                ),
                 // Form fields
                 TextFormField(
                   initialValue: _planName,
