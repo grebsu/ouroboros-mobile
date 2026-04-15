@@ -75,6 +75,11 @@ class FakeSharedPreferences implements SharedPreferences {
   Future<void> reload() async {}
 
   @override
+  Future<bool> commit() async {
+    return true;
+  }
+
+  @override
   bool containsKey(String key) => _data.containsKey(key);
 }
 
@@ -86,15 +91,32 @@ void main() {
     sqfliteFfiInit();
     db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     // Executar schema v3 aqui...
-    for (final stmt in schemaV3.split(';')) {
+    final statements = schemaV3.split(';');
+    for (final stmt in statements) {
       if (stmt.trim().isNotEmpty) await db.execute(stmt);
     }
     repo = StudyRepository(db: db, prefs: FakeSharedPreferences());
 
     // Inserir dados básicos para os testes
-    await db.insert('subject_areas', {'id': 1, 'name': 'Matemática', 'created_at': DateTime.now().millisecondsSinceEpoch});
-    await db.insert('topics', {'id': 1, 'subject_area_id': 1, 'name': 'Álgebra', 'created_at': DateTime.now().millisecondsSinceEpoch, 'estimated_hours': 10.0});
-    await db.insert('topics', {'id': 2, 'subject_area_id': 1, 'name': 'Geometria', 'created_at': DateTime.now().millisecondsSinceEpoch, 'estimated_hours': 15.0});
+    await db.insert('subject_areas', {
+      'id': 1, 
+      'name': 'Matemática', 
+      'created_at': DateTime.now().millisecondsSinceEpoch
+    });
+    await db.insert('topics', {
+      'id': 1, 
+      'subject_area_id': 1, 
+      'name': 'Álgebra', 
+      'created_at': DateTime.now().millisecondsSinceEpoch, 
+      'estimated_hours': 10.0
+    });
+    await db.insert('topics', {
+      'id': 2, 
+      'subject_area_id': 1, 
+      'name': 'Geometria', 
+      'created_at': DateTime.now().millisecondsSinceEpoch, 
+      'estimated_hours': 15.0
+    });
   });
 
   tearDown(() async {
@@ -149,7 +171,7 @@ void main() {
       'updated_at': DateTime.now().millisecondsSinceEpoch
     });
     await db.insert('study_sessions', {
-      'topic_id': 2, // Diferente tópico
+      'topic_id': 2,
       'cycle_id': 1,
       'study_date': DateTime(2025, 1, 1).millisecondsSinceEpoch,
       'minutes': 60,
@@ -159,10 +181,10 @@ void main() {
 
     final sessions = await repo.getSessionsByTopic('Álgebra');
     expect(sessions.length, 2);
-    expect(sessions.first['minutes'], 90); // Ordenado por data DESC
+    expect(sessions.first['minutes'], 90);
     expect(sessions.last['minutes'], 30);
-    expect(sessions.first['topic_info']['name'], 'Álgebra');
-    expect(sessions.last['topic_info']['name'], 'Álgebra');
+    expect((sessions.first['topic_info'] as Map)['name'], 'Álgebra');
+    expect((sessions.last['topic_info'] as Map)['name'], 'Álgebra');
   });
 
   test('syncSessions insere e atualiza sessões', () async {
@@ -174,7 +196,7 @@ void main() {
       'study_date': DateTime(2025, 1, 1).millisecondsSinceEpoch,
       'minutes': 60,
       'session_type': 'theory',
-      'updated_at': DateTime(2025, 1, 1, 10, 0, 0).millisecondsSinceEpoch // old timestamp
+      'updated_at': DateTime(2025, 1, 1, 10, 0, 0).millisecondsSinceEpoch
     });
 
     // Sessão remota para inserir
@@ -196,7 +218,7 @@ void main() {
       'minutes': 75,
       'session_type': 'theory',
       'metadata': '{"note": "updated"}',
-      'updated_at': DateTime(2025, 1, 1, 12, 0, 0).millisecondsSinceEpoch // more recent timestamp
+      'updated_at': DateTime(2025, 1, 1, 12, 0, 0).millisecondsSinceEpoch
     };
 
     await repo.syncSessions([newRemoteSession, updatedRemoteSession]);
@@ -205,11 +227,11 @@ void main() {
     expect(sessions.length, 2);
 
     final session1 = sessions.firstWhere((s) => s['id'] == 1);
-    expect(session1['minutes'], 75); // Deve ter sido atualizado
+    expect(session1['minutes'], 75);
     expect(session1['metadata'], '{"note": "updated"}');
 
     final session2 = sessions.firstWhere((s) => s['id'] == 2);
-    expect(session2['minutes'], 90); // Deve ter sido inserido
+    expect(session2['minutes'], 90);
     expect(session2['session_type'], 'questions');
   });
 
@@ -217,10 +239,6 @@ void main() {
     // Adicionar algo ao cache
     await repo.getSessionsByTopic('Álgebra');
     expect(repo.clearCache, returnsNormally);
-    // Verificação indireta: garantir que o cache está vazio
-    // Como _memoryCache é privado, verificamos que o próximo getSessionsByTopic não use o cache
-    // ou adicionamos um método de debug no StudyRepository se necessário para testes mais profundos.
-    // Por enquanto, a chamada sem erros é o suficiente.
   });
 
   test('Trigger de topic_progress funciona ao inserir session', () async {
@@ -239,13 +257,12 @@ void main() {
     expect(progress.length, 1);
     expect(progress.first['total_minutes'], 60);
     expect(progress.first['last_studied_at'], now);
-    // estimated_hours para Algebra é 10.0, então 60 min = 1 hora / 10 horas = 0.1 mastery
     expect(progress.first['mastery_level'], closeTo(0.1, 0.001));
 
     await db.insert('study_sessions', {
       'topic_id': 1,
       'cycle_id': 1,
-      'study_date': now + 3600000, // uma hora depois
+      'study_date': now + 3600000,
       'minutes': 120,
       'session_type': 'questions',
       'updated_at': now + 3600000
@@ -253,9 +270,8 @@ void main() {
 
     final updatedProgress = await db.query('topic_progress', where: 'topic_id = ?', whereArgs: [1]);
     expect(updatedProgress.length, 1);
-    expect(updatedProgress.first['total_minutes'], 180); // 60 + 120
-    expect(updatedProgress.first['last_studied_at'], now + 3600000); // data mais recente
-    // 180 min = 3 horas / 10 horas = 0.3 mastery
+    expect(updatedProgress.first['total_minutes'], 180);
+    expect(updatedProgress.first['last_studied_at'], now + 3600000);
     expect(updatedProgress.first['mastery_level'], closeTo(0.3, 0.001));
   });
 }

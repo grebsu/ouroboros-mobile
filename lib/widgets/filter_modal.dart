@@ -52,17 +52,17 @@ class _FilterModalState extends State<FilterModal> {
         ? _filterProvider.historyFilters
         : _filterProvider.statsFilters;
 
-    _startDate = filters['startDate'];
-    _endDate = filters['endDate'];
+    _startDate = filters['startDate'] as DateTime?;
+    _endDate = filters['endDate'] as DateTime?;
     _minDurationController.text = filters['minDuration']?.toString() ?? '';
     _maxDurationController.text = filters['maxDuration']?.toString() ?? '';
     _minPerformanceController.text =
         filters['minPerformance']?.toString() ?? '';
     _maxPerformanceController.text =
         filters['maxPerformance']?.toString() ?? '';
-    _selectedCategories = List.from(filters['categories'] ?? []);
-    _selectedSubjects = List.from(filters['subjects'] ?? []);
-    _selectedTopics = List.from(filters['topics'] ?? []);
+    _selectedCategories = List<String>.from(filters['categories'] as List<dynamic>? ?? []);
+    _selectedSubjects = List<String>.from(filters['subjects'] as List<dynamic>? ?? []);
+    _selectedTopics = List<String>.from(filters['topics'] as List<dynamic>? ?? []);
   }
 
   List<String> get _topicsForSelectedSubjects {

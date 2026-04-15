@@ -25,13 +25,13 @@ class RemindersProvider with ChangeNotifier {
 
     if (notesString != null) {
       try {
-        final List<dynamic> decodedList = jsonDecode(notesString);
+        final List<dynamic> decodedList = jsonDecode(notesString) as List<dynamic>;
         _notes = decodedList
-            .map((item) => ReminderNote.fromJson(item))
+            .map((item) => ReminderNote.fromJson(item as Map<String, dynamic>))
             .toList();
       } catch (e) {
-        print('Error decoding reminder notes: $e');
-        _notes = []; // Reset to empty list if decoding fails
+        debugPrint('Error decoding reminder notes: $e');
+        _notes = [];
       }
     } else {
       _notes = [];
@@ -52,7 +52,7 @@ class RemindersProvider with ChangeNotifier {
   void addNote(String text) {
     if (text.trim().isEmpty) return;
     final newNote = ReminderNote(
-      id: Uuid().v4(),
+      id: const Uuid().v4(),
       text: text.trim(),
       completed: false,
     );

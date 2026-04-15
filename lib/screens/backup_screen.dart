@@ -135,7 +135,7 @@ class _BackupScreenState extends State<BackupScreen> {
 
               final file = File(result.files.single.path!);
               final jsonString = await file.readAsString();
-              final backupData = BackupData.fromMap(jsonDecode(jsonString));
+              final backupData = BackupData.fromMap(jsonDecode(jsonString) as Map<String, dynamic>);
 
               final authProvider = Provider.of<AuthProvider>(
                 backupScreenContext,

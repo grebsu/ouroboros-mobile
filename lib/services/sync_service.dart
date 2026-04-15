@@ -1,7 +1,7 @@
-// lib/services/sync_service.dart
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:ouroboros_mobile/models/backup_model.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:ouroboros_mobile/services/database_service.dart';
@@ -31,23 +31,20 @@ class SyncService {
   SyncService._internal();
 
   HttpServer? _server;
-  HttpServer? get server => _server; // NEW PUBLIC GETTER
+  HttpServer? get server => _server;
   String? _currentUserId;
   final _incomingRequestsController = StreamController<PairRequest>.broadcast();
-  Stream<PairRequest> get incomingRequests =>
-      _incomingRequestsController.stream;
+  Stream<PairRequest> get incomingRequests => _incomingRequestsController.stream;
 
   final Map<String, Completer<Map<String, dynamic>>> _pending = {};
-  final Uuid _uuid = Uuid();
+  final Uuid _uuid = const Uuid();
 
-  // Paired devices stored as Map<String, Map> where key is ip:port
   static const _prefKey = 'paired_devices';
 
   Future<void> startServer({int port = 5000, required String userId}) async {
     if (_server != null) {
-      print('[SyncService] HTTP server já está em execução na porta $port.');
-      _currentUserId =
-          userId; // Atualiza o userId caso seja uma reinicialização lógica
+      debugPrint('[SyncService] HTTP server já está em execução na porta $port.');
+      _currentUserId = userId;
       return;
     }
     _currentUserId = userId;
@@ -55,9 +52,9 @@ class SyncService {
       InternetAddress.anyIPv4,
       port,
       shared: true,
-    ); // Adicionado shared: true
+    );
     _server!.listen(_handleRequest);
-    print(
+    debugPrint(
       '[SyncService] HTTP server iniciado em 0.0.0.0:$port para o usuário $_currentUserId (shared).',
     );
   }
@@ -90,20 +87,17 @@ class SyncService {
         final completer = Completer<Map<String, dynamic>>();
         _pending[requestId] = completer;
 
-        // notify UI
         _incomingRequestsController.add(pairReq);
 
-        // Wait for user's decision (up to 60s)
         Map<String, dynamic> result;
         try {
-          result = await completer.future.timeout(Duration(seconds: 60));
+          result = await completer.future.timeout(const Duration(seconds: 60));
         } catch (e) {
           result = {'status': 'timeout'};
         } finally {
           _pending.remove(requestId);
         }
 
-        // Response to client
         req.response.statusCode = 200;
         req.response.headers.contentType = ContentType.json;
         req.response.write(json.encode(result));
@@ -120,7 +114,7 @@ class SyncService {
 
         final token = authHeader[0].replaceFirst('Bearer ', '');
         final remoteIp = req.connectionInfo!.remoteAddress.address;
-        print(
+        debugPrint(
           '[SyncService] Autenticando requisição de IP: $remoteIp com Token: $token',
         );
         final isAuthenticated = await _authenticate(remoteIp, token);
@@ -150,50 +144,42 @@ class SyncService {
           return;
         }
 
-        // --- Início da Lógica de Sincronização Bidirecional ---
         try {
-          // 1. Receber os dados de backup do cliente
           final clientPayload = await utf8.decoder.bind(req).join();
           final clientBackupData = BackupData.fromMap(
-            json.decode(clientPayload),
+            json.decode(clientPayload) as Map<String, dynamic>,
           );
 
-          // 2. Exportar os dados de backup do servidor
           final serverBackupData = await DatabaseService.instance
               .exportBackupData(_currentUserId!);
 
-          // 3. Mesclar os dados do cliente com os dados do servidor
           final mergedBackupData = _mergeBackupData(
             serverBackupData,
             clientBackupData,
           );
 
-          // 4. Importar os dados mesclados para o banco de dados do servidor
           await DatabaseService.instance.importMergedData(
             mergedBackupData,
             _currentUserId!,
           );
 
-          // 5. Enviar os dados mesclados de volta ao cliente
           final jsonData = json.encode(mergedBackupData.toMap());
           req.response.headers.contentType = ContentType.json;
           req.response.statusCode = HttpStatus.ok;
           req.response.write(jsonData);
           await req.response.close();
-          print(
+          debugPrint(
             '[SyncService] Sincronização bidirecional concluída com sucesso.',
           );
         } catch (e, s) {
-          print('[SyncService] Erro na sincronização bidirecional: $e');
-          print(s);
+          debugPrint('[SyncService] Erro na sincronização bidirecional: $e');
+          debugPrint('$s');
           req.response
             ..statusCode = HttpStatus.internalServerError
             ..write('Internal Server Error: $e');
           await req.response.close();
         }
-        // --- Fim da Lógica de Sincronização Bidirecional ---
       } else {
-        // Not found
         req.response.statusCode = 404;
         await req.response.close();
       }
@@ -207,30 +193,28 @@ class SyncService {
 
   Future<bool> _authenticate(String ip, String token) async {
     final pairedDevices = await getPairedDevices();
-    print(
+    debugPrint(
       '[SyncService] Autenticando... Dispositivos pareados salvos: ${json.encode(pairedDevices)}',
     );
 
-    for (var entry in pairedDevices.entries) {
+    for (final entry in pairedDevices.entries) {
       final device = entry.value as Map<String, dynamic>;
       final savedIp = device['ip'] as String?;
       final savedToken = device['token'] as String?;
-      print(
+      debugPrint(
         '[SyncService] Comparando IP recebido ($ip) com salvo ($savedIp) E Token recebido ($token) com salvo ($savedToken)',
       );
 
       if (savedIp == ip && savedToken == token) {
-        print('[SyncService] Autenticação BEM-SUCEDIDA para IP $ip');
+        debugPrint('[SyncService] Autenticação BEM-SUCEDIDA para IP $ip');
         return true;
       }
     }
 
-    print('[SyncService] Autenticação FALHOU para IP $ip');
+    debugPrint('[SyncService] Autenticação FALHOU para IP $ip');
     return false;
   }
 
-  /// Called by UI when user accepts/rejects an incoming pair request.
-  /// If accepted=true, generate token, store pairing, and complete the waiting client.
   Future<void> respondToPairRequest(
     String requestId, {
     required bool accepted,
@@ -246,41 +230,30 @@ class SyncService {
     }
 
     final data = {'status': 'accepted', 'token': token};
-
-    // store pairing (we need the request info to know ip/port) -> locate pair request by id
-    // We don't keep the PairRequest after completion; better to require UI to call storePairedDevice separately.
     completer.complete(data);
   }
 
   BackupData _mergeBackupData(BackupData serverData, BackupData clientData) {
-    // Helper para mesclar listas de itens com base no ID e lastModified
     List<T> _mergeList<T>(List<T> serverList, List<T> clientList) {
       final Map<String, T> mergedMap = {};
 
-      // Adicionar todos os itens do servidor
       for (final item in serverList) {
-        // Tentar acessar 'id' e 'lastModified' dinamicamente
-        // Isso assume que todos os modelos em 'data_models.dart' têm 'id' e 'lastModified'
         final id = (item as dynamic).id as String;
         mergedMap[id] = item;
       }
 
-      // Mesclar itens do cliente
       for (final item in clientList) {
         final id = (item as dynamic).id as String;
         final clientLastModified = (item as dynamic).lastModified as int;
 
         if (mergedMap.containsKey(id)) {
           final serverItem = mergedMap[id];
-          final serverLastModified =
-              (serverItem as dynamic).lastModified as int;
+          final serverLastModified = (serverItem as dynamic).lastModified as int;
 
-          // Last write wins
           if (clientLastModified > serverLastModified) {
             mergedMap[id] = item;
           }
         } else {
-          // Item do cliente não existe no servidor, adicionar
           mergedMap[id] = item;
         }
       }
@@ -288,34 +261,24 @@ class SyncService {
       return mergedMap.values.toList();
     }
 
-    // Mesclar Plans
     final mergedPlans = _mergeList<Plan>(serverData.plans, clientData.plans);
-
-    // Mesclar Subjects
     final mergedSubjects = _mergeList<Subject>(
       serverData.subjects,
       clientData.subjects,
     );
-
-    // Mesclar StudyRecords
     final mergedStudyRecords = _mergeList<StudyRecord>(
       serverData.studyRecords,
       clientData.studyRecords,
     );
-
-    // Mesclar ReviewRecords
     final mergedReviewRecords = _mergeList<ReviewRecord>(
       serverData.reviewRecords,
       clientData.reviewRecords,
     );
-
-    // Mesclar SimuladoRecords
     final mergedSimuladoRecords = _mergeList<SimuladoRecord>(
       serverData.simuladoRecords,
       clientData.simuladoRecords,
     );
 
-    // Mesclar PlanningDataPerPlan com base no timestamp "last write wins"
     final Map<String, PlanningBackupData> mergedPlanningDataPerPlan = {};
     mergedPlanningDataPerPlan.addAll(serverData.planningDataPerPlan);
 
@@ -341,9 +304,8 @@ class SyncService {
             mergedPlanningDataPerPlan[planId] = clientPlanningData;
           }
         } catch (e) {
-          // Fallback para cliente ganha em caso de erro de parse, para manter um comportamento previsível
           mergedPlanningDataPerPlan[planId] = clientPlanningData;
-          print('Erro ao parsear timestamp do ciclo de planejamento: $e');
+          debugPrint('Erro ao parsear timestamp do ciclo de planejamento: $e');
         }
       } else {
         mergedPlanningDataPerPlan[planId] = clientPlanningData;
@@ -360,7 +322,6 @@ class SyncService {
     );
   }
 
-  /// Helper: Server can persist a pairing (called by UI after acceptance)
   Future<void> storePairedDevice(
     String ip,
     int port,
@@ -396,7 +357,6 @@ class SyncService {
     await prefs.setString(_prefKey, json.encode(map));
   }
 
-  /// Client-side: send pair request to remote http server and wait response
   Future<Map<String, dynamic>> sendPairRequest(
     String ip,
     int port,
@@ -411,7 +371,7 @@ class SyncService {
             headers: {'Content-Type': 'application/json'},
             body: json.encode({'deviceName': myName, 'deviceId': myId}),
           )
-          .timeout(Duration(seconds: 30));
+          .timeout(const Duration(seconds: 30));
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body) as Map<String, dynamic>;
         return data;
@@ -426,6 +386,6 @@ class SyncService {
   Future<void> clearAllPairedDevices() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefKey);
-    print('[SyncService] All paired devices have been cleared.');
+    debugPrint('[SyncService] All paired devices have been cleared.');
   }
 }

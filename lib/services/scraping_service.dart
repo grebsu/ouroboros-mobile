@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 
@@ -7,7 +8,6 @@ class ScrapingService {
   late HeadlessInAppWebView _headlessWebView;
   late String _initialUrl;
 
-  // Armazenamento temporário dos dados
   Map<String, dynamic> _headerData = {};
   List<Map<String, String>> _subjectLinks = [];
   List<Subject> _finalSubjects = [];
@@ -19,23 +19,23 @@ class ScrapingService {
     _headlessWebView = HeadlessInAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(url)),
       onWebViewCreated: (controller) {
-        // print('ScrapingService: HeadlessInAppWebView criado!');
+        // debugPrint('ScrapingService: HeadlessInAppWebView criado!');
       },
       onLoadStart: (controller, url) {
-        // print('ScrapingService: Iniciando carregamento de: $url');
+        // debugPrint('ScrapingService: Iniciando carregamento de: $url');
       },
       onLoadStop: _onPageLoaded,
       onReceivedError: (controller, url, error) {
-        // print('ScrapingService: Erro ao carregar $url: Código ${error.type}, Mensagem: ${error.description}');
+        debugPrint('ScrapingService: Erro ao carregar $url: Código ${error.type}, Mensagem: ${error.description}');
         _completer.completeError(
           'Erro ao carregar a página: ${error.description}',
         );
       },
       onConsoleMessage: (controller, consoleMessage) {
-        // print('ScrapingService: WebView Console [${consoleMessage.messageLevel.toString().split('.').last}]: ${consoleMessage.message}');
+        // debugPrint('ScrapingService: WebView Console [${consoleMessage.messageLevel.toString().split('.').last}]: ${consoleMessage.message}');
       },
       onProgressChanged: (controller, progress) {
-        // print('ScrapingService: Progresso de carregamento: $progress%');
+        // debugPrint('ScrapingService: Progresso de carregamento: $progress%');
       },
     );
 
@@ -50,15 +50,11 @@ class ScrapingService {
     if (url == null) return;
 
     try {
-      // Se for a página inicial, extraia o cabeçalho e os links das matérias
       if (url.toString() == _initialUrl) {
         await _extractHeaderAndSubjectLinks(controller);
-        // Inicia o processo de scraping das matérias
         await _scrapeNextSubject(controller);
       } else {
-        // Se for uma página de matéria, extraia os tópicos
         await _extractTopics(controller);
-        // Passa para a próxima matéria
         await _scrapeNextSubject(controller);
       }
     } catch (e) {
@@ -69,14 +65,12 @@ class ScrapingService {
   Future<void> _extractHeaderAndSubjectLinks(
     InAppWebViewController controller,
   ) async {
-    // Aguarda o seletor principal estar presente
     await _waitForSelector(
       controller,
       'div.guias-cabecalho, div.cadernos-agrupamento, div.detalhes-cabecalho',
     );
 
-    // Extrai os dados do cabeçalho
-    String getHeaderJs = """
+    final String getHeaderJs = """
       (function() {
         let name = document.querySelector('div.guias-cabecalho-concurso-nome')?.textContent?.trim() ||
                    document.querySelector('div.detalhes-cabecalho-informacoes-texto h1 span:not([class])')?.textContent?.trim() ||
@@ -95,12 +89,10 @@ class ScrapingService {
         return { name, cargo, edital, iconUrl, banca };
       })();
     """;
-    _headerData =
-        await controller.evaluateJavascript(source: getHeaderJs)
-            as Map<String, dynamic>;
+    final headerResult = await controller.evaluateJavascript(source: getHeaderJs);
+    _headerData = Map<String, dynamic>.from(headerResult as Map<dynamic, dynamic>);
 
-    // Extrai os links das matérias
-    String getLinksJs = """
+    final String getLinksJs = """
       (function() {
         const links = [];
         let subjectElements = document.querySelectorAll('div.guia-materia-item');
@@ -132,11 +124,10 @@ class ScrapingService {
         return links;
       })();
     """;
-    final linksResult =
-        await controller.evaluateJavascript(source: getLinksJs)
-            as List<dynamic>;
-    _subjectLinks = linksResult
-        .map((item) => Map<String, String>.from(item))
+    final linksResult = await controller.evaluateJavascript(source: getLinksJs);
+    final linksList = linksResult as List<dynamic>;
+    _subjectLinks = linksList
+        .map((item) => Map<String, String>.from(item as Map<dynamic, dynamic>))
         .toList();
   }
 
@@ -148,20 +139,17 @@ class ScrapingService {
         urlRequest: URLRequest(url: WebUri(subjectLink['url']!)),
       );
     } else {
-      // Processo finalizado
       _finishScraping();
     }
   }
 
   Future<void> _extractTopics(InAppWebViewController controller) async {
-    // Aguarda a árvore aparecer
     await _waitForSelector(
       controller,
       'div.caderno-guia-arvore-indice ul, div.guia-arvore-indice ul',
       timeout: 60000,
     );
 
-    // Delay crítico: muitos sites (especialmente Estratégia) carregam os números via AJAX depois
     await Future.delayed(const Duration(milliseconds: 3000));
 
     final String getTopicsJs = """
@@ -172,14 +160,10 @@ class ScrapingService {
 
         const directLis = ul.querySelectorAll(':scope > li');
         directLis.forEach(li => {
-          // Nome do tópico
           const span = li.querySelector(':scope > span:not(.capitulo-questoes)');
           const text = span?.textContent?.trim() || 'Tópico sem nome';
-          
-          // Defina a contagem de perguntas como 0, conforme solicitado
           const questionCount = 0;
 
-          // Subtópicos
           const subUl = li.querySelector(':scope > ul');
           const subTopics = subUl ? processLevel(subUl) : [];
 
@@ -196,7 +180,6 @@ class ScrapingService {
 
       const root = document.querySelector('div.caderno-guia-arvore-indice ul, div.guia-arvore-indice ul, ul.arvore-indice');
       if (!root) {
-        // console.log('Árvore de tópicos NÃO encontrada!');
         return [];
       }
 
@@ -209,26 +192,25 @@ class ScrapingService {
     try {
       topicsResult = await controller.evaluateJavascript(source: getTopicsJs);
     } catch (e) {
-      // print('Erro ao executar JS de extração de tópicos: $e');
+      debugPrint('Erro ao executar JS de extração de tópicos: $e');
       topicsResult = [];
     }
 
-    if (topicsResult == null ||
-        (topicsResult is List && topicsResult.isEmpty)) {
-      // print('AVISO: Nenhum tópico extraído para a matéria: ${_subjectLinks[_subjectIndex - 1]['name']}');
+    if (topicsResult == null || (topicsResult is List && topicsResult.isEmpty)) {
+      debugPrint('AVISO: Nenhum tópico extraído para a matéria: ${_subjectLinks[_subjectIndex - 1]['name']}');
       topicsResult = [];
     }
 
     List<Topic> flattenTopics(List<dynamic> nodes, {int? parentId}) {
       List<Topic> list = [];
 
-      for (var node in nodes) {
-        final map = Map<String, dynamic>.from(node);
+      for (final node in nodes) {
+        final map = Map<String, dynamic>.from(node as Map<dynamic, dynamic>);
         final topicId = _tempIdCounter--;
         final topic = Topic(
           id: topicId,
-          subject_id: '', // será preenchido depois
-          topic_text: map['topic_text'] ?? 'Sem nome',
+          subject_id: '',
+          topic_text: map['topic_text'] as String? ?? 'Sem nome',
           parent_id: parentId,
           question_count: (map['question_count'] as num?)?.toInt() ?? 0,
           is_grouping_topic: map['is_grouping_topic'] == true,
@@ -238,17 +220,14 @@ class ScrapingService {
 
         list.add(topic);
 
-        if (map['sub_topics'] is List &&
-            (map['sub_topics'] as List).isNotEmpty) {
-          list.addAll(flattenTopics(map['sub_topics'], parentId: topic.id));
+        if (map['sub_topics'] is List && (map['sub_topics'] as List).isNotEmpty) {
+          list.addAll(flattenTopics(map['sub_topics'] as List<dynamic>, parentId: topic.id));
         }
       }
       return list;
     }
 
-    final List<Topic> allTopics = flattenTopics(topicsResult);
-
-    // print("MATÉRIA: ${_subjectLinks[_subjectIndex - 1]['name']} → ${allTopics.length} tópicos salvos (com subtópicos)");
+    final List<Topic> allTopics = flattenTopics(topicsResult as List<dynamic>);
 
     final subject = Subject(
       id: (_tempIdCounter--).toString(),
@@ -282,11 +261,11 @@ class ScrapingService {
 
     final plan = Plan(
       id: planId,
-      name: _headerData['name'] ?? '',
-      cargo: _headerData['cargo'],
-      edital: _headerData['edital'],
-      banca: _headerData['banca'],
-      iconUrl: _headerData['iconUrl'],
+      name: _headerData['name'] as String? ?? '',
+      cargo: _headerData['cargo'] as String?,
+      edital: _headerData['edital'] as String?,
+      banca: _headerData['banca'] as String?,
+      iconUrl: _headerData['iconUrl'] as String?,
       subjects: subjectsWithPlanId,
       lastModified: now,
     );

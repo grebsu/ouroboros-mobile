@@ -702,7 +702,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                       child: InkWell(
                         onTap: () {
                           setState(() {
-                            _selectedWorkloadLevel = level['level'];
+                            _selectedWorkloadLevel = level['level'] as String?;
                             _manualWorkloadController.clear();
                           });
                         },
@@ -716,7 +716,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                level['icon'],
+                                level['icon'] as IconData?,
                                 size: 32,
                                 color: isSelected
                                     ? Colors.teal
@@ -724,7 +724,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                level['level'],
+                                level['level'] as String,
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleSmall
                                     ?.copyWith(
@@ -734,7 +734,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                level['hours'],
+                                level['hours'] as String,
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
@@ -822,7 +822,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                       child: InkWell(
                         onTap: () {
                           setState(() {
-                            _selectedQuestionsLevel = level['level'];
+                            _selectedQuestionsLevel = level['level'] as String?;
                             _manualGuidedQuestionsGoalController.clear();
                           });
                         },
@@ -836,7 +836,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                level['icon'],
+                                level['icon'] as IconData?,
                                 size: 32,
                                 color: isSelected
                                     ? Colors.teal
@@ -844,7 +844,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                level['level'],
+                                level['level'] as String,
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleSmall
                                     ?.copyWith(
@@ -854,7 +854,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                level['range'],
+                                level['range'] as String,
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
@@ -942,7 +942,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                       child: InkWell(
                         onTap: () {
                           setState(() {
-                            _selectedSessionLevel = level['level'];
+                            _selectedSessionLevel = level['level'] as String?;
                             _manualSessionDurationController.clear();
                           });
                         },
@@ -956,7 +956,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                level['icon'],
+                                level['icon'] as IconData?,
                                 size: 32,
                                 color: isSelected
                                     ? Colors.teal
@@ -964,7 +964,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                level['level'],
+                                level['level'] as String,
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleSmall
                                     ?.copyWith(
@@ -974,7 +974,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                level['duration'],
+                                level['duration'] as String,
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
@@ -1714,7 +1714,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
       final workload = workloadLevels.firstWhere(
         (l) => l['level'] == _selectedWorkloadLevel,
       );
-      workloadValue = workload['value'];
+      workloadValue = workload['value'] as int;
     }
 
     final int questionsValue;
@@ -1725,7 +1725,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
       final questions = questionsLevels.firstWhere(
         (l) => l['level'] == _selectedQuestionsLevel,
       );
-      questionsValue = questions['value'];
+      questionsValue = questions['value'] as int;
     }
 
     final int minSession;
@@ -1739,8 +1739,8 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
       final session = sessionLevels.firstWhere(
         (l) => l['level'] == _selectedSessionLevel,
       );
-      minSession = session['min'];
-      maxSession = session['max'];
+      minSession = session['min'] as int;
+      maxSession = session['max'] as int;
     }
 
     planningProvider.setStudyHours(workloadValue.toString());

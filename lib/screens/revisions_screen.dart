@@ -858,9 +858,9 @@ class _ReviewRecordCard extends StatelessWidget {
                         );
 
                         if (result != null) {
-                          final int time = result['time'];
-                          final String? returnedSubjectId = result['subjectId'];
-                          final Topic? returnedTopic = result['topic'];
+                          final int time = result['time'] as int;
+                          final String? returnedSubjectId = result['subjectId'] as String?;
+                          final Topic? returnedTopic = result['topic'] as Topic?;
 
                           if (returnedSubjectId != null &&
                               returnedTopic != null) {

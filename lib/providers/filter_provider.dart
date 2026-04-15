@@ -28,25 +28,30 @@ class FilterProvider with ChangeNotifier {
   }
 
   // Getters for history filters
-  DateTime? get historyStartDate => _historyFilters['startDate'];
-  DateTime? get historyEndDate => _historyFilters['endDate'];
-  int? get historyMinDuration => _historyFilters['minDuration'];
-  int? get historyMaxDuration => _historyFilters['maxDuration'];
-  double? get historyMinPerformance => _historyFilters['minPerformance'];
-  double? get historyMaxPerformance => _historyFilters['maxPerformance'];
+  DateTime? get historyStartDate => _historyFilters['startDate'] as DateTime?;
+  DateTime? get historyEndDate => _historyFilters['endDate'] as DateTime?;
+  int? get historyMinDuration => _historyFilters['minDuration'] as int?;
+  int? get historyMaxDuration => _historyFilters['maxDuration'] as int?;
+  double? get historyMinPerformance => _historyFilters['minPerformance'] as double?;
+  double? get historyMaxPerformance => _historyFilters['maxPerformance'] as double?;
   List<String> get historySelectedCategories =>
-      _historyFilters['categories'] ?? [];
-  List<String> get historySelectedSubjects => _historyFilters['subjects'] ?? [];
-  List<String> get historySelectedTopics => _historyFilters['topics'] ?? [];
+      (_historyFilters['categories'] as List<dynamic>?)?.cast<String>() ?? [];
+  List<String> get historySelectedSubjects =>
+      (_historyFilters['subjects'] as List<dynamic>?)?.cast<String>() ?? [];
+  List<String> get historySelectedTopics =>
+      (_historyFilters['topics'] as List<dynamic>?)?.cast<String>() ?? [];
 
   // Getters for stats filters
-  DateTime? get statsStartDate => _statsFilters['startDate'];
-  DateTime? get statsEndDate => _statsFilters['endDate'];
-  int? get statsMinDuration => _statsFilters['minDuration'];
-  int? get statsMaxDuration => _statsFilters['maxDuration'];
-  double? get statsMinPerformance => _statsFilters['minPerformance'];
-  double? get statsMaxPerformance => _statsFilters['maxPerformance'];
-  List<String> get statsSelectedCategories => _statsFilters['categories'] ?? [];
-  List<String> get statsSelectedSubjects => _statsFilters['subjects'] ?? [];
-  List<String> get statsSelectedTopics => _statsFilters['topics'] ?? [];
+  DateTime? get statsStartDate => _statsFilters['startDate'] as DateTime?;
+  DateTime? get statsEndDate => _statsFilters['endDate'] as DateTime?;
+  int? get statsMinDuration => _statsFilters['minDuration'] as int?;
+  int? get statsMaxDuration => _statsFilters['maxDuration'] as int?;
+  double? get statsMinPerformance => _statsFilters['minPerformance'] as double?;
+  double? get statsMaxPerformance => _statsFilters['maxPerformance'] as double?;
+  List<String> get statsSelectedCategories =>
+      (_statsFilters['categories'] as List<dynamic>?)?.cast<String>() ?? [];
+  List<String> get statsSelectedSubjects =>
+      (_statsFilters['subjects'] as List<dynamic>?)?.cast<String>() ?? [];
+  List<String> get statsSelectedTopics =>
+      (_statsFilters['topics'] as List<dynamic>?)?.cast<String>() ?? [];
 }

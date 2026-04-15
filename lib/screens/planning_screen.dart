@@ -95,9 +95,9 @@ class _PlanningScreenState extends State<PlanningScreen> {
     );
 
     if (result != null) {
-      final int time = result['time'];
-      final String? subjectId = result['subjectId'];
-      final Topic? topic = result['topic'];
+      final int time = result['time'] as int;
+      final String? subjectId = result['subjectId'] as String?;
+      final Topic? topic = result['topic'] as Topic?;
 
       if (subjectId != null && topic != null) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);

@@ -21,15 +21,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 class StudyRepository {
   final Database db;
   final SharedPreferences prefs;
-  final Map<String, dynamic> _memoryCache = {};
+  final Map<String, List<Map<String, dynamic>>> _memoryCache = {};
   
   StudyRepository({required this.db, required this.prefs});
   
   // --- Interface NoSQL-like (útil para UI) ---
-  Future<List<Map<String, dynamic>>> getSessionsByTopic(String topicName, {bool forceRefresh = false}) async {
+  Future<List<Map<String, dynamic>>> getSessionsByTopic(
+    String topicName, {
+    bool forceRefresh = false,
+  }) async {
     final cacheKey = 'sessions_topic_$topicName';
     if (!forceRefresh && _memoryCache.containsKey(cacheKey)) {
-      return _memoryCache[cacheKey];
+      return _memoryCache[cacheKey]!;
     }
     
     final result = await db.rawQuery('''
@@ -43,12 +46,15 @@ class StudyRepository {
       ORDER BY s.study_date DESC
     ''', [topicName]);
     
-    _memoryCache[cacheKey] = result;
-    return result;
+    _memoryCache[cacheKey] = List<Map<String, dynamic>>.from(result);
+    return _memoryCache[cacheKey]!;
   }
   
   // --- Método para relatório agregado (poder do SQL) ---
-  Future<List<Map<String, dynamic>>> getHoursPerSubjectArea(DateTime start, DateTime end) async {
+  Future<List<Map<String, dynamic>>> getHoursPerSubjectArea(
+    DateTime start,
+    DateTime end,
+  ) async {
     return await db.rawQuery('''
       SELECT 
         sa.name as area,
@@ -81,7 +87,7 @@ class StudyRepository {
           session['correct_answers'],
           session['wrong_answers'],
           session['metadata'],
-          DateTime.now().millisecondsSinceEpoch
+          DateTime.now().millisecondsSinceEpoch,
         ]);
       }
     });

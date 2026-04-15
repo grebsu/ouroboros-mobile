@@ -68,7 +68,7 @@ class _DailyStudySectionState extends State<DailyStudySection> {
 
     final totalStudyMinutes = studyData.fold<int>(
       0,
-      (acc, item) => acc + item['minutes'] as int,
+      (acc, item) => acc + (item['minutes'] as int),
     );
 
     List<PieChartSectionData> showingSections() {
@@ -97,14 +97,14 @@ class _DailyStudySectionState extends State<DailyStudySection> {
         final double fontSize = isTouched ? 16 : 12;
 
         final double percentage = totalStudyMinutes > 0
-            ? (data['minutes'] / totalStudyMinutes) * 100
+            ? ((data['minutes'] as int) / totalStudyMinutes) * 100
             : 0;
 
         return PieChartSectionData(
-          color: data['color'],
-          value: data['minutes'].toDouble(),
+          color: data['color'] as Color?,
+          value: (data['minutes'] as int).toDouble(),
           title: percentage > 0 ? '${percentage.toStringAsFixed(1)}%' : '',
-          radius: radius,
+          radius: radius.toDouble(),
           titleStyle: TextStyle(
             fontSize: fontSize,
             fontWeight: FontWeight.bold,
@@ -179,7 +179,7 @@ class _DailyStudySectionState extends State<DailyStudySection> {
                         height: 16,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: item['color'],
+                          color: item['color'] as Color?,
                         ),
                       ),
                       const SizedBox(width: 8),

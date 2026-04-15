@@ -427,7 +427,7 @@ class _MyAppState extends State<MyApp> {
       switch (response.statusCode) {
         case 200:
           final mergedBackupData = BackupData.fromMap(
-            json.decode(utf8.decode(response.bodyBytes)),
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
           );
           await DatabaseService.instance.importMergedData(
             mergedBackupData,
@@ -598,9 +598,10 @@ MaterialColor createMaterialColor(Color color) {
   for (int i = 1; i < 10; i++) {
     strengths.add(0.1 * i);
   }
-  for (var strength in strengths) {
-    final double ds = 0.5 - strength;
-    swatch[(strength * 1000).round()] = Color.fromRGBO(
+  for (final dynamic strength in strengths) {
+    final double strengthValue = strength as double;
+    final double ds = 0.5 - strengthValue;
+    swatch[(strengthValue * 1000).round()] = Color.fromRGBO(
       r + ((ds < 0 ? r : (255 - r)) * ds).round(),
       g + ((ds < 0 ? g : (255 - g)) * ds).round(),
       b + ((ds < 0 ? b : (255 - b)) * ds).round(),
@@ -694,7 +695,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(justification ?? "Erro desconhecido na sugestão."),
+            content: Text((justification as String?) ?? "Erro desconhecido na sugestão."),
           ),
         );
       }
@@ -712,7 +713,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       topicsProgress: [
         TopicProgress(
           topicId: recommendedTopic?.id?.toString() ?? '',
-          topicText: recommendedTopic?.topic_text ?? nextSession.subject,
+          topicText: (recommendedTopic?.topic_text as String?) ?? nextSession.subject,
         ),
       ],
       study_time: nextSession.duration * 60 * 1000,

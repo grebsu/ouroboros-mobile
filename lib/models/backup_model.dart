@@ -11,7 +11,7 @@ class PlanningBackupData {
   final Map<String, Map<String, double>> subjectSettings;
   final List<String> studyDays;
   final String? cycleGenerationTimestamp;
-  final String? currentCycleId; // NOVO CAMPO
+  final String? currentCycleId;
 
   PlanningBackupData({
     this.studyCycle,
@@ -23,7 +23,7 @@ class PlanningBackupData {
     required this.subjectSettings,
     required this.studyDays,
     this.cycleGenerationTimestamp,
-    this.currentCycleId, // NOVO CAMPO NO CONSTRUTOR
+    this.currentCycleId,
   });
 
   Map<String, dynamic> toMap() {
@@ -37,7 +37,7 @@ class PlanningBackupData {
       'subjectSettings': subjectSettings,
       'studyDays': studyDays,
       'cycleGenerationTimestamp': cycleGenerationTimestamp,
-      'currentCycleId': currentCycleId, // NOVO CAMPO NO TO_MAP
+      'currentCycleId': currentCycleId,
     };
   }
 
@@ -45,25 +45,30 @@ class PlanningBackupData {
     return PlanningBackupData(
       studyCycle: map['studyCycle'] != null
           ? List<StudySession>.from(
-              map['studyCycle'].map((x) => StudySession.fromJson(x)),
+              (map['studyCycle'] as List<dynamic>).map(
+                (x) => StudySession.fromJson(x as Map<String, dynamic>),
+              ),
             )
           : null,
-      completedCycles: map['completedCycles'] ?? 0,
-      currentProgressMinutes: map['currentProgressMinutes'] ?? 0,
+      completedCycles: map['completedCycles'] as int? ?? 0,
+      currentProgressMinutes: map['currentProgressMinutes'] as int? ?? 0,
       sessionProgressMap: Map<String, int>.from(
-        map['sessionProgressMap'] ?? {},
+        map['sessionProgressMap'] as Map<String, dynamic>? ?? {},
       ),
-      studyHours: map['studyHours'] ?? '0',
-      weeklyQuestionsGoal: map['weeklyQuestionsGoal'] ?? '0',
+      studyHours: map['studyHours'] as String? ?? '0',
+      weeklyQuestionsGoal: map['weeklyQuestionsGoal'] as String? ?? '0',
       subjectSettings: Map<String, Map<String, double>>.from(
         (map['subjectSettings'] as Map<String, dynamic>?)?.map(
-              (key, value) => MapEntry(key, Map<String, double>.from(value)),
+              (key, value) => MapEntry(
+                key,
+                Map<String, double>.from(value as Map<String, dynamic>),
+              ),
             ) ??
             {},
       ),
-      studyDays: List<String>.from(map['studyDays'] ?? []),
-      cycleGenerationTimestamp: map['cycleGenerationTimestamp'],
-      currentCycleId: map['currentCycleId'], // NOVO CAMPO NO FROM_MAP
+      studyDays: List<String>.from(map['studyDays'] as List<dynamic>? ?? []),
+      cycleGenerationTimestamp: map['cycleGenerationTimestamp'] as String?,
+      currentCycleId: map['currentCycleId'] as String?,
     );
   }
 }
@@ -74,7 +79,7 @@ class BackupData {
   final List<StudyRecord> studyRecords;
   final List<ReviewRecord> reviewRecords;
   final List<SimuladoRecord> simuladoRecords;
-  final Map<String, PlanningBackupData> planningDataPerPlan; // Keyed by planId
+  final Map<String, PlanningBackupData> planningDataPerPlan;
 
   BackupData({
     required this.plans,
@@ -100,39 +105,43 @@ class BackupData {
 
   factory BackupData.fromMap(Map<String, dynamic> map) {
     return BackupData(
-      plans: List<Plan>.from(map['plans']?.map((x) => Plan.fromMap(x)) ?? []),
+      plans: List<Plan>.from(
+        (map['plans'] as List<dynamic>?)?.map((x) => Plan.fromMap(x as Map<String, dynamic>)) ?? [],
+      ),
       subjects: List<Subject>.from(
-        map['subjects']?.map((x) {
-              // Extrai a lista de tópicos e reconstrói a hierarquia
-              List<Topic> hierarchicalTopics =
-                  (x['topics'] as List<dynamic>?)
-                      ?.map((t) => Topic.fromBackupMap(t))
-                      .toList() ??
-                  [];
-              return Subject.fromMap(x, hierarchicalTopics);
+        (map['subjects'] as List<dynamic>?)?.map((x) {
+              final subjectMap = x as Map<String, dynamic>;
+              final topicsList = subjectMap['topics'] as List<dynamic>?;
+              final hierarchicalTopics = topicsList
+                  ?.map((t) => Topic.fromBackupMap(t as Map<String, dynamic>))
+                  .toList() ?? [];
+              return Subject.fromMap(subjectMap, hierarchicalTopics);
             }) ??
             [],
       ),
       studyRecords: List<StudyRecord>.from(
-        map['studyRecords']?.map((x) => StudyRecord.fromMap(x)) ?? [],
+        (map['studyRecords'] as List<dynamic>?)?.map((x) => StudyRecord.fromMap(x as Map<String, dynamic>)) ?? [],
       ),
       reviewRecords: List<ReviewRecord>.from(
-        map['reviewRecords']?.map((x) => ReviewRecord.fromMap(x)) ?? [],
+        (map['reviewRecords'] as List<dynamic>?)?.map((x) => ReviewRecord.fromMap(x as Map<String, dynamic>)) ?? [],
       ),
       simuladoRecords: List<SimuladoRecord>.from(
-        map['simuladoRecords']?.map(
-              (x) => SimuladoRecord.fromMap(
-                x,
-                (x['subjects'] as List<dynamic>)
-                    .map((s) => SimuladoSubject.fromMap(s))
-                    .toList(),
-              ),
-            ) ??
+        (map['simuladoRecords'] as List<dynamic>?)?.map((x) {
+              final recordMap = x as Map<String, dynamic>;
+              final subjectsList = recordMap['subjects'] as List<dynamic>?;
+              return SimuladoRecord.fromMap(
+                recordMap,
+                subjectsList?.map((s) => SimuladoSubject.fromMap(s as Map<String, dynamic>)).toList() ?? [],
+              );
+            }) ??
             [],
       ),
       planningDataPerPlan: Map<String, PlanningBackupData>.from(
         (map['planningDataPerPlan'] as Map<String, dynamic>?)?.map(
-              (key, value) => MapEntry(key, PlanningBackupData.fromMap(value)),
+              (key, value) => MapEntry(
+                key,
+                PlanningBackupData.fromMap(value as Map<String, dynamic>),
+              ),
             ) ??
             {},
       ),
@@ -141,16 +150,16 @@ class BackupData {
 
   static List<Topic> _buildTopicHierarchy(List<Topic> flatTopics) {
     final Map<int, Topic> topicMap = {};
-    for (var topic in flatTopics) {
+    for (final topic in flatTopics) {
       if (topic.id != null) {
         topicMap[topic.id!] = topic.copyWith(
           sub_topics: [],
-        ); // Initialize sub_topics
+        );
       }
     }
 
     final List<Topic> rootTopics = [];
-    for (var topic in flatTopics) {
+    for (final topic in flatTopics) {
       if (topic.parent_id == null) {
         rootTopics.add(topicMap[topic.id!] ?? topic);
       } else {

@@ -110,7 +110,7 @@ class _SyncScreenState extends State<SyncScreen> {
     if (!mounted) return;
 
     if (res['status'] == 'accepted' && res['token'] != null) {
-      final token = res['token'];
+      final token = (res['token'] as String?) ?? "";
       await _sync.storePairedDevice(ip, port, token, name);
       await _loadPaired();
       ScaffoldMessenger.of(
@@ -292,7 +292,7 @@ class _SyncScreenState extends State<SyncScreen> {
         case 200:
           // 2. Receber e importar os dados mesclados de volta ao cliente
           final mergedBackupData = BackupData.fromMap(
-            json.decode(utf8.decode(response.bodyBytes)),
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
           );
           await DatabaseService.instance.importMergedData(
             mergedBackupData,
@@ -351,9 +351,9 @@ class _SyncScreenState extends State<SyncScreen> {
       children: _found.entries.map((e) {
         final key = e.key;
         final value = e.value;
-        final ip = value['ip'];
-        final port = value['port'];
-        final name = value['name'];
+        final String ip = value['ip'] as String;
+        final int port = value['port'] as int;
+        final String name = value['name'] as String;
         return ListTile(
           title: Text('$name'),
           subtitle: Text('$ip:$port'),
@@ -374,8 +374,8 @@ class _SyncScreenState extends State<SyncScreen> {
       children: _paired.entries.map((e) {
         final key = e.key;
         final info = e.value as Map<String, dynamic>;
-        final name = info['name'] ?? key;
-        final ip = info['ip'] ?? key.split(':').first;
+        final name = (info['name'] as String?) ?? key;
+        final ip = (info['ip'] as String?) ?? key.split(':').first;
         final port = info['port'] ?? _syncPort;
         return ListTile(
           title: Text(name),

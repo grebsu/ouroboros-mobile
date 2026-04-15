@@ -63,7 +63,7 @@ class _StopwatchModalState extends State<StopwatchModal>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            recommendation['justification'] ?? 'Não há mais sessões no ciclo.',
+            (recommendation['justification'] as String?) ?? 'Não há mais sessões no ciclo.',
           ),
         ),
       );
