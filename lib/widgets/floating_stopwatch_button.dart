@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:ouroboros_mobile/widgets/stopwatch_modal.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
-import 'package:provider/provider.dart';
-import 'package:ouroboros_mobile/providers/planning_provider.dart';
-import 'package:ouroboros_mobile/providers/history_provider.dart';
 import 'package:ouroboros_mobile/providers/active_plan_provider.dart';
-import 'package:ouroboros_mobile/providers/stopwatch_provider.dart';
-import 'package:ouroboros_mobile/widgets/study_register_modal.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
+import 'package:ouroboros_mobile/providers/history_provider.dart';
+import 'package:ouroboros_mobile/providers/planning_provider.dart';
+import 'package:ouroboros_mobile/providers/stopwatch_provider.dart';
+import 'package:ouroboros_mobile/widgets/stopwatch_modal.dart';
+import 'package:ouroboros_mobile/widgets/study_register_modal.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class FloatingStopwatchButton extends StatefulWidget {
   const FloatingStopwatchButton({super.key});
@@ -20,27 +21,34 @@ class FloatingStopwatchButton extends StatefulWidget {
 
 class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
     with TickerProviderStateMixin {
-  Offset? _position;
-  AnimationController? _floatAnimationController;
-  Animation<Offset>? _floatAnimation;
-
-  // Constantes para os tamanhos do botão
   static const double _buttonSize = 56.0;
   static const double _margin = 16.0;
 
-  // Controle de animação de inércia
-  AnimationController? _inertiaController;
+  Offset? _position;
+  late final AnimationController _floatAnimationController;
+  late final Animation<Offset> _floatAnimation;
+
+  late final AnimationController _inertiaController;
+  late final AnimationController _bounceController;
+  late final AnimationController _moveToCenterController;
+  late final AnimationController _fallAndSlideController;
+
+  late Animation<Offset?> _moveToCenterAnimation;
+  late Animation<double> _fallAnimation;
+  late Animation<double> _slideAnimation;
+
   Offset _dragVelocity = Offset.zero;
-  Offset _lastDragPosition = Offset.zero;
-  DateTime? _lastDragTime;
+  Offset _bounceOffset = Offset.zero;
   bool _isDragging = false;
 
-  // Posição alvo para animação de snap
-  Offset? _targetPosition;
+  bool _isMovingToCenter = false;
+  bool _isModalOpen = false;
+  bool _isReturningWithFall = false;
+  bool _isSlidingToCorner = false;
+  bool _hasPlayedFallSound = false;
 
-  // Controller para animação de bounce
-  AnimationController? _bounceController;
-  Offset _bounceOffset = Offset.zero;
+  late final AudioPlayer _audioPlayer;
+  bool _soundEnabled = true;
 
   void _handleStudyRecordSave(StudyRecord record) {
     Provider.of<HistoryProvider>(context, listen: false).addStudyRecord(record);
@@ -53,21 +61,56 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
   @override
   void initState() {
     super.initState();
+
+    _audioPlayer = AudioPlayer();
+
     _floatAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
     _floatAnimation = Tween<Offset>(
-      begin: const Offset(0, 0),
+      begin: Offset.zero,
       end: const Offset(0, -10),
     ).animate(CurvedAnimation(
-      parent: _floatAnimationController!,
+      parent: _floatAnimationController,
       curve: Curves.easeInOut,
     ));
 
     _inertiaController = AnimationController(vsync: this);
     _bounceController = AnimationController(vsync: this);
+    _moveToCenterController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _fallAndSlideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _moveToCenterAnimation = Tween<Offset?>(
+      begin: null,
+      end: null,
+    ).animate(CurvedAnimation(
+      parent: _moveToCenterController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _fallAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fallAndSlideController,
+      curve: Curves.bounceOut,
+    ));
+
+    _slideAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fallAndSlideController,
+      curve: Curves.easeOutQuad,
+    ));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updatePositionAfterBuild();
@@ -78,7 +121,6 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
     if (!mounted) return;
 
     final screenSize = MediaQuery.of(context).size;
-    final safeAreaTop = MediaQuery.of(context).padding.top;
     final safeAreaBottom = MediaQuery.of(context).padding.bottom;
 
     final maxX = screenSize.width - _buttonSize - _margin;
@@ -124,36 +166,32 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
   void _startInertia(Offset velocity) {
     if (!mounted || _position == null) return;
 
-    _inertiaController?.stop();
-    _bounceController?.stop();
+    _inertiaController.stop();
+    _bounceController.stop();
 
-    final bounds = _getBounds();
     final startPosition = _position!;
 
-    // Calcular posição final com física mais realista
     const double friction = 0.92;
     const double steps = 60.0;
 
     Offset currentPos = startPosition;
     Offset currentVel = velocity;
-    double maxTime = 0.6; // 600ms de inércia
+    const double maxTime = 0.6;
 
-    // Simular trajetória
     for (int i = 0; i < steps; i++) {
       currentVel = Offset(currentVel.dx * friction, currentVel.dy * friction);
-      currentPos = Offset(currentPos.dx + currentVel.dx * (maxTime / steps),
-          currentPos.dy + currentVel.dy * (maxTime / steps));
+      currentPos = Offset(
+        currentPos.dx + currentVel.dx * (maxTime / steps),
+        currentPos.dy + currentVel.dy * (maxTime / steps),
+      );
     }
 
-    // Aplicar snap na borda
     final targetPosition = _snapToEdge(_clampToBounds(currentPos));
 
-    // Criar animação de inércia + snap
-    _inertiaController!.duration = const Duration(milliseconds: 500);
+    _inertiaController.duration = const Duration(milliseconds: 500);
 
-    // Usar CurvedAnimation para desaceleração suave
     final curve = CurvedAnimation(
-      parent: _inertiaController!,
+      parent: _inertiaController,
       curve: Curves.easeOutCubic,
     );
 
@@ -163,30 +201,31 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
     ).animate(curve);
 
     animation.addListener(() {
-      if (mounted && !_isDragging) {
+      if (mounted && !_isDragging && !_isMovingToCenter &&
+          !_isReturningWithFall && !_isModalOpen && !_isSlidingToCorner) {
         setState(() {
           _position = animation.value;
         });
       }
     });
 
-    _inertiaController!.forward(from: 0);
+    _inertiaController.forward(from: 0);
   }
 
   void _startBounceAnimation(Offset overreach) {
     if (!mounted) return;
 
-    _bounceController?.stop();
-    _bounceController!.duration = const Duration(milliseconds: 300);
+    _bounceController.stop();
+    _bounceController.duration = const Duration(milliseconds: 300);
 
     final startOffset = _bounceOffset;
-    final endOffset = Offset.zero;
+    const endOffset = Offset.zero;
 
     final animation = Tween<Offset>(
       begin: startOffset,
       end: endOffset,
     ).animate(CurvedAnimation(
-      parent: _bounceController!,
+      parent: _bounceController,
       curve: Curves.elasticOut,
     ));
 
@@ -198,14 +237,245 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
       }
     });
 
-    _bounceController!.forward(from: 0);
+    _bounceController.forward(from: 0);
+  }
+
+  Offset _getCenterPosition() {
+    final screenSize = MediaQuery.of(context).size;
+    return Offset(
+      (screenSize.width - _buttonSize) / 2,
+      (screenSize.height - _buttonSize) / 2,
+    );
+  }
+
+  Offset _getBottomCenterPosition() {
+    final screenSize = MediaQuery.of(context).size;
+    final safeAreaBottom = MediaQuery.of(context).padding.bottom;
+    return Offset(
+      (screenSize.width - _buttonSize) / 2,
+      screenSize.height - _buttonSize - safeAreaBottom - 20,
+    );
+  }
+
+  Offset _getCornerPosition() {
+    final screenSize = MediaQuery.of(context).size;
+    final safeAreaBottom = MediaQuery.of(context).padding.bottom;
+    return Offset(
+      screenSize.width - _buttonSize - _margin,
+      screenSize.height - _buttonSize - safeAreaBottom - 80,
+    );
+  }
+
+  Future<void> _playFallSound() async {
+    if (!_soundEnabled) return;
+
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.setSourceAsset('sounds/queda.mp3');
+      await _audioPlayer.setVolume(1.0);
+      await _audioPlayer.resume();
+    } catch (e) {
+      debugPrint('Erro ao tocar som de queda: $e');
+      _soundEnabled = false;
+    }
+  }
+
+  // CORREÇÃO: Remoção do parâmetro BuildContext context
+  Future<void> _openModal() async {
+    if (_isMovingToCenter || _isModalOpen || _position == null) return;
+
+    // Salvar referências dos Providers e dados críticos ANTES de qualquer animação ou await
+    final activePlanProvider = Provider.of<ActivePlanProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+
+    final currentPlanId = activePlanProvider.activePlan?.id;
+    final currentUser = authProvider.currentUser;
+
+    if (currentPlanId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nenhum plano de estudo ativo selecionado.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (currentUser == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Usuário não autenticado.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Configurar o contexto do stopwatch AGORA
+    if (!stopwatchProvider.isActive) {
+      stopwatchProvider.setContext(planId: currentPlanId);
+    }
+
+    setState(() {
+      _isMovingToCenter = true;
+    });
+    final centerPosition = _getCenterPosition();
+
+    _moveToCenterAnimation = Tween<Offset?>(
+      begin: _position,
+      end: centerPosition,
+    ).animate(CurvedAnimation(
+      parent: _moveToCenterController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _moveToCenterController.addListener(() {
+      if (mounted && _moveToCenterAnimation.value != null) {
+        setState(() {
+          _position = _moveToCenterAnimation.value;
+        });
+      }
+    });
+
+    await _moveToCenterController.forward();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isMovingToCenter = false;
+      _isModalOpen = true;
+    });
+
+    final result = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      builder: (dialogContext) => _ModalExpansionTransition(
+        buttonPosition: centerPosition,
+        buttonSize: _buttonSize,
+        child: const StopwatchModal(),
+      ),
+    );
+
+    debugPrint('StopwatchModal result: $result');
+
+    if (!mounted) return;
+
+    setState(() {
+      _isModalOpen = false;
+      _isReturningWithFall = true;
+      _position = centerPosition;
+      _hasPlayedFallSound = false;
+    });
+
+    _fallAndSlideController.reset();
+
+    final bottomCenterPosition = _getBottomCenterPosition();
+
+    _fallAndSlideController.addListener(() async {
+      if (mounted && _isReturningWithFall && !_isSlidingToCorner) {
+        final progress = _fallAnimation.value;
+        final currentY = centerPosition.dy +
+            (bottomCenterPosition.dy - centerPosition.dy) * progress;
+        setState(() {
+          _position = Offset(centerPosition.dx, currentY);
+        });
+
+        if (progress >= 0.40 && !_hasPlayedFallSound) {
+          _hasPlayedFallSound = true;
+          await _playFallSound();
+        }
+      }
+    });
+
+    await _fallAndSlideController.forward();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSlidingToCorner = true;
+    });
+
+    _fallAndSlideController.reset();
+
+    final cornerPosition = _getCornerPosition();
+
+    _fallAndSlideController.addListener(() {
+      if (mounted && _isSlidingToCorner) {
+        final progress = _slideAnimation.value;
+        final currentX = bottomCenterPosition.dx +
+            (cornerPosition.dx - bottomCenterPosition.dx) * progress;
+        final currentY = bottomCenterPosition.dy +
+            (cornerPosition.dy - bottomCenterPosition.dy) * progress;
+        setState(() {
+          _position = Offset(currentX, currentY);
+        });
+      }
+    });
+
+    await _fallAndSlideController.forward();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isReturningWithFall = false;
+      _isSlidingToCorner = false;
+      _position = cornerPosition;
+    });
+
+    _fallAndSlideController.reset();
+
+    // Processar resultado do modal
+    if (result != null && mounted) {
+      final time = result['time'] as int;
+      final subjectId = result['subjectId'] as String?;
+      final topic = result['topic'] as Topic?;
+
+      final initialRecord = StudyRecord(
+        id: const Uuid().v4(),
+        userId: currentUser.name,
+        plan_id: currentPlanId,
+        date: DateTime.now().toIso8601String(),
+        subject_id: subjectId!,
+        topicsProgress: topic != null
+            ? [
+          TopicProgress(
+            topicId: topic.id.toString(),
+            topicText: topic.topic_text,
+          ),
+        ]
+            : [],
+        study_time: time,
+        category: 'teoria',
+        review_periods: [],
+        count_in_planning: true,
+        lastModified: DateTime.now().millisecondsSinceEpoch,
+      );
+
+      if (mounted) {
+        await showModalBottomSheet<void>(
+          // CORREÇÃO: Utilizando apenas `context` (herdado da classe State)
+          context: context,
+          isScrollControlled: true,
+          builder: (ctx) => StudyRegisterModal(
+            planId: currentPlanId,
+            initialRecord: initialRecord,
+            onSave: _handleStudyRecordSave,
+          ),
+        );
+      }
+    }
   }
 
   @override
   void didUpdateWidget(covariant FloatingStopwatchButton oldWidget) {
     super.didUpdateWidget(oldWidget);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _position != null) {
+      if (mounted && _position != null && !_isMovingToCenter &&
+          !_isReturningWithFall && !_isModalOpen && !_isSlidingToCorner) {
         setState(() {
           _position = _clampToBounds(_position!);
         });
@@ -215,15 +485,18 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
 
   @override
   void dispose() {
-    _floatAnimationController?.dispose();
-    _inertiaController?.dispose();
-    _bounceController?.dispose();
+    _floatAnimationController.dispose();
+    _inertiaController.dispose();
+    _bounceController.dispose();
+    _moveToCenterController.dispose();
+    _fallAndSlideController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_position == null) {
+    if (_position == null || _isModalOpen) {
       return const SizedBox.shrink();
     }
 
@@ -233,93 +506,27 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
           left: _position!.dx + _bounceOffset.dx,
           top: _position!.dy + _bounceOffset.dy,
           child: AnimatedBuilder(
-            animation: _floatAnimation!,
+            animation: _floatAnimation,
             builder: (context, child) {
               return Transform.translate(
-                offset: _floatAnimation!.value,
+                offset: _floatAnimation.value,
                 child: GestureDetector(
-                  onTap: () async {
-                    final activePlanProvider = Provider.of<ActivePlanProvider>(context, listen: false);
-                    final planId = activePlanProvider.activePlan?.id;
-
-                    if (planId != null) {
-                      if (!stopwatchProvider.isActive) {
-                        stopwatchProvider.setContext(planId: planId);
-                      }
-
-                      final result = await showDialog<Map<String, dynamic>?>(
-                        context: context,
-                        builder: (context) => const StopwatchModal(),
-                      );
-
-                      if (result != null && mounted) {
-                        final int time = result['time'] as int;
-                        final String? subjectId = result['subjectId'] as String?;
-                        final Topic? topic = result['topic'] as Topic?;
-
-                        final authProvider = Provider.of<AuthProvider>(
-                          context,
-                          listen: false,
-                        );
-                        final initialRecord = StudyRecord(
-                          id: const Uuid().v4(),
-                          userId: authProvider.currentUser!.name,
-                          plan_id: activePlanProvider.activePlan!.id,
-                          date: DateTime.now().toIso8601String(),
-                          subject_id: subjectId!,
-                          topicsProgress: topic != null
-                              ? [
-                            TopicProgress(
-                              topicId: topic.id.toString(),
-                              topicText: topic.topic_text,
-                            ),
-                          ]
-                              : [],
-                          study_time: time,
-                          category: 'teoria',
-                          review_periods: [],
-                          count_in_planning: true,
-                          lastModified: DateTime.now().millisecondsSinceEpoch,
-                        );
-
-                        if (mounted) {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (ctx) => StudyRegisterModal(
-                              planId: planId,
-                              initialRecord: initialRecord,
-                              onSave: _handleStudyRecordSave,
-                            ),
-                          );
-                        }
-                      }
-                    } else {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Nenhum plano de estudo ativo selecionado.',
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
+                  // CORREÇÃO: Passando apenas a referência da função sem o contexto antigo
+                  onTap: _openModal,
                   onPanStart: (details) {
+                    if (_isMovingToCenter || _isReturningWithFall ||
+                        _isSlidingToCorner) {
+                      return;
+                    }
                     _isDragging = true;
-                    _inertiaController?.stop();
-                    _bounceController?.stop();
-                    _lastDragPosition = details.localPosition;
-                    _lastDragTime = DateTime.now();
+                    _inertiaController.stop();
+                    _bounceController.stop();
                     _dragVelocity = Offset.zero;
                   },
                   onPanUpdate: (details) {
-                    final now = DateTime.now();
-                    final deltaTime = now.difference(_lastDragTime!).inMilliseconds / 1000.0;
-
-                    if (deltaTime > 0 && deltaTime < 0.1) {
-                      _dragVelocity = details.delta / deltaTime;
+                    if (_isMovingToCenter || _isReturningWithFall ||
+                        _isSlidingToCorner) {
+                      return;
                     }
 
                     final newPosition = Offset(
@@ -327,61 +534,62 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
                       _position!.dy + details.delta.dy,
                     );
 
-                    final bounds = _getBounds();
                     final clampedPosition = _clampToBounds(newPosition);
-
-                    // Calcular overreach para bounce
                     final overreachX = newPosition.dx - clampedPosition.dx;
                     final overreachY = newPosition.dy - clampedPosition.dy;
 
                     if ((overreachX.abs() > 0 || overreachY.abs() > 0) &&
                         (overreachX.abs() < 50 && overreachY.abs() < 50)) {
-                      _startBounceAnimation(Offset(overreachX * 0.5, overreachY * 0.5));
+                      _startBounceAnimation(
+                          Offset(overreachX * 0.5, overreachY * 0.5));
                     }
 
                     setState(() {
                       _position = clampedPosition;
                     });
 
-                    _lastDragPosition = details.localPosition;
-                    _lastDragTime = now;
+                    _dragVelocity = details.delta;
                   },
                   onPanEnd: (details) {
+                    if (_isMovingToCenter || _isReturningWithFall ||
+                        _isSlidingToCorner) {
+                      return;
+                    }
                     _isDragging = false;
 
-                    // Reset bounce
-                    _bounceController?.stop();
+                    _bounceController.stop();
                     setState(() {
                       _bounceOffset = Offset.zero;
                     });
 
-                    // Aplicar inércia
                     if (_dragVelocity.distance > 50) {
                       _startInertia(_dragVelocity);
                     } else {
-                      // Snap suave para a borda mais próxima
                       final snappedPosition = _snapToEdge(_position!);
                       if (snappedPosition != _position) {
-                        _inertiaController?.stop();
+                        _inertiaController.stop();
 
                         final animation = Tween<Offset>(
                           begin: _position,
                           end: snappedPosition,
                         ).animate(CurvedAnimation(
-                          parent: _inertiaController!,
+                          parent: _inertiaController,
                           curve: Curves.easeOutCubic,
                         ));
 
                         animation.addListener(() {
-                          if (mounted && !_isDragging) {
+                          if (mounted && !_isDragging && !_isMovingToCenter &&
+                              !_isReturningWithFall && !_isModalOpen &&
+                              !_isSlidingToCorner) {
                             setState(() {
                               _position = animation.value;
                             });
                           }
                         });
 
-                        _inertiaController!.duration = const Duration(milliseconds: 300);
-                        _inertiaController!.forward(from: 0);
+                        _inertiaController.duration =
+                        const Duration(milliseconds: 300);
+                        _inertiaController.forward(from: 0);
                       }
                     }
 
@@ -397,7 +605,7 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -409,7 +617,8 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.timer, color: Colors.white, size: 20),
+                          const Icon(Icons.timer,
+                              color: Colors.white, size: 20),
                           const SizedBox(width: 4),
                           Text(
                             stopwatchProvider.result,
@@ -431,6 +640,105 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
                 ),
               );
             },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ModalExpansionTransition extends StatefulWidget {
+  final Offset buttonPosition;
+  final double buttonSize;
+  final Widget child;
+
+  const _ModalExpansionTransition({
+    required this.buttonPosition,
+    required this.buttonSize,
+    required this.child,
+  });
+
+  @override
+  State<_ModalExpansionTransition> createState() =>
+      _ModalExpansionTransitionState();
+}
+
+class _ModalExpansionTransitionState
+    extends State<_ModalExpansionTransition>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeIn,
+    ));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final center = Offset(screenSize.width / 2, screenSize.height / 2);
+    final buttonCenter = widget.buttonPosition +
+        Offset(widget.buttonSize / 2, widget.buttonSize / 2);
+    final translateOffset = buttonCenter - center;
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Material(
+          color: Colors.transparent,
+          child: Stack(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  color: Colors.black
+                      .withValues(alpha: 0.6 * _opacityAnimation.value),
+                ),
+              ),
+              Center(
+                child: Transform.translate(
+                  offset: translateOffset * (1 - _scaleAnimation.value),
+                  child: Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: Opacity(
+                      opacity: _opacityAnimation.value,
+                      child: widget.child,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
