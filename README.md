@@ -79,6 +79,48 @@ Baixe o instalador `.exe` na [página de releases](https://github.com/grebsu/our
 
 ---
 
+## 💻 Desenvolvimento
+
+### Pré-requisitos
+```bash
+flutter 3.27+
+dart 3.6+
+```
+
+### Build para Android (APK)
+```bash
+git clone https://github.com/grebsu/ouroboros-mobile.git
+cd ouroboros-mobile
+flutter pub get
+flutter build apk --release
+# APK gerado em: build/app/outputs/flutter-apk/app-release.apk
+```
+
+### Build para Linux (.deb)
+```bash
+flutter build linux --release
+# Construa o pacote .deb manualmente ou via script
+```
+
+### Build Flatpak
+```bash
+cd flatpak
+flatpak-builder --force-clean build-dir com.ouroboros.mobile.yml
+```
+
+### 📖 Guia para Desenvolvedores
+
+Para instruções detalhadas de desenvolvimento, incluindo:
+- Configuração do ambiente de desenvolvimento
+- Estrutura do projeto
+- Adicionando novas funcionalidades
+- Convenções de código
+- Processo de Pull Request
+
+Consulte o **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)**.
+
+---
+
 ## ✨ Funcionalidades Principais
 
 Cada funcionalidade foi pensada para resolver um problema real do dia a dia de quem estuda para concursos.
