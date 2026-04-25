@@ -15,86 +15,84 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import 'package:flutter/material.dart';
-import 'package:ouroboros_mobile/providers/active_plan_provider.dart';
-import 'package:provider/provider.dart';
+
+// Imports ordenados: 'dart:' primeiro, depois 'package:', depois relativos (nenhum aqui)
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-import 'dart:convert'; // NEW IMPORT for json.encode, json.decode, utf8.decode
-import 'dart:async'; // NEW IMPORT for TimeoutException
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:http/http.dart' as http; // NEW IMPORT
-import 'package:ouroboros_mobile/services/mdns_advertiser.dart'; // NEW IMPORT
-import 'package:ouroboros_mobile/services/mdns_discovery_service.dart'; // NEW IMPORT
-import 'package:ouroboros_mobile/services/sync_service.dart'; // NEW IMPORT
-import 'package:ouroboros_mobile/models/backup_model.dart'; // NEW IMPORT
 
-import 'package:ouroboros_mobile/widgets/create_plan_modal.dart';
-import 'package:ouroboros_mobile/providers/subject_provider.dart';
-import 'package:ouroboros_mobile/widgets/study_register_modal.dart';
-import 'package:ouroboros_mobile/widgets/filter_modal.dart';
-import 'package:ouroboros_mobile/widgets/plan_selector.dart';
-import 'package:ouroboros_mobile/widgets/floating_stopwatch_button.dart';
-import 'package:ouroboros_mobile/widgets/pulsing_glowing_icon.dart';
-import 'package:ouroboros_mobile/widgets/confirmation_modal.dart';
-
-// Telas da BottomNavigationBar
-import 'package:ouroboros_mobile/screens/plans_screen.dart';
-import 'package:ouroboros_mobile/screens/planning_screen.dart';
-import 'package:ouroboros_mobile/screens/revisions_screen.dart';
-import 'package:ouroboros_mobile/screens/stats_screen.dart';
-import 'package:ouroboros_mobile/screens/history_screen.dart';
-
-// Telas do Drawer
-import 'package:ouroboros_mobile/screens/home_screen.dart';
-import 'package:ouroboros_mobile/screens/subjects_screen.dart';
-import 'package:ouroboros_mobile/screens/edital_screen.dart';
-import 'package:ouroboros_mobile/screens/simulados_screen.dart';
-import 'package:ouroboros_mobile/screens/mentoria_screen.dart';
-import 'package:ouroboros_mobile/screens/support_screen.dart';
-import 'package:ouroboros_mobile/screens/backup_screen.dart';
-import 'package:ouroboros_mobile/screens/simulados/add_edit_simulado_screen.dart';
-
-import 'package:ouroboros_mobile/providers/plans_provider.dart';
-import 'package:ouroboros_mobile/providers/planning_provider.dart';
-import 'package:ouroboros_mobile/providers/history_provider.dart';
-import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
-import 'package:ouroboros_mobile/providers/review_provider.dart';
-import 'package:ouroboros_mobile/providers/filter_provider.dart';
-import 'package:ouroboros_mobile/providers/reminders_provider.dart';
-import 'package:ouroboros_mobile/providers/simulados_provider.dart';
-import 'package:ouroboros_mobile/providers/navigation_provider.dart';
-import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+
+import 'package:ouroboros_mobile/models/backup_model.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
-import 'package:ouroboros_mobile/providers/stopwatch_provider.dart';
-import 'package:ouroboros_mobile/screens/login_screen.dart';
+import 'package:ouroboros_mobile/providers/active_plan_provider.dart';
+import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
-import 'package:ouroboros_mobile/screens/splash_screen.dart'; // Import the new splash screen
-import 'package:ouroboros_mobile/services/database_service.dart'; // NEW IMPORT
+import 'package:ouroboros_mobile/providers/filter_provider.dart';
+import 'package:ouroboros_mobile/providers/history_provider.dart';
+import 'package:ouroboros_mobile/providers/navigation_provider.dart';
+import 'package:ouroboros_mobile/providers/planning_provider.dart';
+import 'package:ouroboros_mobile/providers/plans_provider.dart';
+import 'package:ouroboros_mobile/providers/reminders_provider.dart';
+import 'package:ouroboros_mobile/providers/review_provider.dart';
+import 'package:ouroboros_mobile/providers/simulados_provider.dart';
+import 'package:ouroboros_mobile/providers/stopwatch_provider.dart';
+import 'package:ouroboros_mobile/providers/subject_provider.dart';
+import 'package:ouroboros_mobile/screens/backup_screen.dart';
+import 'package:ouroboros_mobile/screens/edital_screen.dart';
+import 'package:ouroboros_mobile/screens/history_screen.dart';
+import 'package:ouroboros_mobile/screens/home_screen.dart';
+import 'package:ouroboros_mobile/screens/login_screen.dart';
+import 'package:ouroboros_mobile/screens/mentoria_screen.dart';
+import 'package:ouroboros_mobile/screens/planning_screen.dart';
+import 'package:ouroboros_mobile/screens/plans_screen.dart';
+import 'package:ouroboros_mobile/screens/revisions_screen.dart';
+import 'package:ouroboros_mobile/screens/simulados_screen.dart';
+import 'package:ouroboros_mobile/screens/simulados/add_edit_simulado_screen.dart';
+import 'package:ouroboros_mobile/screens/splash_screen.dart';
+import 'package:ouroboros_mobile/screens/stats_screen.dart';
+import 'package:ouroboros_mobile/screens/subjects_screen.dart';
+import 'package:ouroboros_mobile/screens/support_screen.dart';
+import 'package:ouroboros_mobile/services/database_service.dart';
+import 'package:ouroboros_mobile/services/mdns_advertiser.dart';
+import 'package:ouroboros_mobile/services/mdns_discovery_service.dart';
+import 'package:ouroboros_mobile/services/sync_service.dart';
+import 'package:ouroboros_mobile/sqlcipher_init.dart';
+import 'package:ouroboros_mobile/widgets/confirmation_modal.dart';
+import 'package:ouroboros_mobile/widgets/create_plan_modal.dart';
+import 'package:ouroboros_mobile/widgets/filter_modal.dart';
+import 'package:ouroboros_mobile/widgets/floating_stopwatch_button.dart';
+import 'package:ouroboros_mobile/widgets/plan_selector.dart';
+import 'package:ouroboros_mobile/widgets/pulsing_glowing_icon.dart';
+import 'package:ouroboros_mobile/widgets/study_register_modal.dart';
+import 'package:ouroboros_mobile/sqlcipher_init.dart';
 
 final restartNotifier = ValueNotifier<int>(0);
 final GlobalKey<ScaffoldMessengerState> snackbarKey =
-    GlobalKey<ScaffoldMessengerState>(); // NEW
+GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
-  // Make main async
-  WidgetsFlutterBinding.ensureInitialized(); // Ensure bindings are initialized
-  // TODO: REMOVER ESTA LINHA EM PRODUÇÃO. APAGA O BANCO DE DADOS NA INICIALIZAÇÃO.
-  // await DatabaseService.instance.forceDeleteDatabase();
+  WidgetsFlutterBinding.ensureInitialized();
+
+  initSqlCipher();
+
   await initializeDateFormatting(
     'pt_BR',
     null,
-  ); // Initialize date formatting for pt_BR
+  );
 
-  // Adicionado para inicializar a plataforma do webview
-  if (Platform.isAndroid) {
-    await InAppWebViewController.setWebContentsDebuggingEnabled(true);
-  }
-
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+  // Inicializações específicas de plataforma (apenas fora da web)
+  if (!kIsWeb) {
+    if (Platform.isAndroid) {
+      await InAppWebViewController.setWebContentsDebuggingEnabled(true);
+    }
   }
 
   runApp(const RootWidget());
@@ -120,11 +118,8 @@ class RootWidget extends StatelessWidget {
               update: (context, auth, previous) =>
                   PlansProvider(authProvider: auth),
             ),
-            ChangeNotifierProxyProvider2<
-              AuthProvider,
-              PlansProvider,
-              AllSubjectsProvider
-            >(
+            ChangeNotifierProxyProvider2<AuthProvider, PlansProvider,
+                AllSubjectsProvider>(
               create: (context) {
                 final auth = Provider.of<AuthProvider>(context, listen: false);
                 final plans = Provider.of<PlansProvider>(
@@ -177,32 +172,21 @@ class RootWidget extends StatelessWidget {
                   ReviewProvider(authProvider: auth),
             ),
             ChangeNotifierProvider(create: (context) => FilterProvider()),
-            ChangeNotifierProxyProvider3<
-              AuthProvider,
-              ReviewProvider,
-              FilterProvider,
-              HistoryProvider
-            >(
+            ChangeNotifierProxyProvider3<AuthProvider, ReviewProvider,
+                FilterProvider, HistoryProvider>(
               create: (context) => HistoryProvider(
                 Provider.of<ReviewProvider>(context, listen: false),
                 Provider.of<FilterProvider>(context, listen: false),
                 Provider.of<AuthProvider>(context, listen: false),
               ),
-              update:
-                  (
-                    context,
-                    auth,
-                    reviewProvider,
-                    filterProvider,
-                    previousHistory,
-                  ) {
-                    // Sempre retorna uma nova instância ou atualiza a existente com as novas dependências
-                    return HistoryProvider(
-                      reviewProvider,
-                      filterProvider,
-                      auth,
-                    );
-                  },
+              update: (context, auth, reviewProvider, filterProvider,
+                  previousHistory) {
+                return HistoryProvider(
+                  reviewProvider,
+                  filterProvider,
+                  auth,
+                );
+              },
             ),
             ChangeNotifierProxyProvider<AuthProvider, SubjectProvider>(
               create: (context) => SubjectProvider(
@@ -215,28 +199,19 @@ class RootWidget extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => RemindersProvider()),
             ChangeNotifierProvider(
               create: (_) => SimuladosProvider(),
-            ), // Adicionado SimuladosProvider aqui
-            ChangeNotifierProxyProvider3<
-              AuthProvider,
-              ActivePlanProvider,
-              HistoryProvider,
-              PlanningProvider
-            >(
+            ),
+            ChangeNotifierProxyProvider3<AuthProvider, ActivePlanProvider,
+                HistoryProvider, PlanningProvider>(
               create: (context) => PlanningProvider(
-                mentoriaProvider: Provider.of<MentoriaProvider>(
-                  context,
-                  listen: false,
-                ),
-                authProvider: Provider.of<AuthProvider>(context, listen: false),
-                historyProvider: Provider.of<HistoryProvider>(
-                  context,
-                  listen: false,
-                ), // NEW
+                mentoriaProvider:
+                Provider.of<MentoriaProvider>(context, listen: false),
+                authProvider:
+                Provider.of<AuthProvider>(context, listen: false),
+                historyProvider:
+                Provider.of<HistoryProvider>(context, listen: false),
               ),
-              update: (_, auth, activePlan, history, previous) => previous!
-                ..updateForPlan(
-                  activePlan.activePlanId,
-                ), // Modified update signature
+              update: (_, auth, activePlan, history, previous) =>
+              previous!..updateForPlan(activePlan.activePlanId),
             ),
           ],
           child: const MyApp(),
@@ -255,91 +230,68 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late Future<void> _tryAutoLoginFuture;
-  // Removed: late StreamSubscription _authSubscription; // NEW
-
-  // NEW: Sync Service instances
   static const int _syncPort = 5000;
-  late MdnsAdvertiser
-  _advertiser; // Changed to late and not final for initialization in initState
-  // MDNSDiscoveryService _discover is not global, only used by SyncScreen
+  late MdnsAdvertiser _advertiser;
   final SyncService _sync = SyncService();
   final Uuid _uuid = Uuid();
-  String _myDeviceId = ''; // To store device ID for sync
+  String _myDeviceId = '';
 
   @override
   void initState() {
     super.initState();
-    _myDeviceId = _uuid
-        .v4(); // Generate device ID on init before advertiser is created
+    _myDeviceId = _uuid.v4();
 
-    // Initialize _advertiser here after _myDeviceId is generated
     _advertiser = MdnsAdvertiser(
-      instanceName:
-          'Ouroboros-${_myDeviceId.substring(0, 8)}', // Use first 8 chars for brevity
+      instanceName: 'Ouroboros-${_myDeviceId.substring(0, 8)}',
       serviceType: '_ouro._tcp.local',
       port: _syncPort,
     );
 
-    _tryAutoLoginFuture = Provider.of<AuthProvider>(
-      context,
-      listen: false,
-    ).tryAutoLogin();
+    _tryAutoLoginFuture =
+        Provider.of<AuthProvider>(context, listen: false).tryAutoLogin();
 
-    // Listen to AuthProvider changes to start/stop sync services
-    Provider.of<AuthProvider>(
-      context,
-      listen: false,
-    ).addListener(_authListener); // Use the new method
+    Provider.of<AuthProvider>(context, listen: false)
+        .addListener(_authListener);
 
-    // Check initial login state
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.isLoggedIn && authProvider.currentUser?.name != null) {
-      _startSyncServices(authProvider.currentUser!.name!);
+    if (authProvider.isLoggedIn && authProvider.currentUser?.username != null) {
+      _startSyncServices(authProvider.currentUser!.username);
     }
   }
 
   @override
   void dispose() {
-    Provider.of<AuthProvider>(
-      context,
-      listen: false,
-    ).removeListener(_authListener); // Remove the listener
-    _stopSyncServices(); // Ensure services are stopped on app dispose
+    Provider.of<AuthProvider>(context, listen: false).removeListener(_authListener);
+    _stopSyncServices();
     super.dispose();
   }
 
   void _authListener() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.isLoggedIn && authProvider.currentUser?.name != null) {
-      _startSyncServices(authProvider.currentUser!.name!);
+    if (authProvider.isLoggedIn && authProvider.currentUser?.username != null) {
+      _startSyncServices(authProvider.currentUser!.username);
     } else {
       _stopSyncServices();
     }
   }
 
   Future<void> _startSyncServices(String userId) async {
-    print('[Global Sync] Starting sync services for user: $userId');
-    // Check if server is already running to prevent "Port already in use" errors
+    debugPrint('[Global Sync] Starting sync services for user: $userId');
     if (_sync.server == null) {
-      // Accessing public getter
       await _sync.startServer(port: _syncPort, userId: userId);
     }
-    // Check if advertiser is already running
     if (_advertiser.socket == null) {
-      // Accessing public getter
       await _advertiser.start();
     }
   }
 
   Future<void> _stopSyncServices() async {
-    print('[Global Sync] Stopping sync services.');
-    _advertiser.stop(); // Removed await
+    debugPrint('[Global Sync] Stopping sync services.');
+    _advertiser.stop();
     await _sync.stopServer();
   }
 
-  // NEW: Quick Sync Function
   Future<void> _quickSync() async {
-    // Show loading indicator
     snackbarKey.currentState?.showSnackBar(
       const SnackBar(content: Text('Iniciando sincronização rápida...')),
     );
@@ -348,31 +300,21 @@ class _MyAppState extends State<MyApp> {
     final userId = authProvider.currentUser?.name;
     if (userId == null) {
       snackbarKey.currentState?.showSnackBar(
-        const SnackBar(
-          content: Text('Erro: Usuário não logado para sincronizar.'),
-        ),
+        const SnackBar(content: Text('Erro: Usuário não logado para sincronizar.')),
       );
       return;
     }
 
     try {
-      // Server is already running globally, no need to start it here.
-
-      // Get paired devices
       final pairedDevices = await _sync.getPairedDevices();
       if (pairedDevices.isEmpty) {
         snackbarKey.currentState?.showSnackBar(
-          const SnackBar(
-            content: Text('Nenhum dispositivo pareado encontrado.'),
-          ),
+          const SnackBar(content: Text('Nenhum dispositivo pareado encontrado.')),
         );
-        // Server is already running globally, no need to stop it here.
         return;
       }
 
-      // Assume the first paired device is the target
-      final targetDevice =
-          pairedDevices.entries.first.value as Map<String, dynamic>;
+      final targetDevice = pairedDevices.entries.first.value as Map<String, dynamic>;
       final targetIp = targetDevice['ip'];
       final targetPort = targetDevice['port'];
       final targetToken = targetDevice['token'];
@@ -380,106 +322,64 @@ class _MyAppState extends State<MyApp> {
 
       if (targetIp == null || targetPort == null || targetToken == null) {
         snackbarKey.currentState?.showSnackBar(
-          const SnackBar(
-            content: Text('Dados do dispositivo pareado incompletos.'),
-          ),
+          const SnackBar(content: Text('Dados do dispositivo pareado incompletos.')),
         );
-        // Server is already running globally, no need to stop it here.
         return;
       }
 
       snackbarKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Text('Tentando sincronizar com $targetName ($targetIp)...'),
-        ),
+        SnackBar(content: Text('Tentando sincronizar com $targetName ($targetIp)...')),
       );
 
-      // 3. Initiate client-side sync logic (similar to SyncScreen's _syncNow)
-      // This part will attempt to connect to the target device as a client.
       final uri = Uri.parse('http://$targetIp:$targetPort/sync');
-
-      // 3.1. Export client's current data
-      final clientBackupData = await DatabaseService.instance.exportBackupData(
-        userId,
-      );
+      final clientBackupData = await DatabaseService.instance.exportBackupData(userId);
       final clientJsonData = json.encode(clientBackupData.toMap());
 
-      // 3.2. Attempt to POST to target device, with a timeout
       final response = await http
           .post(
-            uri,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $targetToken',
-              'X-User-ID': userId,
-            },
-            body: clientJsonData,
-          )
-          .timeout(
-            const Duration(seconds: 30),
-            onTimeout: () {
-              throw TimeoutException(
-                'Tempo esgotado ao tentar conectar ao dispositivo pareado.',
-              );
-            },
-          );
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $targetToken',
+          'X-User-ID': userId,
+        },
+        body: clientJsonData,
+      )
+          .timeout(const Duration(seconds: 30));
 
       switch (response.statusCode) {
         case 200:
           final mergedBackupData = BackupData.fromMap(
             json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
           );
-          await DatabaseService.instance.importMergedData(
-            mergedBackupData,
-            userId,
-          );
-          final historyProvider =
-              Provider.of<HistoryProvider>(context, listen: false);
-          final planningProvider =
-              Provider.of<PlanningProvider>(context, listen: false);
-
+          await DatabaseService.instance.importMergedData(mergedBackupData, userId);
+          final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+          final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
           await historyProvider.fetchHistory();
           await planningProvider.loadData();
-
           snackbarKey.currentState?.showSnackBar(
-            const SnackBar(
-              content: Text('Sincronização concluída e dados atualizados!'),
-            ),
+            const SnackBar(content: Text('Sincronização concluída e dados atualizados!')),
           );
           break;
         case 403:
           snackbarKey.currentState?.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Falha na sincronização: Token inválido. Recrie o pareamento.',
-              ),
-            ),
+            const SnackBar(content: Text('Falha na sincronização: Token inválido. Recrie o pareamento.')),
           );
           break;
         case 409:
           snackbarKey.currentState?.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Falha na sincronização: IDs de usuário não correspondem.',
-              ),
-            ),
+            const SnackBar(content: Text('Falha na sincronização: IDs de usuário não correspondem.')),
           );
           break;
         default:
           snackbarKey.currentState?.showSnackBar(
-            SnackBar(
-              content: Text(
-                'Falha na sincronização: ${response.statusCode} - ${response.body}',
-              ),
-            ),
+            SnackBar(content: Text('Falha na sincronização: ${response.statusCode} - ${response.body}')),
           );
       }
     } catch (e) {
       snackbarKey.currentState?.showSnackBar(
         SnackBar(content: Text('Erro durante a sincronização rápida: $e')),
       );
-    } finally {
-      // Server is already running globally, no need to stop it here.
     }
   }
 
@@ -488,43 +388,40 @@ class _MyAppState extends State<MyApp> {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         return MaterialApp(
-          scaffoldMessengerKey: snackbarKey, // NEW
+          scaffoldMessengerKey: snackbarKey,
           title: 'Ouroboros',
           theme: ThemeData(
-            primarySwatch: Colors.teal, // Changed to teal
+            primarySwatch: Colors.teal,
             primaryColor: Colors.teal,
             colorScheme: ColorScheme.fromSwatch(
               primarySwatch: Colors.teal,
               brightness: Brightness.light,
             ).copyWith(secondary: Colors.teal),
-            scaffoldBackgroundColor: const Color(0xFFF9FAFB), // gray-50
-            cardColor: Colors.white, // Set card color to white
-            dialogBackgroundColor:
-                Colors.white, // Explicitly set dialog background
-            cardTheme: const CardThemeData(
-              color: Colors.white, // Explicitly set card theme color
-            ),
+            scaffoldBackgroundColor: const Color(0xFFF9FAFB),
+            cardColor: Colors.white,
+            dialogBackgroundColor: Colors.white,
+            cardTheme: const CardThemeData(color: Colors.white),
             textSelectionTheme: TextSelectionThemeData(
               cursorColor: Colors.teal,
               selectionColor: Colors.teal.withOpacity(0.4),
               selectionHandleColor: Colors.teal,
             ),
             textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Color(0xFF1F2937)), // gray-900
+              bodyLarge: TextStyle(color: Color(0xFF1F2937)),
               bodyMedium: TextStyle(color: Color(0xFF1F2937)),
             ),
             appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFFF9FAFB), // gray-50
-              foregroundColor: Color(0xFF1F2937), // gray-900
+              backgroundColor: Color(0xFFF9FAFB),
+              foregroundColor: Color(0xFF1F2937),
             ),
             inputDecorationTheme: InputDecorationTheme(
               enabledBorder: OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.grey.shade400),
                 borderRadius: BorderRadius.circular(8.0),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: const BorderSide(color: Colors.teal, width: 2.0),
-                borderRadius: BorderRadius.circular(8.0),
+              focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.teal, width: 2.0),
+                borderRadius: BorderRadius.all(Radius.circular(8.0)),
               ),
               border: OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.grey.shade400),
@@ -532,58 +429,45 @@ class _MyAppState extends State<MyApp> {
               ),
             ),
             visualDensity: VisualDensity.adaptivePlatformDensity,
-            dividerColor:
-                Colors.grey.shade300, // Cor das linhas da tabela no modo claro
+            dividerColor: Colors.grey.shade300,
           ),
           darkTheme: ThemeData(
-            primarySwatch: Colors.teal, // Changed to teal
+            primarySwatch: Colors.teal,
             primaryColor: Colors.teal,
             colorScheme: ColorScheme.fromSwatch(
               primarySwatch: Colors.teal,
               brightness: Brightness.dark,
             ).copyWith(secondary: Colors.teal),
             brightness: Brightness.dark,
-            scaffoldBackgroundColor: const Color(
-              0xFF101828,
-            ), // Custom dark background color
-            cardColor: const Color(
-              0xFF1D2938,
-            ), // Custom dark gray for cards in dark mode
-            dialogBackgroundColor: const Color(
-              0xFF1D2938,
-            ), // Explicitly set dialog background for dark mode
-            cardTheme: CardThemeData(
-              color: const Color(0xFF1D2938), // Explicitly set card theme color
-            ),
+            scaffoldBackgroundColor: const Color(0xFF101828),
+            cardColor: const Color(0xFF1D2938),
+            dialogBackgroundColor: const Color(0xFF1D2938),
+            cardTheme: const CardThemeData(color: Color(0xFF1D2938)),
             textSelectionTheme: TextSelectionThemeData(
               cursorColor: Colors.teal,
               selectionColor: Colors.teal.withOpacity(0.4),
               selectionHandleColor: Colors.teal,
             ),
             textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Color(0xFFF9FAFB)), // gray-50
+              bodyLarge: TextStyle(color: Color(0xFFF9FAFB)),
               bodyMedium: TextStyle(color: Color(0xFFF9FAFB)),
             ),
             appBarTheme: const AppBarTheme(
-              backgroundColor: Color(
-                0xFF101828,
-              ), // Custom dark background color
-              foregroundColor: Color(0xFFF9FAFB), // gray-50
+              backgroundColor: Color(0xFF101828),
+              foregroundColor: Color(0xFFF9FAFB),
             ),
             visualDensity: VisualDensity.adaptivePlatformDensity,
           ),
-          themeMode: ThemeMode
-              .system, // Pode ser alterado para ThemeMode.light ou ThemeMode.dark
+          themeMode: ThemeMode.system,
           home: authProvider.isLoggedIn
               ? HomePage(onQuickSync: _quickSync)
               : FutureBuilder(
-                  future: _tryAutoLoginFuture,
-                  builder: (ctx, authResultSnapshot) =>
-                      authResultSnapshot.connectionState ==
-                          ConnectionState.waiting
-                      ? const SplashScreen()
-                      : const LoginScreen(),
-                ),
+            future: _tryAutoLoginFuture,
+            builder: (ctx, authResultSnapshot) =>
+            authResultSnapshot.connectionState == ConnectionState.waiting
+                ? const SplashScreen()
+                : const LoginScreen(),
+          ),
         );
       },
     );
@@ -611,69 +495,44 @@ MaterialColor createMaterialColor(Color color) {
   return MaterialColor(color.value, swatch);
 }
 
-// ... (other imports)
-
 class HomePage extends StatefulWidget {
-  final Future<void> Function() onQuickSync; // NEW
+  final Future<void> Function() onQuickSync;
 
-  const HomePage({super.key, required this.onQuickSync}); // MODIFIED
+  const HomePage({super.key, required this.onQuickSync});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  // Changed SingleTickerProviderStateMixin to TickerProviderStateMixin
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-  late AnimationController _syncRotationController; // NEW
-  late Animation<double> _syncRotationAnimation; // NEW
+  late AnimationController _syncRotationController;
+  late Animation<double> _syncRotationAnimation;
 
   void _handleGetRecommendation(BuildContext context) async {
-    // Show loading indicator immediately
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) =>
-          const Center(child: CircularProgressIndicator(color: Colors.teal)),
+      const Center(child: CircularProgressIndicator(color: Colors.teal)),
     );
 
-    // Get providers
-    final planningProvider = Provider.of<PlanningProvider>(
-      context,
-      listen: false,
-    );
-    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(
-      context,
-      listen: false,
-    );
-    final activePlanProvider = Provider.of<ActivePlanProvider>(
-      context,
-      listen: false,
-    );
-    final historyProvider = Provider.of<HistoryProvider>(
-      context,
-      listen: false,
-    );
+    final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
+    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
+    final activePlanProvider = Provider.of<ActivePlanProvider>(context, listen: false);
+    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
 
-    // Ensure data is loaded. Assuming fetchData methods are awaitable.
     await allSubjectsProvider.fetchData();
     await historyProvider.fetchHistory();
-    await planningProvider
-        .loadData(); // This provider has loadData instead of fetchData
+    await planningProvider.loadData();
 
-    // Dismiss loading indicator
-    if (context.mounted) {
-      Navigator.of(context).pop();
-    }
+    if (context.mounted) Navigator.of(context).pop();
 
-    if (planningProvider.studyCycle == null ||
-        planningProvider.studyCycle!.isEmpty) {
+    if (planningProvider.studyCycle == null || planningProvider.studyCycle!.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nenhum ciclo de estudos ativo para sugerir.'),
-          ),
+          const SnackBar(content: Text('Nenhum ciclo de estudos ativo para sugerir.')),
         );
       }
       return;
@@ -682,10 +541,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final recommendation = planningProvider.getRecommendedSession(
       studyRecords: historyProvider.records,
       subjects: allSubjectsProvider.subjects,
-      reviewRecords: Provider.of<ReviewProvider>(
-        context,
-        listen: false,
-      ).allReviewRecords,
+      reviewRecords: Provider.of<ReviewProvider>(context, listen: false).allReviewRecords,
     );
     final recommendedTopic = recommendation['recommendedTopic'];
     final justification = recommendation['justification'];
@@ -694,9 +550,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (nextSession == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text((justification as String?) ?? "Erro desconhecido na sugestão."),
-          ),
+          SnackBar(content: Text((justification as String?) ?? "Erro desconhecido na sugestão.")),
         );
       }
       return;
@@ -705,7 +559,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     final initialRecord = StudyRecord(
-      id: Uuid().v4(),
+      id: const Uuid().v4(),
       userId: authProvider.currentUser!.name,
       plan_id: activePlanProvider.activePlan?.id ?? '',
       date: DateTime.now().toIso8601String(),
@@ -728,10 +582,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         context: context,
         builder: (ctx) => StudyRegisterModal(
           planId: initialRecord.plan_id,
-          initialRecord: initialRecord, // Passa o registro inicial preenchido
+          initialRecord: initialRecord,
           onSave: (newRecord) {
             historyProvider.addStudyRecord(newRecord);
-            planningProvider.updateProgress(newRecord); // Adicionado
+            planningProvider.updateProgress(newRecord);
           },
         ),
       );
@@ -758,30 +612,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
 
     _syncRotationController = AnimationController(
-      // NEW
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _syncRotationAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(_syncRotationController); // NEW
+    _syncRotationAnimation = Tween<double>(begin: 0, end: 1).animate(_syncRotationController);
 
     _allScreens = <Widget>[
-      // BottomNavigationBar items
       PlansScreen(),
       PlanningScreen(
         isEditMode: _planningScreenEditMode,
         onToggleEditMode: _togglePlanningScreenEditMode,
-        onResetCycle: () => Provider.of<PlanningProvider>(
-          context,
-          listen: false,
-        ).resetStudyCycle(),
+        onResetCycle: () =>
+            Provider.of<PlanningProvider>(context, listen: false).resetStudyCycle(),
       ),
       RevisionsScreen(),
       StatsScreen(),
       HistoryScreen(),
-      // Drawer items
       DashboardScreen(),
       SubjectsScreen(),
       EditalScreen(),
@@ -792,13 +638,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     ];
 
     _allAppBarTitles = <String>[
-      // BottomNavigationBar titles
       'Planos',
       'Planejamento',
       'Revisões',
       'Estatísticas',
       'Histórico',
-      // Drawer titles
       'Home',
       'Matérias',
       'Edital',
@@ -812,63 +656,48 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _animationController.dispose();
-    _syncRotationController.dispose(); // NEW
+    _syncRotationController.dispose();
     super.dispose();
   }
 
   void _startSyncAnimation() {
-    // NEW method
     _syncRotationController.forward(from: 0.0);
   }
 
   void _togglePlanningScreenEditMode() {
     setState(() {
       _planningScreenEditMode = !_planningScreenEditMode;
-      // Recria a lista de telas para que PlanningScreen seja recriada com o novo isEditMode
       _allScreens[1] = PlanningScreen(
         isEditMode: _planningScreenEditMode,
         onToggleEditMode: _togglePlanningScreenEditMode,
-        onResetCycle: () => Provider.of<PlanningProvider>(
-          context,
-          listen: false,
-        ).resetStudyCycle(),
+        onResetCycle: () =>
+            Provider.of<PlanningProvider>(context, listen: false).resetStudyCycle(),
       );
     });
   }
 
   Future<void> _showStudyRegisterModal(BuildContext context) async {
-    final activePlanProvider = Provider.of<ActivePlanProvider>(
-      context,
-      listen: false,
-    );
+    final activePlanProvider = Provider.of<ActivePlanProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final historyProvider = Provider.of<HistoryProvider>(
-      context,
-      listen: false,
-    );
-    final planningProvider = Provider.of<PlanningProvider>(
-      context,
-      listen: false,
-    );
+    final historyProvider = Provider.of<HistoryProvider>(context, listen: false);
+    final planningProvider = Provider.of<PlanningProvider>(context, listen: false);
 
     final planId = activePlanProvider.activePlan?.id;
 
     if (planId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nenhum plano de estudo ativo selecionado.'),
-        ),
+        const SnackBar(content: Text('Nenhum plano de estudo ativo selecionado.')),
       );
       return;
     }
 
     final initialRecord = StudyRecord(
-      id: Uuid().v4(),
+      id: const Uuid().v4(),
       userId: authProvider.currentUser!.name,
       plan_id: planId,
       date: DateTime.now().toIso8601String(),
-      subject_id: '', // Will be selected in the modal
-      topicsProgress: [], // Vazio, será selecionado no modal
+      subject_id: '',
+      topicsProgress: [],
       study_time: 0,
       category: 'teoria',
       review_periods: [],
@@ -898,7 +727,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   void _onDrawerItemTapped(int index) {
     context.read<NavigationProvider>().setIndex(index);
-    Navigator.pop(context); // Fecha o Drawer
+    Navigator.pop(context);
   }
 
   @override
@@ -909,8 +738,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Consumer<PlanningProvider>(
       builder: (context, planningProvider, child) {
         final bool hasActiveCycle =
-            planningProvider.studyCycle != null &&
-            planningProvider.studyCycle!.isNotEmpty;
+            planningProvider.studyCycle != null && planningProvider.studyCycle!.isNotEmpty;
 
         return Stack(
           children: [
@@ -920,11 +748,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   builder: (context) => ScaleTransition(
                     scale: _scaleAnimation,
                     child: IconButton(
-                      iconSize: 40, // Aumenta o tamanho total do botão
+                      iconSize: 40,
                       icon: Container(
-                        padding: const EdgeInsets.all(
-                          2.0,
-                        ), // Aumenta o preenchimento
+                        padding: const EdgeInsets.all(2.0),
                         decoration: BoxDecoration(
                           color: Theme.of(context).brightness == Brightness.dark
                               ? const Color(0xFF1D2938)
@@ -938,70 +764,55 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               : 'logo/logo.png',
                           height: 40,
                           width: 40,
-                        ), // Aumenta o tamanho da imagem
+                        ),
                       ),
                       onPressed: () => Scaffold.of(context).openDrawer(),
                     ),
                   ),
                 ),
-                title: _isDrawerOpen
-                    ? const Text('')
-                    : Text(_allAppBarTitles.elementAt(selectedIndex)),
+                title: _isDrawerOpen ? const Text('') : Text(_allAppBarTitles.elementAt(selectedIndex)),
                 actions: <Widget>[
                   if (selectedIndex == 1 && hasActiveCycle)
                     Flexible(
                       child: ElevatedButton.icon(
-                        icon: const Icon(
-                          Icons.play_arrow,
-                        ), // Novo ícone para iniciar estudo
+                        icon: const Icon(Icons.play_arrow),
                         label: const Text('Iniciar Estudo Sugerido'),
                         onPressed: () => _handleGetRecommendation(context),
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
                           backgroundColor: Colors.teal,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         ),
                       ),
                     ),
                   if (selectedIndex == 1 && hasActiveCycle)
                     IconButton(
-                      icon: Icon(
-                        _planningScreenEditMode ? Icons.check : Icons.edit,
-                      ),
+                      icon: Icon(_planningScreenEditMode ? Icons.check : Icons.edit),
                       onPressed: _togglePlanningScreenEditMode,
-                      tooltip: _planningScreenEditMode
-                          ? 'Concluir Edição'
-                          : 'Editar Ciclo',
+                      tooltip: _planningScreenEditMode ? 'Concluir Edição' : 'Editar Ciclo',
                     ),
                   if (selectedIndex == 1 && hasActiveCycle)
                     IconButton(
-                      icon: const Icon(Icons.delete), // Ícone de lixeira
+                      icon: const Icon(Icons.delete),
                       onPressed: () {
                         showDialog(
                           context: context,
-                          builder: (BuildContext context) {
-                            return ConfirmationModal(
-                              title: 'Apagar Ciclo',
-                              message:
-                                  'Tem certeza que deseja apagar o ciclo de estudo atual? Esta ação é irreversível e todo o progresso será perdido.',
-                              confirmText: 'Apagar',
-                              onConfirm: () {
-                                Provider.of<PlanningProvider>(
-                                  context,
-                                  listen: false,
-                                ).resetStudyCycle();
-                                Navigator.of(context).pop();
-                              },
-                              onClose: () => Navigator.of(context).pop(),
-                            );
-                          },
+                          builder: (BuildContext context) => ConfirmationModal(
+                            title: 'Apagar Ciclo',
+                            message:
+                            'Tem certeza que deseja apagar o ciclo de estudo atual? Esta ação é irreversível e todo o progresso será perdido.',
+                            confirmText: 'Apagar',
+                            onConfirm: () {
+                              Provider.of<PlanningProvider>(context, listen: false).resetStudyCycle();
+                              Navigator.of(context).pop();
+                            },
+                            onClose: () => Navigator.of(context).pop(),
+                          ),
                         );
                       },
                       tooltip: 'Apagar Ciclo',
                     ),
-                  if (selectedIndex == 0) // PlansScreen index
+                  if (selectedIndex == 0)
                     Flexible(
                       child: Builder(
                         builder: (context) => ElevatedButton.icon(
@@ -1010,22 +821,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           onPressed: () {
                             showDialog(
                               context: context,
-                              builder: (BuildContext context) {
-                                return const CreatePlanModal();
-                              },
+                              builder: (BuildContext context) => const CreatePlanModal(),
                             );
                           },
                           style: ElevatedButton.styleFrom(
                             foregroundColor: Colors.white,
                             backgroundColor: Colors.teal,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           ),
                         ),
                       ),
                     ),
-                  if (selectedIndex == 5) // DashboardScreen index
+                  if (selectedIndex == 5)
                     Flexible(
                       child: Builder(
                         builder: (context) => ElevatedButton.icon(
@@ -1035,18 +842,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           style: ElevatedButton.styleFrom(
                             foregroundColor: Colors.white,
                             backgroundColor: Colors.teal,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           ),
                         ),
                       ),
                     ),
-                  if (selectedIndex == 4) // HistoryScreen index
+                  if (selectedIndex == 4)
                     Flexible(
                       child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.end, // Alinha os botões à direita
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           ElevatedButton.icon(
                             onPressed: () => _showStudyRegisterModal(context),
@@ -1055,9 +859,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             style: ElevatedButton.styleFrom(
                               foregroundColor: Colors.white,
                               backgroundColor: Colors.teal,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -1067,21 +869,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 context: context,
                                 builder: (context) {
                                   final historyProvider =
-                                      Provider.of<HistoryProvider>(
-                                        context,
-                                        listen: false,
-                                      );
+                                  Provider.of<HistoryProvider>(context, listen: false);
                                   final allSubjectsProvider =
-                                      Provider.of<AllSubjectsProvider>(
-                                        context,
-                                        listen: false,
-                                      );
+                                  Provider.of<AllSubjectsProvider>(context, listen: false);
                                   return FilterModal(
                                     screen: FilterScreen.history,
-                                    availableCategories:
-                                        historyProvider.availableCategories,
-                                    availableSubjects:
-                                        allSubjectsProvider.subjects,
+                                    availableCategories: historyProvider.availableCategories,
+                                    availableSubjects: allSubjectsProvider.subjects,
                                   );
                                 },
                               );
@@ -1091,23 +885,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             style: ElevatedButton.styleFrom(
                               foregroundColor: Colors.white,
                               backgroundColor: Colors.teal,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             ),
                           ),
-                          const SizedBox(width: 8), // Add some spacing
+                          const SizedBox(width: 8),
                         ],
                       ),
                     ),
-                  if (selectedIndex == 8) // SimuladosScreen index
+                  if (selectedIndex == 8)
                     Flexible(
                       child: ElevatedButton.icon(
                         onPressed: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (ctx) => const AddEditSimuladoScreen(),
-                            ),
+                            MaterialPageRoute(builder: (ctx) => const AddEditSimuladoScreen()),
                           );
                         },
                         icon: const Icon(Icons.add),
@@ -1115,17 +905,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
                           backgroundColor: Colors.teal,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         ),
                       ),
                     ),
-                  if (selectedIndex == 3) // StatsScreen index
+                  if (selectedIndex == 3)
                     Flexible(
                       child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.end, // Alinha os botões à direita
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           ElevatedButton.icon(
                             onPressed: () => _showStudyRegisterModal(context),
@@ -1134,9 +921,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             style: ElevatedButton.styleFrom(
                               foregroundColor: Colors.white,
                               backgroundColor: Colors.teal,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -1146,21 +931,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 context: context,
                                 builder: (context) {
                                   final historyProvider =
-                                      Provider.of<HistoryProvider>(
-                                        context,
-                                        listen: false,
-                                      );
+                                  Provider.of<HistoryProvider>(context, listen: false);
                                   final allSubjectsProvider =
-                                      Provider.of<AllSubjectsProvider>(
-                                        context,
-                                        listen: false,
-                                      );
+                                  Provider.of<AllSubjectsProvider>(context, listen: false);
                                   return FilterModal(
                                     screen: FilterScreen.stats,
-                                    availableCategories:
-                                        historyProvider.availableCategories,
-                                    availableSubjects:
-                                        allSubjectsProvider.subjects,
+                                    availableCategories: historyProvider.availableCategories,
+                                    availableSubjects: allSubjectsProvider.subjects,
                                   );
                                 },
                               );
@@ -1170,33 +947,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             style: ElevatedButton.styleFrom(
                               foregroundColor: Colors.white,
                               backgroundColor: Colors.teal,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             ),
                           ),
-                          const SizedBox(width: 8), // Add some spacing
+                          const SizedBox(width: 8),
                         ],
                       ),
                     ),
-                  if (selectedIndex == 7) // EditalScreen index
+                  if (selectedIndex == 7)
                     Flexible(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          /* TODO: Implementar modal de registro de estudo */
-                        },
+                        onPressed: () {},
                         icon: const Icon(Icons.add_circle),
                         label: const Text('Adicionar Estudo'),
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
                           backgroundColor: Colors.teal,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         ),
                       ),
                     ),
-                  if (selectedIndex == 2) // RevisionsScreen index
+                  if (selectedIndex == 2)
                     Flexible(
                       child: ElevatedButton.icon(
                         onPressed: () => _showStudyRegisterModal(context),
@@ -1205,18 +976,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
                           backgroundColor: Colors.teal,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         ),
                       ),
                     ),
-                  if (selectedIndex == 9) // SupportScreen index
+                  if (selectedIndex == 9)
                     IconButton(
                       icon: const Icon(Icons.share),
-                      onPressed: () {
-                        /* TODO: Implementar compartilhamento */
-                      },
+                      onPressed: () {},
                       tooltip: 'Compartilhar',
                     ),
                 ],
@@ -1234,13 +1001,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       child: Container(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? const Color(0xFF1D2938)
-                            : Colors
-                                  .teal, // Cor de fundo dos cards no modo escuro
+                            : Colors.teal,
                         child: ListView(
                           padding: EdgeInsets.zero,
                           children: <Widget>[
                             Container(
-                              height: 120, // Altura menor
+                              height: 120,
                               padding: const EdgeInsets.all(16.0),
                               child: Image.asset(
                                 Theme.of(context).brightness == Brightness.dark
@@ -1248,233 +1014,72 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     : 'logo/logo-marca.png',
                               ),
                             ),
-                            Container(
-                              decoration: selectedIndex == 5
-                                  ? BoxDecoration(
-                                      color: Colors.white.withOpacity(
-                                        0.2,
-                                      ), // Highlight color
-                                      borderRadius: BorderRadius.circular(8),
-                                    )
-                                  : null,
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.home,
-                                  color: selectedIndex == 5
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.7),
-                                ),
-                                title: Text(
-                                  'Home',
-                                  style: TextStyle(
-                                    color: selectedIndex == 5
-                                        ? Colors.white
-                                        : Colors.white.withOpacity(0.7),
-                                  ),
-                                ),
-                                onTap: () => _onDrawerItemTapped(
-                                  5,
-                                ), // Index da HomeScreen em _allScreens
-                              ),
+                            _buildDrawerItem(
+                              context,
+                              index: 5,
+                              icon: Icons.home,
+                              label: 'Home',
+                              selectedIndex: selectedIndex,
+                              onTap: _onDrawerItemTapped,
                             ),
-                            Container(
-                              decoration: selectedIndex == 6
-                                  ? BoxDecoration(
-                                      color: Colors.white.withOpacity(
-                                        0.2,
-                                      ), // Highlight color
-                                      borderRadius: BorderRadius.circular(8),
-                                    )
-                                  : null,
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.book,
-                                  color: selectedIndex == 6
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.7),
-                                ),
-                                title: Text(
-                                  'Matérias',
-                                  style: TextStyle(
-                                    color: selectedIndex == 6
-                                        ? Colors.white
-                                        : Colors.white.withOpacity(0.7),
-                                  ),
-                                ),
-                                onTap: () => _onDrawerItemTapped(
-                                  6,
-                                ), // Index da SubjectsScreen em _allScreens
-                              ),
+                            _buildDrawerItem(
+                              context,
+                              index: 6,
+                              icon: Icons.book,
+                              label: 'Matérias',
+                              selectedIndex: selectedIndex,
+                              onTap: _onDrawerItemTapped,
                             ),
-                            Container(
-                              decoration: selectedIndex == 7
-                                  ? BoxDecoration(
-                                      color: Colors.white.withOpacity(
-                                        0.2,
-                                      ), // Highlight color
-                                      borderRadius: BorderRadius.circular(8),
-                                    )
-                                  : null,
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.description,
-                                  color: selectedIndex == 7
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.7),
-                                ),
-                                title: Text(
-                                  'Edital',
-                                  style: TextStyle(
-                                    color: selectedIndex == 7
-                                        ? Colors.white
-                                        : Colors.white.withOpacity(0.7),
-                                  ),
-                                ),
-                                onTap: () => _onDrawerItemTapped(
-                                  7,
-                                ), // Index da EditalScreen em _allScreens
-                              ),
+                            _buildDrawerItem(
+                              context,
+                              index: 7,
+                              icon: Icons.description,
+                              label: 'Edital',
+                              selectedIndex: selectedIndex,
+                              onTap: _onDrawerItemTapped,
                             ),
-                            Container(
-                              decoration: selectedIndex == 8
-                                  ? BoxDecoration(
-                                      color: Colors.white.withOpacity(
-                                        0.2,
-                                      ), // Highlight color
-                                      borderRadius: BorderRadius.circular(8),
-                                    )
-                                  : null,
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.quiz,
-                                  color: selectedIndex == 8
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.7),
-                                ),
-                                title: Text(
-                                  'Simulados',
-                                  style: TextStyle(
-                                    color: selectedIndex == 8
-                                        ? Colors.white
-                                        : Colors.white.withOpacity(0.7),
-                                  ),
-                                ),
-                                onTap: () => _onDrawerItemTapped(
-                                  8,
-                                ), // Index da SimuladosScreen em _allScreens
-                              ),
+                            _buildDrawerItem(
+                              context,
+                              index: 8,
+                              icon: Icons.quiz,
+                              label: 'Simulados',
+                              selectedIndex: selectedIndex,
+                              onTap: _onDrawerItemTapped,
                             ),
-                            Container(
-                              decoration: selectedIndex == 9
-                                  ? BoxDecoration(
-                                      color: Colors.white.withOpacity(
-                                        0.2,
-                                      ), // Highlight color
-                                      borderRadius: BorderRadius.circular(8),
-                                    )
-                                  : null,
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.psychology,
-                                  color: selectedIndex == 9
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.7),
-                                ),
-                                title: Text(
-                                  'Mentoria Algorítmica',
-                                  style: TextStyle(
-                                    color: selectedIndex == 9
-                                        ? Colors.white
-                                        : Colors.white.withOpacity(0.7),
-                                  ),
-                                ),
-                                onTap: () => _onDrawerItemTapped(
-                                  9,
-                                ), // Index da MentoriaScreen em _allScreens
-                              ),
+                            _buildDrawerItem(
+                              context,
+                              index: 9,
+                              icon: Icons.psychology,
+                              label: 'Mentoria Algorítmica',
+                              selectedIndex: selectedIndex,
+                              onTap: _onDrawerItemTapped,
                             ),
-                            Container(
-                              decoration: selectedIndex == 10
-                                  ? BoxDecoration(
-                                      color: Colors.white.withOpacity(
-                                        0.2,
-                                      ), // Highlight color
-                                      borderRadius: BorderRadius.circular(8),
-                                    )
-                                  : null,
-                              child: ListTile(
-                                leading: PulsingGlowingIcon(
-                                  icon: Icons.favorite,
-                                  color: Colors.amber,
-                                ),
-                                title: Text(
-                                  'Apoie o Projeto',
-                                  style: TextStyle(
-                                    color: selectedIndex == 10
-                                        ? Colors.white
-                                        : Colors.white.withOpacity(0.7),
-                                  ),
-                                ),
-                                onTap: () => _onDrawerItemTapped(
-                                  10,
-                                ), // Index da SupportScreen em _allScreens
-                              ),
+                            _buildDrawerItem(
+                              context,
+                              index: 10,
+                              icon: Icons.favorite,
+                              label: 'Apoie o Projeto',
+                              selectedIndex: selectedIndex,
+                              onTap: _onDrawerItemTapped,
+                              isPulsing: true,
                             ),
-                            Container(
-                              decoration: selectedIndex == 11
-                                  ? BoxDecoration(
-                                      color: Colors.white.withOpacity(
-                                        0.2,
-                                      ), // Highlight color
-                                      borderRadius: BorderRadius.circular(8),
-                                    )
-                                  : null,
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.backup,
-                                  color: selectedIndex == 11
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.7),
-                                ),
-                                title: Text(
-                                  'Backup',
-                                  style: TextStyle(
-                                    color: selectedIndex == 11
-                                        ? Colors.white
-                                        : Colors.white.withOpacity(0.7),
-                                  ),
-                                ),
-                                onTap: () => _onDrawerItemTapped(
-                                  11,
-                                ), // Index da BackupScreen em _allScreens
-                              ),
+                            _buildDrawerItem(
+                              context,
+                              index: 11,
+                              icon: Icons.backup,
+                              label: 'Backup',
+                              selectedIndex: selectedIndex,
+                              onTap: _onDrawerItemTapped,
                             ),
                             Consumer<AuthProvider>(
-                              builder: (context, auth, child) {
-                                return ListTile(
-                                  leading: Icon(
-                                    Icons.logout,
-                                    color:
-                                        Theme.of(context).brightness ==
-                                            Brightness.light
-                                        ? Colors.white
-                                        : Colors.white,
-                                  ),
-                                  title: Text(
-                                    'Sair (${auth.currentUser!.name})',
-                                    style: TextStyle(
-                                      color:
-                                          Theme.of(context).brightness ==
-                                              Brightness.light
-                                          ? Colors.white
-                                          : Colors.white,
-                                    ),
-                                  ),
-                                  onTap: () {
-                                    auth.logout();
-                                  },
-                                );
-                              },
+                              builder: (context, auth, child) => ListTile(
+                                leading: const Icon(Icons.logout, color: Colors.white),
+                                title: Text(
+                                  'Sair (${auth.currentUser!.username})',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                onTap: () => auth.logout(),
+                              ),
                             ),
                           ],
                         ),
@@ -1483,31 +1088,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     Container(
                       color: Theme.of(context).brightness == Brightness.dark
                           ? const Color(0xFF1D2938)
-                          : Colors
-                                .teal, // Cor de fundo dos cards no modo escuro
+                          : Colors.teal,
                       child: ListTile(
                         leading: Container(
-                          // NEW: Container for circular background
-                          padding: const EdgeInsets.all(
-                            8.0,
-                          ), // Adjust padding as needed
+                          padding: const EdgeInsets.all(8.0),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.teal.withOpacity(
-                              0.2,
-                            ), // Light teal background for the circle
+                            color: Colors.teal.withOpacity(0.2),
                           ),
                           child: IconButton(
                             icon: RotationTransition(
                               turns: _syncRotationAnimation,
-                              child: Icon(
-                                Icons.sync,
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.teal
-                                    : Colors.white,
-                              ),
+                              child: const Icon(Icons.sync, color: Colors.white),
                             ),
                             onPressed: () {
                               _startSyncAnimation();
@@ -1515,7 +1107,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             },
                           ),
                         ),
-                        title: PlanSelector(),
+                        title: const PlanSelector(),
                       ),
                     ),
                   ],
@@ -1523,57 +1115,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
               bottomNavigationBar: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).cardColor, // Move background color here for rounded corners
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20.0),
-                  ), // Rounded top corners
-                  border: const Border(
-                    top: BorderSide(
-                      color: Colors.teal,
-                      width: 1.0,
-                    ), // Teal border at the top
-                  ),
+                  color: Theme.of(context).cardColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20.0)),
+                  border: const Border(top: BorderSide(color: Colors.teal, width: 1.0)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
                       spreadRadius: 2,
                       blurRadius: 5,
-                      offset: const Offset(0, -3), // Shadow above the bar
+                      offset: const Offset(0, -3),
                     ),
                   ],
                 ),
                 child: BottomNavigationBar(
-                  backgroundColor: Colors
-                      .transparent, // Make BottomNavigationBar transparent
-                  elevation: 0, // Remove default elevation
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
                   items: const <BottomNavigationBarItem>[
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.assignment),
-                      label: 'Planos',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.calendar_today),
-                      label: 'Planejamento',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.rate_review),
-                      label: 'Revisões',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.bar_chart),
-                      label: 'Estatísticas',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.history),
-                      label: 'Histórico',
-                    ),
+                    BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Planos'),
+                    BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Planejamento'),
+                    BottomNavigationBarItem(icon: Icon(Icons.rate_review), label: 'Revisões'),
+                    BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Estatísticas'),
+                    BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Histórico'),
                   ],
                   currentIndex: selectedIndex < 5 ? selectedIndex : 0,
-                  selectedItemColor: selectedIndex < 5
-                      ? Colors.teal
-                      : Colors.grey,
+                  selectedItemColor: selectedIndex < 5 ? Colors.teal : Colors.grey,
                   unselectedItemColor: Colors.grey,
                   onTap: _onItemTapped,
                   type: BottomNavigationBarType.fixed,
@@ -1584,6 +1149,36 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildDrawerItem(
+      BuildContext context, {
+        required int index,
+        required IconData icon,
+        required String label,
+        required int selectedIndex,
+        required void Function(int) onTap,
+        bool isPulsing = false,
+      }) {
+    final isSelected = selectedIndex == index;
+    return Container(
+      decoration: isSelected
+          ? BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+      )
+          : null,
+      child: ListTile(
+        leading: isPulsing
+            ? PulsingGlowingIcon(icon: icon, color: Colors.amber)
+            : Icon(icon, color: isSelected ? Colors.white : Colors.white.withOpacity(0.7)),
+        title: Text(
+          label,
+          style: TextStyle(color: isSelected ? Colors.white : Colors.white.withOpacity(0.7)),
+        ),
+        onTap: () => onTap(index),
+      ),
     );
   }
 }

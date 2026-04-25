@@ -15,26 +15,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StudyRepository {
   final Database db;
   final SharedPreferences prefs;
   final Map<String, List<Map<String, dynamic>>> _memoryCache = {};
-  
+
   StudyRepository({required this.db, required this.prefs});
-  
+
   // --- Interface NoSQL-like (útil para UI) ---
   Future<List<Map<String, dynamic>>> getSessionsByTopic(
-    String topicName, {
-    bool forceRefresh = false,
-  }) async {
+      String topicName, {
+        bool forceRefresh = false,
+      }) async {
     final cacheKey = 'sessions_topic_$topicName';
     if (!forceRefresh && _memoryCache.containsKey(cacheKey)) {
       return _memoryCache[cacheKey]!;
     }
-    
+
     final result = await db.rawQuery('''
       SELECT 
         s.*,
@@ -45,16 +45,16 @@ class StudyRepository {
       WHERE t.name = ?
       ORDER BY s.study_date DESC
     ''', [topicName]);
-    
+
     _memoryCache[cacheKey] = List<Map<String, dynamic>>.from(result);
     return _memoryCache[cacheKey]!;
   }
-  
+
   // --- Método para relatório agregado (poder do SQL) ---
   Future<List<Map<String, dynamic>>> getHoursPerSubjectArea(
-    DateTime start,
-    DateTime end,
-  ) async {
+      DateTime start,
+      DateTime end,
+      ) async {
     return await db.rawQuery('''
       SELECT 
         sa.name as area,
@@ -68,7 +68,7 @@ class StudyRepository {
       ORDER BY hours DESC
     ''', [start.millisecondsSinceEpoch, end.millisecondsSinceEpoch]);
   }
-  
+
   // --- Sincronização (crítica para Wi-Fi sync) ---
   Future<void> syncSessions(List<Map<String, dynamic>> remoteSessions) async {
     await db.transaction((txn) async {
@@ -93,7 +93,7 @@ class StudyRepository {
     });
     _memoryCache.clear(); // invalida todo cache
   }
-  
+
   // Limpeza de cache (útil em logout)
   void clearCache() => _memoryCache.clear();
 }

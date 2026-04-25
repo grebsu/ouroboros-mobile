@@ -21,6 +21,7 @@ class _StopwatchModalState extends State<StopwatchModal>
     with SingleTickerProviderStateMixin {
   late AnimationController _barberPoleController;
   late Animation<double> _barberPoleAnimation;
+  bool _isClosing = false;
 
   void _handleGetRecommendation() {
     final planningProvider = Provider.of<PlanningProvider>(
@@ -145,120 +146,151 @@ class _StopwatchModalState extends State<StopwatchModal>
   Widget build(BuildContext context) {
     final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context);
     final stopwatchProvider = Provider.of<StopwatchProvider>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 500;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(16.0),
-      child: Stack(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24.0),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1F2937)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(16.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  spreadRadius: 5,
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+      child: Container(
+        width: isSmallScreen ? screenWidth * 0.9 : 550,
+        constraints: const BoxConstraints(maxWidth: 600),
+        padding: const EdgeInsets.all(24.0),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1F2937)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(24.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Barra visual de fechamento
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        flex: 1,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF1D2938)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.teal),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value: stopwatchProvider.selectedSubjectId,
-                              hint: Text(
-                                'Matéria',
-                                style: TextStyle(
-                                  color: Theme.of(context).hintColor,
-                                ),
-                              ),
-                              onChanged: (value) {
-                                stopwatchProvider.setSubject(value);
-                              },
-                              items: allSubjectsProvider.subjects.map((
-                                subject,
-                              ) {
-                                return DropdownMenuItem(
-                                  value: subject.id,
-                                  child: Text(
-                                    subject.subject,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                              dropdownColor:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey[800]
-                                  : Colors.white,
-                              iconEnabledColor: Colors.teal,
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF1D2938)
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.teal.shade300),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: stopwatchProvider.selectedSubjectId,
+                          hint: Text(
+                            'Matéria',
+                            style: TextStyle(
+                              color: Theme.of(context).hintColor,
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8.0),
-                      Expanded(
-                        flex: 1,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF1D2938)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.teal),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<int>(
-                              isExpanded: true,
-                              value: stopwatchProvider.selectedTopic?.id,
-                              hint: Text(
-                                'Tópico',
+                          onChanged: (value) {
+                            stopwatchProvider.setSubject(value);
+                          },
+                          items: allSubjectsProvider.subjects.map((
+                            subject,
+                          ) {
+                            return DropdownMenuItem(
+                              value: subject.id,
+                              child: Text(
+                                subject.subject,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Theme.of(context).hintColor,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyLarge?.color,
                                 ),
                               ),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  final subjectTopics =
-                                      allSubjectsProvider.subjects
+                            );
+                          }).toList(),
+                          dropdownColor:
+                              Theme.of(context).brightness ==
+                                  Brightness.dark
+                              ? Colors.grey[800]
+                              : Colors.white,
+                          iconEnabledColor: Colors.teal,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8.0),
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF1D2938)
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.teal.shade300),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: stopwatchProvider.selectedTopic?.id,
+                          hint: Text(
+                            'Tópico',
+                            style: TextStyle(
+                              color: Theme.of(context).hintColor,
+                            ),
+                          ),
+                          onChanged: (value) {
+                            if (value != null) {
+                              final subjectTopics =
+                                  allSubjectsProvider.subjects
+                                      .firstWhereOrNull(
+                                        (s) =>
+                                            s.id ==
+                                            stopwatchProvider
+                                                .selectedSubjectId,
+                                      )
+                                      ?.topics ??
+                                  [];
+                              final topic = _findTopicById(
+                                subjectTopics,
+                                value,
+                              );
+                              if (topic != null) {
+                                stopwatchProvider.setTopic(topic);
+                              }
+                            }
+                          },
+                          items: stopwatchProvider.selectedSubjectId != null
+                              ? _buildTopicDropdownItems(
+                                  allSubjectsProvider.subjects
                                           .firstWhereOrNull(
                                             (s) =>
                                                 s.id ==
@@ -266,407 +298,392 @@ class _StopwatchModalState extends State<StopwatchModal>
                                                     .selectedSubjectId,
                                           )
                                           ?.topics ??
-                                      [];
-                                  final topic = _findTopicById(
-                                    subjectTopics,
-                                    value,
-                                  );
-                                  if (topic != null) {
-                                    stopwatchProvider.setTopic(topic);
-                                  }
-                                }
-                              },
-                              items: stopwatchProvider.selectedSubjectId != null
-                                  ? _buildTopicDropdownItems(
-                                      allSubjectsProvider.subjects
-                                              .firstWhereOrNull(
-                                                (s) =>
-                                                    s.id ==
-                                                    stopwatchProvider
-                                                        .selectedSubjectId,
-                                              )
-                                              ?.topics ??
-                                          [],
-                                    )
-                                  : [],
-                              dropdownColor:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey[800]
-                                  : Colors.white,
-                              iconEnabledColor: Colors.teal,
-                            ),
-                          ),
+                                      [],
+                                )
+                              : [],
+                          dropdownColor:
+                              Theme.of(context).brightness ==
+                                  Brightness.dark
+                              ? Colors.grey[800]
+                              : Colors.white,
+                          iconEnabledColor: Colors.teal,
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 16.0),
-                  SizedBox(
-                    height: 20,
-                    child: Stack(
-                      children: [
-                        Center(
-                          child: Text(
-                            stopwatchProvider.selectedSubjectId != null
-                                ? allSubjectsProvider.subjects
-                                          .firstWhereOrNull(
-                                            (s) =>
-                                                s.id ==
-                                                stopwatchProvider
-                                                    .selectedSubjectId,
-                                          )
-                                          ?.subject ??
-                                      'Sessão de Estudo'
-                                : 'Sessão de Estudo',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Theme.of(context).hintColor),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            stopwatchProvider.isTimerMode
-                                ? _formatProgressText(
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              SizedBox(
+                height: 20,
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Text(
+                        stopwatchProvider.selectedSubjectId != null
+                            ? allSubjectsProvider.subjects
+                                      .firstWhereOrNull(
+                                        (s) =>
+                                            s.id ==
+                                            stopwatchProvider
+                                                .selectedSubjectId,
+                                      )
+                                      ?.subject ??
+                                  'Sessão de Estudo'
+                            : 'Sessão de Estudo',
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: Theme.of(context).hintColor),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        stopwatchProvider.isTimerMode
+                            ? _formatProgressText(
+                                stopwatchProvider
+                                        .timerDuration
+                                        .inMilliseconds -
                                     stopwatchProvider
+                                        .stopwatch
+                                        .elapsed
+                                        .inMilliseconds,
+                                stopwatchProvider
+                                    .timerDuration
+                                    .inMilliseconds,
+                              )
+                            : '',
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: Theme.of(context).hintColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4.0),
+              Container(
+                height: 8.0,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF374151)
+                      : const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4.0),
+                  child: stopwatchProvider.isTimerMode
+                      ? LinearProgressIndicator(
+                          value:
+                              stopwatchProvider
+                                      .timerDuration
+                                      .inMilliseconds >
+                                  0
+                              ? (stopwatchProvider
                                             .timerDuration
                                             .inMilliseconds -
                                         stopwatchProvider
                                             .stopwatch
                                             .elapsed
-                                            .inMilliseconds,
+                                            .inMilliseconds) /
                                     stopwatchProvider
                                         .timerDuration
-                                        .inMilliseconds,
-                                  )
-                                : '',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Theme.of(context).hintColor),
+                                        .inMilliseconds
+                              : 0,
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Colors.teal,
                           ),
+                          backgroundColor: Colors.transparent,
+                        )
+                      : AnimatedBuilder(
+                          animation: _barberPoleAnimation,
+                          builder: (context, child) {
+                            return CustomPaint(
+                              painter: BarberPolePainter(
+                                animationValue: _barberPoleAnimation.value,
+                                isRunning: stopwatchProvider.isRunning,
+                              ),
+                              child: Container(),
+                            );
+                          },
                         ),
-                      ],
+                ),
+              ),
+              if (stopwatchProvider.selectedTopic != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Center(
+                    child: Text(
+                      stopwatchProvider.selectedTopic!.topic_text,
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: Theme.of(context).hintColor),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(height: 4.0),
-                  Container(
-                    height: 24.0,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFE5E7EB),
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12.0),
-                      child: stopwatchProvider.isTimerMode
-                          ? LinearProgressIndicator(
-                              value:
-                                  stopwatchProvider
-                                          .timerDuration
-                                          .inMilliseconds >
-                                      0
-                                  ? (stopwatchProvider
-                                                .timerDuration
-                                                .inMilliseconds -
-                                            stopwatchProvider
-                                                .stopwatch
-                                                .elapsed
-                                                .inMilliseconds) /
-                                        stopwatchProvider
-                                            .timerDuration
-                                            .inMilliseconds
-                                  : 0,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                Colors.teal,
-                              ),
-                              backgroundColor: Colors.transparent,
-                            )
-                          : AnimatedBuilder(
-                              animation: _barberPoleAnimation,
-                              builder: (context, child) {
-                                return CustomPaint(
-                                  painter: BarberPolePainter(
-                                    animationValue: _barberPoleAnimation.value,
-                                    isRunning: stopwatchProvider.isRunning,
+                ),
+              const SizedBox(height: 24.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (stopwatchProvider.isTimerMode &&
+                      !stopwatchProvider.isRunning)
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: NumberPickerWheel(
+                              minValue: 0,
+                              maxValue: 23,
+                              initialValue:
+                                  stopwatchProvider.timerDuration.inHours,
+                              onChanged: (value) {
+                                final current =
+                                    stopwatchProvider.timerDuration;
+                                stopwatchProvider.setTimerDuration(
+                                  Duration(
+                                    hours: value,
+                                    minutes: current.inMinutes % 60,
+                                    seconds: current.inSeconds % 60,
                                   ),
-                                  child: Container(),
                                 );
                               },
+                              textStyle: const TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal,
+                              ),
+                              itemExtent: 50.0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4.0,
+                              ),
                             ),
-                    ),
-                  ),
-                  if (stopwatchProvider.selectedTopic != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Center(
-                        child: Text(
-                          stopwatchProvider.selectedTopic!.topic_text,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: Theme.of(context).hintColor),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 24.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      if (stopwatchProvider.isTimerMode &&
-                          !stopwatchProvider.isRunning)
-                        Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: NumberPickerWheel(
-                                  minValue: 0,
-                                  maxValue: 23,
-                                  initialValue:
-                                      stopwatchProvider.timerDuration.inHours,
-                                  onChanged: (value) {
-                                    final current =
-                                        stopwatchProvider.timerDuration;
-                                    stopwatchProvider.setTimerDuration(
-                                      Duration(
-                                        hours: value,
-                                        minutes: current.inMinutes % 60,
-                                        seconds: current.inSeconds % 60,
-                                      ),
-                                    );
-                                  },
-                                  textStyle: const TextStyle(
-                                    fontSize: 48,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal,
-                                  ),
-                                  itemExtent: 60.0,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4.0,
-                                  ),
-                                ),
-                              ),
-                              const Text(
-                                ':',
-                                style: TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.teal,
-                                ),
-                              ),
-                              Expanded(
-                                child: NumberPickerWheel(
-                                  minValue: 0,
-                                  maxValue: 59,
-                                  initialValue:
-                                      stopwatchProvider
-                                          .timerDuration
-                                          .inMinutes %
-                                      60,
-                                  onChanged: (value) {
-                                    final current =
-                                        stopwatchProvider.timerDuration;
-                                    stopwatchProvider.setTimerDuration(
-                                      Duration(
-                                        hours: current.inHours,
-                                        minutes: value,
-                                        seconds: current.inSeconds % 60,
-                                      ),
-                                    );
-                                  },
-                                  textStyle: const TextStyle(
-                                    fontSize: 48,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal,
-                                  ),
-                                  itemExtent: 60.0,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4.0,
-                                  ),
-                                ),
-                              ),
-                              const Text(
-                                ':',
-                                style: TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.teal,
-                                ),
-                              ),
-                              Expanded(
-                                child: NumberPickerWheel(
-                                  minValue: 0,
-                                  maxValue: 59,
-                                  initialValue:
-                                      stopwatchProvider
-                                          .timerDuration
-                                          .inSeconds %
-                                      60,
-                                  onChanged: (value) {
-                                    final current =
-                                        stopwatchProvider.timerDuration;
-                                    stopwatchProvider.setTimerDuration(
-                                      Duration(
-                                        hours: current.inHours,
-                                        minutes: current.inMinutes % 60,
-                                        seconds: value,
-                                      ),
-                                    );
-                                  },
-                                  textStyle: const TextStyle(
-                                    fontSize: 48,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal,
-                                  ),
-                                  itemExtent: 60.0,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4.0,
-                                  ),
-                                ),
-                              ),
-                            ],
                           ),
-                        )
-                      else
-                        Expanded(
-                          child: Text(
-                            stopwatchProvider.result,
-                            style: const TextStyle(
-                              fontSize: 48,
-                              fontFamily: 'monospace',
+                          const Text(
+                            ':',
+                            style: TextStyle(
+                              fontSize: 40,
                               fontWeight: FontWeight.bold,
                               color: Colors.teal,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                        ),
-                      const SizedBox(width: 16.0),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () =>
-                                stopwatchProvider.toggleMode(false),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: !stopwatchProvider.isTimerMode
-                                  ? Colors.teal
-                                  : Colors.grey[300],
-                              foregroundColor: !stopwatchProvider.isTimerMode
-                                  ? Colors.white
-                                  : Colors.black,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            child: const Text(
-                              'CRONÔMETRO',
-                              style: TextStyle(
-                                fontSize: 12,
+                          Expanded(
+                            child: NumberPickerWheel(
+                              minValue: 0,
+                              maxValue: 59,
+                              initialValue:
+                                  stopwatchProvider
+                                      .timerDuration
+                                      .inMinutes %
+                                  60,
+                              onChanged: (value) {
+                                final current =
+                                    stopwatchProvider.timerDuration;
+                                stopwatchProvider.setTimerDuration(
+                                  Duration(
+                                    hours: current.inHours,
+                                    minutes: value,
+                                    seconds: current.inSeconds % 60,
+                                  ),
+                                );
+                              },
+                              textStyle: const TextStyle(
+                                fontSize: 40,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.teal,
+                              ),
+                              itemExtent: 50.0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4.0,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8.0),
-                          ElevatedButton(
-                            onPressed: () => stopwatchProvider.toggleMode(true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: stopwatchProvider.isTimerMode
-                                  ? Colors.teal
-                                  : Colors.grey[300],
-                              foregroundColor: stopwatchProvider.isTimerMode
-                                  ? Colors.white
-                                  : Colors.black,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
+                          const Text(
+                            ':',
+                            style: TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal,
                             ),
-                            child: const Text(
-                              'TIMER',
-                              style: TextStyle(
-                                fontSize: 12,
+                          ),
+                          Expanded(
+                            child: NumberPickerWheel(
+                              minValue: 0,
+                              maxValue: 59,
+                              initialValue:
+                                  stopwatchProvider
+                                      .timerDuration
+                                      .inSeconds %
+                                  60,
+                              onChanged: (value) {
+                                final current =
+                                    stopwatchProvider.timerDuration;
+                                stopwatchProvider.setTimerDuration(
+                                  Duration(
+                                    hours: current.inHours,
+                                    minutes: current.inMinutes % 60,
+                                    seconds: value,
+                                  ),
+                                );
+                              },
+                              textStyle: const TextStyle(
+                                fontSize: 40,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.teal,
+                              ),
+                              itemExtent: 50.0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4.0,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(width: 16.0),
-                    ],
-                  ),
-                  const SizedBox(height: 24.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        iconSize: 64.0,
-                        icon: const Icon(Icons.auto_awesome),
-                        color: Colors.teal,
-                        onPressed: _handleGetRecommendation,
-                        tooltip: 'Sugerir Próximo Estudo',
-                      ),
-                      const SizedBox(width: 24.0),
-                      IconButton(
-                        iconSize: 64.0,
-                        icon: Icon(
-                          stopwatchProvider.isRunning
-                              ? Icons.pause_circle_filled
-                              : Icons.play_circle_filled,
-                        ),
-                        color: Colors.teal,
-                        onPressed: stopwatchProvider.isRunning
-                            ? stopwatchProvider.stop
-                            : stopwatchProvider.start,
-                      ),
-                      const SizedBox(width: 24.0),
-                      if (stopwatchProvider.stopwatch.elapsed.inMilliseconds >
-                          0)
-                        IconButton(
-                          iconSize: 64.0,
-                          icon: const Icon(Icons.refresh),
+                    )
+                  else
+                    Expanded(
+                      child: Text(
+                        stopwatchProvider.result,
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 40 : 48,
+                          //fontFamily: 'monospace',//
+                          fontWeight: FontWeight.bold,
                           color: Colors.teal,
-                          onPressed: stopwatchProvider.reset,
                         ),
-                      const SizedBox(width: 24.0),
-                      IconButton(
-                        iconSize: 64.0,
-                        icon: const Icon(Icons.save),
-                        color: Colors.teal,
-                        onPressed: () {
-                          if (stopwatchProvider.selectedSubjectId == null ||
-                              stopwatchProvider.selectedTopic == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Por favor, selecione uma matéria e um tópico.',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-                          Navigator.of(context).pop({
-                            'time': stopwatchProvider.getElapsedMilliseconds(),
-                            'subjectId': stopwatchProvider.selectedSubjectId,
-                            'topic': stopwatchProvider.selectedTopic,
-                          });
-                          stopwatchProvider.reset();
-                        },
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  const SizedBox(width: 16.0),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () =>
+                            stopwatchProvider.toggleMode(false),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: !stopwatchProvider.isTimerMode
+                              ? Colors.teal
+                              : Colors.grey[300],
+                          foregroundColor: !stopwatchProvider.isTimerMode
+                              ? Colors.white
+                              : Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: const Text(
+                          'CRONÔMETRO',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8.0),
+                      ElevatedButton(
+                        onPressed: () => stopwatchProvider.toggleMode(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: stopwatchProvider.isTimerMode
+                              ? Colors.teal
+                              : Colors.grey[300],
+                          foregroundColor: stopwatchProvider.isTimerMode
+                              ? Colors.white
+                              : Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: const Text(
+                          'TIMER',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 24.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    iconSize: 56.0,
+                    icon: const Icon(Icons.auto_awesome),
+                    color: Colors.teal,
+                    onPressed: _handleGetRecommendation,
+                    tooltip: 'Sugerir Próximo Estudo',
+                  ),
+                  const SizedBox(width: 16.0),
+                  IconButton(
+                    iconSize: 56.0,
+                    icon: Icon(
+                      stopwatchProvider.isRunning
+                          ? Icons.pause_circle_filled
+                          : Icons.play_circle_filled,
+                    ),
+                    color: Colors.teal,
+                    onPressed: stopwatchProvider.isRunning
+                        ? stopwatchProvider.stop
+                        : stopwatchProvider.start,
+                  ),
+                  const SizedBox(width: 16.0),
+                  if (stopwatchProvider.stopwatch.elapsed.inMilliseconds >
+                      0)
+                    IconButton(
+                      iconSize: 56.0,
+                      icon: const Icon(Icons.refresh),
+                      color: Colors.teal,
+                      onPressed: stopwatchProvider.reset,
+                    ),
+                  const SizedBox(width: 16.0),
+                  IconButton(
+                    iconSize: 56.0,
+                    icon: const Icon(Icons.save),
+                    color: Colors.teal,
+                    onPressed: () {
+                      if (stopwatchProvider.selectedSubjectId == null ||
+                          stopwatchProvider.selectedTopic == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Por favor, selecione uma matéria e um tópico.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      if (_isClosing) return;
+                      _isClosing = true;
+
+                      final result = {
+                        'time': stopwatchProvider.getElapsedMilliseconds(),
+                        'subjectId': stopwatchProvider.selectedSubjectId,
+                        'topic': stopwatchProvider.selectedTopic,
+                      };
+
+                      // Reseta o provider IMEDIATAMENTE para que o botão flutuante
+                      // já apareça com o estado inicial durante a animação de volta
+                      stopwatchProvider.reset();
+
+                      Navigator.of(context).pop(result);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

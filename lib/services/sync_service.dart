@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:ouroboros_mobile/models/backup_model.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
@@ -8,6 +9,8 @@ import 'package:ouroboros_mobile/services/database_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
+import 'package:encrypt/encrypt.dart' as encrypt; // New import
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // New import
 
 class PairRequest {
   final String id;
@@ -15,6 +18,7 @@ class PairRequest {
   final String deviceId;
   final InternetAddress remote;
   final int remotePort;
+  final String? syncKey; // New field for sync encryption key
 
   PairRequest({
     required this.id,
@@ -22,6 +26,7 @@ class PairRequest {
     required this.deviceId,
     required this.remote,
     required this.remotePort,
+    this.syncKey,
   });
 }
 
@@ -30,6 +35,11 @@ class SyncService {
   factory SyncService() => _instance;
   SyncService._internal();
 
+  final _storage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      resetOnError: true,
+    ),
+  ); // Initialize FlutterSecureStorage
   HttpServer? _server;
   HttpServer? get server => _server;
   String? _currentUserId;
@@ -40,7 +50,43 @@ class SyncService {
   final Uuid _uuid = const Uuid();
 
   static const _prefKey = 'paired_devices';
+  static const _syncEncryptionKeyName = 'sync_encryption_key';
 
+  // Helper method to get or create a symmetric encryption key for sync
+  Future<String> _getOrCreateSyncEncryptionKey() async {
+    String? key = await _storage.read(key: _syncEncryptionKeyName);
+    if (key == null) {
+      final newKey = encrypt.Key.fromSecureRandom(32); // AES-256 key
+      key = base64UrlEncode(newKey.bytes);
+      await _storage.write(key: _syncEncryptionKeyName, value: key);
+    }
+    return key;
+  }
+
+  // Encryption helper
+  String encryptData(String plainText, String encryptionKeyString) {
+    final key = encrypt.Key.fromBase64(encryptionKeyString);
+    final iv = encrypt.IV.fromSecureRandom(16); // Generate a new random IV for each encryption
+    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+    final encrypted = encrypter.encrypt(plainText, iv: iv);
+    return '${iv.base64}:${encrypted.base64}'; // Combine IV and encrypted data
+  }
+
+  // Decryption helper
+  String decryptData(String combinedDataBase64, String encryptionKeyString) {
+    final parts = combinedDataBase64.split(':');
+    if (parts.length != 2) {
+      throw FormatException('Invalid encrypted data format');
+    }
+    final ivBase64 = parts[0];
+    final encryptedDataBase64 = parts[1];
+
+    final key = encrypt.Key.fromBase64(encryptionKeyString);
+    final iv = encrypt.IV.fromBase64(ivBase64); // Reconstruct IV from base64
+    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+    final decrypted = encrypter.decrypt64(encryptedDataBase64, iv: iv);
+    return decrypted;
+  }
   Future<void> startServer({int port = 5000, required String userId}) async {
     if (_server != null) {
       debugPrint('[SyncService] HTTP server já está em execução na porta $port.');
@@ -72,6 +118,7 @@ class SyncService {
         final data = json.decode(payload) as Map<String, dynamic>;
         final deviceName = data['deviceName'] as String? ?? 'unknown';
         final deviceId = data['deviceId'] as String? ?? '';
+        final syncKey = data['syncKey'] as String?; // Retrieve sync key from requester
         final requester = req.connectionInfo?.remoteAddress;
         final requesterPort = req.connectionInfo?.remotePort ?? 0;
 
@@ -82,6 +129,7 @@ class SyncService {
           deviceId: deviceId,
           remote: requester ?? InternetAddress.loopbackIPv4,
           remotePort: requesterPort,
+          syncKey: syncKey, // Pass sync key with pair request
         );
 
         final completer = Completer<Map<String, dynamic>>();
@@ -145,7 +193,11 @@ class SyncService {
         }
 
         try {
-          final clientPayload = await utf8.decoder.bind(req).join();
+          final serverSyncKey = await _getOrCreateSyncEncryptionKey(); // Server's key to decrypt client's data
+          
+          final clientEncryptedPayload = await utf8.decoder.bind(req).join();
+          final clientPayload = decryptData(clientEncryptedPayload, serverSyncKey); // Decrypt client payload
+
           final clientBackupData = BackupData.fromMap(
             json.decode(clientPayload) as Map<String, dynamic>,
           );
@@ -163,13 +215,15 @@ class SyncService {
             _currentUserId!,
           );
 
-          final jsonData = json.encode(mergedBackupData.toMap());
+          final responseJsonData = json.encode(mergedBackupData.toMap());
+          final encryptedResponseJsonData = encryptData(responseJsonData, serverSyncKey); // Encrypt response
+
           req.response.headers.contentType = ContentType.json;
           req.response.statusCode = HttpStatus.ok;
-          req.response.write(jsonData);
+          req.response.write(encryptedResponseJsonData);
           await req.response.close();
           debugPrint(
-            '[SyncService] Sincronização bidirecional concluída com sucesso.',
+            '[SyncService] Sincronização bidirecional concluída com sucesso (criptografada).',
           );
         } catch (e, s) {
           debugPrint('[SyncService] Erro na sincronização bidirecional: $e');
@@ -215,24 +269,28 @@ class SyncService {
     return false;
   }
 
-  Future<void> respondToPairRequest(
+  Future<Map<String, dynamic>> respondToPairRequest(
     String requestId, {
     required bool accepted,
     String? token,
     String? nickname,
+    String? clientSyncKey, // New parameter to receive client's sync key
   }) async {
     final completer = _pending[requestId];
-    if (completer == null) return;
+    if (completer == null) return {'status': 'error', 'message': 'Request ID not found'}; // Return an error map
 
     if (!accepted) {
       completer.complete({'status': 'rejected'});
-      return;
+      return {'status': 'rejected'}; // Return the result immediately
     }
 
     final data = {'status': 'accepted', 'token': token};
+    if (clientSyncKey != null) {
+      data['syncKey'] = await _getOrCreateSyncEncryptionKey(); // Server sends its own sync key back
+    }
     completer.complete(data);
+    return data; // Return the result
   }
-
   BackupData _mergeBackupData(BackupData serverData, BackupData clientData) {
     List<T> _mergeList<T>(List<T> serverList, List<T> clientList) {
       final Map<String, T> mergedMap = {};
@@ -327,6 +385,7 @@ class SyncService {
     int port,
     String token,
     String name,
+    String? syncKey, // New parameter to store the sync key
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_prefKey);
@@ -335,7 +394,7 @@ class SyncService {
       map = json.decode(raw) as Map<String, dynamic>;
     }
     final key = '$ip:$port';
-    map[key] = {'token': token, 'name': name, 'ip': ip, 'port': port};
+    map[key] = {'token': token, 'name': name, 'ip': ip, 'port': port, 'syncKey': syncKey};
     await prefs.setString(_prefKey, json.encode(map));
   }
 
@@ -365,11 +424,12 @@ class SyncService {
   ) async {
     final uri = Uri.parse('http://$ip:$port/pair/request');
     try {
+      final mySyncKey = await _getOrCreateSyncEncryptionKey(); // Get local sync key
       final resp = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
-            body: json.encode({'deviceName': myName, 'deviceId': myId}),
+            body: json.encode({'deviceName': myName, 'deviceId': myId, 'syncKey': mySyncKey}), // Send local sync key
           )
           .timeout(const Duration(seconds: 30));
       if (resp.statusCode == 200) {

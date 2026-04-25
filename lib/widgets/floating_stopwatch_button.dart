@@ -9,7 +9,6 @@ import 'package:ouroboros_mobile/widgets/stopwatch_modal.dart';
 import 'package:ouroboros_mobile/widgets/study_register_modal.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import 'package:audioplayers/audioplayers.dart';
 
 class FloatingStopwatchButton extends StatefulWidget {
   const FloatingStopwatchButton({super.key});
@@ -45,10 +44,6 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
   bool _isModalOpen = false;
   bool _isReturningWithFall = false;
   bool _isSlidingToCorner = false;
-  bool _hasPlayedFallSound = false;
-
-  late final AudioPlayer _audioPlayer;
-  bool _soundEnabled = true;
 
   void _handleStudyRecordSave(StudyRecord record) {
     Provider.of<HistoryProvider>(context, listen: false).addStudyRecord(record);
@@ -61,8 +56,6 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
   @override
   void initState() {
     super.initState();
-
-    _audioPlayer = AudioPlayer();
 
     _floatAnimationController = AnimationController(
       vsync: this,
@@ -266,20 +259,6 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
     );
   }
 
-  Future<void> _playFallSound() async {
-    if (!_soundEnabled) return;
-
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.setSourceAsset('sounds/queda.mp3');
-      await _audioPlayer.setVolume(1.0);
-      await _audioPlayer.resume();
-    } catch (e) {
-      debugPrint('Erro ao tocar som de queda: $e');
-      _soundEnabled = false;
-    }
-  }
-
   // CORREÇÃO: Remoção do parâmetro BuildContext context
   Future<void> _openModal() async {
     if (_isMovingToCenter || _isModalOpen || _position == null) return;
@@ -368,14 +347,13 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
       _isModalOpen = false;
       _isReturningWithFall = true;
       _position = centerPosition;
-      _hasPlayedFallSound = false;
     });
 
     _fallAndSlideController.reset();
 
     final bottomCenterPosition = _getBottomCenterPosition();
 
-    _fallAndSlideController.addListener(() async {
+    _fallAndSlideController.addListener(() {
       if (mounted && _isReturningWithFall && !_isSlidingToCorner) {
         final progress = _fallAnimation.value;
         final currentY = centerPosition.dy +
@@ -383,11 +361,6 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
         setState(() {
           _position = Offset(centerPosition.dx, currentY);
         });
-
-        if (progress >= 0.40 && !_hasPlayedFallSound) {
-          _hasPlayedFallSound = true;
-          await _playFallSound();
-        }
       }
     });
 
@@ -490,7 +463,6 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
     _bounceController.dispose();
     _moveToCenterController.dispose();
     _fallAndSlideController.dispose();
-    _audioPlayer.dispose();
     super.dispose();
   }
 

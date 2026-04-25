@@ -111,7 +111,8 @@ class _SyncScreenState extends State<SyncScreen> {
 
     if (res['status'] == 'accepted' && res['token'] != null) {
       final token = (res['token'] as String?) ?? "";
-      await _sync.storePairedDevice(ip, port, token, name);
+      final syncKey = (res['syncKey'] as String?); // Retrieve syncKey from response
+      await _sync.storePairedDevice(ip, port, token, name, syncKey); // Store syncKey
       await _loadPaired();
       ScaffoldMessenger.of(
         context,
@@ -157,14 +158,16 @@ class _SyncScreenState extends State<SyncScreen> {
 
     if (decision == true) {
       final token = _uuid.v4();
-
-      await _sync.respondToPairRequest(req.id, accepted: true, token: token);
+      final response = await _sync.respondToPairRequest(req.id,
+          accepted: true, token: token, clientSyncKey: req.syncKey); // Pass clientSyncKey
+      final serverSyncKey = (response['syncKey'] as String?); // Retrieve server's syncKey
 
       await _sync.storePairedDevice(
         req.remote.address,
         _syncPort,
         token,
         req.deviceName,
+        serverSyncKey, // Store server's syncKey
       );
       await _loadPaired();
     } else {
@@ -252,11 +255,14 @@ class _SyncScreenState extends State<SyncScreen> {
     final ip = info['ip'];
     final port = info['port'];
     final token = info['token'];
+    final syncKey = info['syncKey'] as String?; // Retrieve syncKey for the paired device
 
-    if (ip == null || port == null || token == null) {
+    if (ip == null || port == null || token == null || syncKey == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dados do par estão incompletos.')),
+        const SnackBar(
+          content: Text('Dados do par estão incompletos ou chave de sincronização ausente.'),
+        ),
       );
       return;
     }
@@ -274,6 +280,7 @@ class _SyncScreenState extends State<SyncScreen> {
         userId,
       );
       final clientJsonData = json.encode(clientBackupData.toMap());
+      final encryptedClientJsonData = _sync.encryptData(clientJsonData, syncKey); // Encrypt client data
 
       final response = await http
           .post(
@@ -284,15 +291,16 @@ class _SyncScreenState extends State<SyncScreen> {
               'X-User-ID': userId,
             },
             body:
-                clientJsonData, // Enviar os dados do cliente no corpo da requisição
+                encryptedClientJsonData, // Enviar os dados do cliente criptografados
           )
           .timeout(const Duration(seconds: 60));
 
       switch (response.statusCode) {
         case 200:
           // 2. Receber e importar os dados mesclados de volta ao cliente
+          final decryptedResponseBody = _sync.decryptData(utf8.decode(response.bodyBytes), syncKey); // Decrypt response
           final mergedBackupData = BackupData.fromMap(
-            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
+            json.decode(decryptedResponseBody) as Map<String, dynamic>,
           );
           await DatabaseService.instance.importMergedData(
             mergedBackupData,

@@ -912,6 +912,40 @@ class MasterTopic {
   }
 }
 
+class User {
+  final String id;
+  final String username;
+  final String hashedPassword;
+  final int? lastModified;
+
+  String get name => username;
+
+  User({
+    required this.id,
+    required this.username,
+    required this.hashedPassword,
+    this.lastModified,
+  });
+
+  factory User.fromMap(Map<String, dynamic> map) {
+    return User(
+      id: map['id'] as String,
+      username: map['username'] as String,
+      hashedPassword: map['hashedPassword'] as String,
+      lastModified: map['lastModified'] as int?,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'username': username,
+      'hashedPassword': hashedPassword,
+      'lastModified': lastModified ?? DateTime.now().millisecondsSinceEpoch,
+    };
+  }
+}
+
 // Helper para agregar dados de TopicProgress
 class AggregatedTopicProgress {
   final int totalQuestions;

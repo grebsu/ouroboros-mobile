@@ -1,83 +1,103 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:bcrypt/bcrypt.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
+import '../models/data_models.dart';
+import '../services/database_service.dart';
 
-class User {
-  final String name;
-  final String password;
-
-  User({required this.name, required this.password});
+// Helper function to hash passwords using BCrypt
+String _hashPassword(String password) {
+  return BCrypt.hashpw(password, BCrypt.gensalt());
 }
 
 class AuthProvider with ChangeNotifier {
+  final FlutterSecureStorage _storage;
+  final _uuid = const Uuid();
+  final _db = DatabaseService.instance;
+  
+  AuthProvider({FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      resetOnError: true,
+    ),
+  );
+
   bool _isLoggedIn = false;
   User? _currentUser;
-  final List<User> _users = []; // Lista para armazenar usuários registrados
 
   bool get isLoggedIn => _isLoggedIn;
   User? get currentUser => _currentUser;
 
   Future<void> tryAutoLogin() async {
-    await Future.delayed(const Duration(seconds: 2));
-    final prefs = await SharedPreferences.getInstance();
-    if (!prefs.containsKey('username')) {
-      return;
-    }
-
-    final username = prefs.getString('username');
-    final password = prefs.getString('password');
-
-    // Temporariamente, vamos recriar o usuário a partir dos dados salvos
-    // O ideal seria ter uma fonte de dados persistente para os usuários
-    if (username != null && password != null) {
-      _users.add(User(name: username, password: password));
-      await login(username, password);
+    // await Future.delayed(const Duration(seconds: 2)); // Reduzi o delay para UX
+    final username = await _storage.read(key: 'username');
+    
+    if (username != null) {
+      final user = await _db.getUserByUsername(username);
+      if (user != null) {
+        _isLoggedIn = true;
+        _currentUser = user;
+        notifyListeners();
+      }
     }
   }
 
   Future<bool> register(String name, String password) async {
-    // Verifica se o usuário já existe
-    if (_users.any((user) => user.name == name)) {
-      return false; // Usuário já registrado
-    }
-
-    // Adiciona o novo usuário
-    _users.add(User(name: name, password: password));
-    // Após o registro, também faz o login para salvar as credenciais
-    await login(name, password);
-    notifyListeners();
-    return true;
-  }
-
-  Future<bool> login(String name, String password) async {
-    // Simula uma chamada de rede
-    await Future.delayed(const Duration(seconds: 1));
-
     try {
-      final user = _users.firstWhere(
-        (user) => user.name == name && user.password == password,
+      // Verifica se o usuário já existe no Banco de Dados
+      final existingUser = await _db.getUserByUsername(name);
+      if (existingUser != null) {
+        return false; // Usuário já registrado
+      }
+
+      final hashedPwd = _hashPassword(password);
+      final newUser = User(
+        id: _uuid.v4(),
+        username: name,
+        hashedPassword: hashedPwd,
       );
+
+      await _db.createUser(newUser);
+      
       _isLoggedIn = true;
-      _currentUser = user;
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('username', name);
-      await prefs.setString('password', password);
-
+      _currentUser = newUser;
+      
+      await _storage.write(key: 'username', value: name);
+      
       notifyListeners();
       return true;
     } catch (e) {
-      return false; // Usuário não encontrado
+      debugPrint('AuthProvider: Erro durante o registro: $e');
+      // Propagamos o erro para que a UI possa tratar ou exibir a mensagem real
+      throw Exception('Falha técnica no registro: ${e.toString()}');
+    }
+  }
+
+  Future<bool> login(String name, String password) async {
+    try {
+      final user = await _db.getUserByUsername(name);
+      
+      if (user != null && BCrypt.checkpw(password, user.hashedPassword)) {
+        _isLoggedIn = true;
+        _currentUser = user;
+
+        await _storage.write(key: 'username', value: name);
+
+        notifyListeners();
+        return true;
+      }
+      
+      return false; // Usuário não encontrado ou senha incorreta
+    } catch (e) {
+      debugPrint('AuthProvider: Erro durante o login: $e');
+      throw Exception('Falha técnica no login: ${e.toString()}');
     }
   }
 
   Future<void> logout() async {
-    await Future.delayed(const Duration(seconds: 1));
     _isLoggedIn = false;
     _currentUser = null;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('username');
-    await prefs.remove('password');
+    await _storage.delete(key: 'username');
 
     notifyListeners();
   }

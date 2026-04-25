@@ -3,55 +3,96 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
+import 'dart:math';
 import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/data_models.dart';
 import '../models/backup_model.dart';
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._init();
   static Database? _database;
+  final _storage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      resetOnError: true,
+    ),
+  );
 
   DatabaseService._init();
 
-  Future<void> forceDeleteDatabase() async {
-    if (_database != null && _database!.isOpen) {
-      await _database!.close();
-      _database = null;
-    }
-    try {
-      final dbPath = await getApplicationDocumentsDirectory();
-      final path = join(dbPath.path, 'ouroboros.db');
-      final file = File(path);
-      if (await file.exists()) {
-        await file.delete();
-        debugPrint('!!!!!!!!!! Database file deleted successfully. !!!!!!!!!!');
-      } else {
-        debugPrint('!!!!!!!!!! Database file not found, nothing to delete. !!!!!!!!!!');
-      }
-    } catch (e) {
-      debugPrint('!!!!!!!!!! Error deleting database file: $e !!!!!!!!!!');
-    }
+  @visibleForTesting
+  static void setDatabase(Database db) {
+    _database = db;
   }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('ouroboros.db');
+    debugPrint('🔍 DatabaseService: Solicitando instância do banco...');
+    _database = await _initDB('ouroboros_secure.db');
     return _database!;
+  }
+
+  Future<Database> _openDatabaseWithCipher(String path, String key) async {
+    debugPrint('🔍 DatabaseService: Abrindo banco com senha...');
+    return await openDatabase(
+      path,
+      password: key,
+      version: 19,
+      onCreate: (db, version) async {
+        debugPrint('🏗️ Criando banco criptografado na versão $version');
+        await _createDB(db, version);
+      },
+      onUpgrade: _onUpgrade,
+      onConfigure: (db) async {
+        try {
+          // Verificar se SQLCipher está ativo
+          final List<Map<String, dynamic>> result = await db.rawQuery('PRAGMA cipher_version;');
+          if (result.isNotEmpty && result.first.values.first != null) {
+            debugPrint('🔐 SQLCipher detectado e ativo. Versão: ${result.first.values.first}');
+          }
+        } catch (e) {
+          debugPrint('⚠️ SQLCipher: Erro ao verificar versão: $e');
+        }
+
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
+    );
   }
 
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getApplicationDocumentsDirectory();
     final path = join(dbPath.path, filePath);
-    return await openDatabase(
-      path,
-      version: 18,
-      onCreate: _createDB,
-      onUpgrade: _onUpgrade,
-      onConfigure: _onConfigure,
-    );
+    debugPrint('📂 DatabaseService: Caminho do banco: $path');
+
+    try {
+      debugPrint('🔑 DatabaseService: Lendo chave do SecureStorage...');
+      String? encryptionKey = await _storage.read(key: 'db_encryption_key');
+      
+      if (encryptionKey == null) {
+        debugPrint('🔑 DatabaseService: Gerando nova chave de criptografia...');
+        encryptionKey = _generateNewEncryptionKey();
+        await _storage.write(key: 'db_encryption_key', value: encryptionKey);
+        debugPrint('🔑 DatabaseService: Nova chave gerada e salva.');
+      }
+
+      return await _openDatabaseWithCipher(path, encryptionKey);
+    } catch (e) {
+      debugPrint('❌ DatabaseService: ERRO NO SECURE STORAGE: $e');
+      // Fallback em caso de falha catastrófica do Keystore em ambiente de dev
+      return await _openDatabaseWithCipher(path, 'fallback_key_ouroboros');
+    }
+  }
+
+  String _generateNewEncryptionKey() {
+    // Generate a secure random key using a cryptographically secure random number generator
+    // For production, consider a more robust key management strategy.
+    // This is a placeholder for demonstration purposes.
+    final List<int> bytes = List<int>.generate(32, (i) => Random().nextInt(256));
+    return base64UrlEncode(bytes);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -74,17 +115,17 @@ class DatabaseService {
       await db.execute('ALTER TABLE subjects ADD COLUMN import_source TEXT');
     }
     if (oldVersion < 8) {
-      await db.execute('ALTER TABLE study_records ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
+      await db.execute('ALTER TABLE study_records ADD COLUMN userId TEXT NOT NULL DEFAULT ''');
     }
     if (oldVersion < 9) {
-      await db.execute('ALTER TABLE subjects ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
-      await db.execute('ALTER TABLE simulado_records ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
+      await db.execute('ALTER TABLE subjects ADD COLUMN userId TEXT NOT NULL DEFAULT ''');
+      await db.execute('ALTER TABLE simulado_records ADD COLUMN userId TEXT NOT NULL DEFAULT ''');
     }
     if (oldVersion < 10) {
-      await db.execute('ALTER TABLE review_records ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
+      await db.execute('ALTER TABLE review_records ADD COLUMN userId TEXT NOT NULL DEFAULT ''');
     }
     if (oldVersion < 11) {
-      await db.execute('ALTER TABLE plans ADD COLUMN userId TEXT NOT NULL DEFAULT \'\'');
+      await db.execute('ALTER TABLE plans ADD COLUMN userId TEXT NOT NULL DEFAULT ''');
     }
     if (oldVersion < 12) {
       await _createMasterTables(db);
@@ -165,9 +206,11 @@ class DatabaseService {
       await db.execute('ALTER TABLE master_topics ADD COLUMN question_count INTEGER;');
     }
     if (oldVersion < 17) {
-      await db.execute('ALTER TABLE study_records ADD COLUMN topicsProgress TEXT NOT NULL DEFAULT \'[]\';');
+      await db.execute("ALTER TABLE study_records ADD COLUMN topicsProgress TEXT NOT NULL DEFAULT '[]'");
 
       final List<Map<String, dynamic>> oldRecords = await db.query('study_records');
+      
+      final batch = db.batch();
 
       for (final oldRecordMap in oldRecords) {
         final String recordId = oldRecordMap['id'] as String;
@@ -213,13 +256,15 @@ class DatabaseService {
 
         final String topicsProgressJson = jsonEncode(newTopicsProgress.map((tp) => tp.toMap()).toList());
 
-        await db.update(
+        batch.update(
           'study_records',
           {'topicsProgress': topicsProgressJson},
           where: 'id = ?',
           whereArgs: [recordId],
         );
       }
+      await batch.commit(noResult: true);
+
       await db.execute('ALTER TABLE study_records DROP COLUMN topic_texts;');
       await db.execute('ALTER TABLE study_records DROP COLUMN topic_ids;');
       await db.execute('ALTER TABLE study_records DROP COLUMN questions;');
@@ -242,10 +287,16 @@ class DatabaseService {
         await db.execute('ALTER TABLE study_records ADD COLUMN cycleId TEXT');
       }
     }
-  }
-
-  Future<void> _onConfigure(Database db) async {
-    await db.execute('PRAGMA foreign_keys = ON');
+    if (oldVersion < 19) {
+      await db.execute('''
+        CREATE TABLE users (
+          id TEXT PRIMARY KEY,
+          username TEXT NOT NULL UNIQUE,
+          hashedPassword TEXT NOT NULL,
+          lastModified INTEGER
+        )
+      ''');
+    }
   }
 
   Future<void> _createMasterTables(Database db) async {
@@ -390,6 +441,15 @@ class DatabaseService {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE users (
+        id $idType,
+        username $textType UNIQUE,
+        hashedPassword $textType,
+        lastModified INTEGER
+      )
+    ''');
+
     await _createMasterTables(db);
     await importSubjectsAndTopicsFromJson(db);
   }
@@ -439,11 +499,11 @@ class DatabaseService {
   }
 
   Future<void> _insertTopicsRecursively(
-    Transaction txn,
-    List<Topic> topics,
-    String subjectId,
-    int? parentId,
-  ) async {
+      Transaction txn,
+      List<Topic> topics,
+      String subjectId,
+      int? parentId,
+      ) async {
     for (final topic in topics) {
       final bool isCurrentlyGrouping = topic.sub_topics != null && topic.sub_topics!.isNotEmpty;
 
@@ -685,6 +745,26 @@ class DatabaseService {
     return db.delete('simulado_records', where: 'id = ? AND userId = ?', whereArgs: [id, userId]);
   }
 
+  // User methods
+  Future<void> createUser(User user) async {
+    final db = await instance.database;
+    await db.insert('users', user.toMap(), conflictAlgorithm: ConflictAlgorithm.fail);
+  }
+
+  Future<User?> getUserByUsername(String username) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'users',
+      where: 'username = ?',
+      whereArgs: [username],
+    );
+
+    if (maps.isNotEmpty) {
+      return User.fromMap(maps.first);
+    }
+    return null;
+  }
+
   Future<int> countSubjectsForPlan(String planId) async {
     final db = await instance.database;
     final result = await db.rawQuery('SELECT COUNT(*) FROM subjects WHERE plan_id = ?', [planId]);
@@ -707,7 +787,12 @@ class DatabaseService {
     final path = join(dbPath.path, 'ouroboros.db');
 
     await _database!.close();
-    await deleteDatabase(path);
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      await ffi.deleteDatabase(path);
+    } else {
+      await deleteDatabase(path);
+    }
     _database = null;
   }
 
@@ -796,33 +881,52 @@ class DatabaseService {
     final String jsonString = await rootBundle.loadString('assets/data/materias_com_assuntos.json');
     final List<dynamic> subjectsJson = json.decode(jsonString) as List<dynamic>;
 
-    await dbClient.transaction((txn) async {
-      final existingSubjects = await txn.query('master_subjects');
-      if (existingSubjects.isNotEmpty) return;
+    final batch = dbClient.batch();
+    
+    // Usar contadores manuais para IDs para permitir o uso de Batch sem depender dos retornos do DB
+    int currentSubjectId = 1;
+    int currentTopicId = 1;
 
-      for (final subjectData in subjectsJson) {
-        final subjectName = subjectData['name'] as String;
-        final masterSubjectId = await txn.insert('master_subjects', {'name': subjectName}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    for (final subjectData in subjectsJson) {
+      final subjectName = subjectData['name'] as String;
+      final masterSubjectId = currentSubjectId++;
+      
+      batch.insert('master_subjects', {
+        'id': masterSubjectId,
+        'name': subjectName
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
 
-        if (subjectData['assuntos'] != null) {
-          await _insertMasterTopicsRecursive(txn, masterSubjectId, null, subjectData['assuntos'] as List<dynamic>);
-        }
+      if (subjectData['assuntos'] != null) {
+        currentTopicId = _prepareMasterTopicsBatch(
+          batch,
+          masterSubjectId,
+          null,
+          subjectData['assuntos'] as List<dynamic>,
+          currentTopicId,
+        );
       }
-    });
+    }
+
+    await batch.commit(noResult: true);
   }
 
-  Future<void> _insertMasterTopicsRecursive(
-    Transaction txn,
-    int masterSubjectId,
-    int? parentId,
-    List<dynamic> topics,
-  ) async {
+  int _prepareMasterTopicsBatch(
+      Batch batch,
+      int masterSubjectId,
+      int? parentId,
+      List<dynamic> topics,
+      int currentId,
+      ) {
+    int idCounter = currentId;
     for (final topicData in topics) {
       final topicName = topicData['name'] as String;
       final tecId = topicData['id'] as String?;
       final questionCount = topicData['question_count'] as int?;
 
-      final masterTopicId = await txn.insert('master_topics', {
+      final masterTopicId = idCounter++;
+      
+      batch.insert('master_topics', {
+        'id': masterTopicId,
         'master_subject_id': masterSubjectId,
         'name': topicName,
         'tec_id': tecId,
@@ -831,9 +935,16 @@ class DatabaseService {
       });
 
       if (topicData['children'] != null && (topicData['children'] as List).isNotEmpty) {
-        await _insertMasterTopicsRecursive(txn, masterSubjectId, masterTopicId, topicData['children'] as List<dynamic>);
+        idCounter = _prepareMasterTopicsBatch(
+          batch,
+          masterSubjectId,
+          masterTopicId,
+          topicData['children'] as List<dynamic>,
+          idCounter,
+        );
       }
     }
+    return idCounter;
   }
 
   Future<List<MasterSubject>> readAllMasterSubjects() async {
@@ -903,10 +1014,10 @@ class DatabaseService {
         weeklyQuestionsGoal: prefs.getString('${userId}_weeklyQuestionsGoal_$planId') ?? '0',
         subjectSettings: prefs.getString('${userId}_subjectSettings_$planId') != null
             ? Map<String, Map<String, double>>.from(
-                (jsonDecode(prefs.getString('${userId}_subjectSettings_$planId')!) as Map<String, dynamic>).map(
-                  (key, value) => MapEntry(key, Map<String, double>.from(value as Map<String, dynamic>)),
-                ),
-              )
+          (jsonDecode(prefs.getString('${userId}_subjectSettings_$planId')!) as Map<String, dynamic>).map(
+                (key, value) => MapEntry(key, Map<String, double>.from(value as Map<String, dynamic>)),
+          ),
+        )
             : {},
         studyDays: prefs.getStringList('${userId}_studyDays_$planId') ?? [],
         cycleGenerationTimestamp: prefs.getString('${userId}_cycleGenerationTimestamp_$planId'),

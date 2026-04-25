@@ -26,22 +26,50 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.login(
-      _nameController.text,
-      _passwordController.text,
-    );
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final success = await authProvider.login(
+        _nameController.text,
+        _passwordController.text,
+      );
 
-    if (mounted) {
-      if (!success) {
+      if (mounted) {
+        if (!success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nome de usuário ou senha inválidos.')),
+          );
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        // Se o login for bem-sucedido, o Consumer no MyApp cuidará da navegação.
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        String errorMsg = e.toString();
+        if (errorMsg.startsWith('Exception: ')) {
+          errorMsg = errorMsg.replaceFirst('Exception: ', '');
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nome de usuário ou senha inválidos.')),
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+          ),
         );
         setState(() {
           _isLoading = false;
         });
       }
-      // Se o login for bem-sucedido, o Consumer no MyApp cuidará da navegação.
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro inesperado: $e')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

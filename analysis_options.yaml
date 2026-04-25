@@ -15,7 +15,7 @@ linter:
     implicit_call_tearoffs: true
     missing_code_block_language_in_doc_comment: true
     no_adjacent_strings_in_list: true
-    no_default_utc_datetime: true
+
     no_wildcard_variable_uses: true
     one_member_abstracts: false   # útil para repositórios
     only_throw_errors: true

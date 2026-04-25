@@ -16,10 +16,18 @@ Certifique-se de ter instalado:
 - Um editor de código (VS Code, Android Studio) com os plugins do Flutter e Dart.
 - Para desenvolvimento em Linux Desktop, as seguintes dependências são necessárias:
   ```bash
-  sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+  sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsqlcipher1 libsqlcipher-dev libsecret-1-dev libjsoncpp-dev
   ```
 
-### 2.2. Clonando o Repositório
+### 2.2. Configuração do SQLCipher (Linux)
+
+O projeto utiliza **SQLCipher** para criptografia do banco de dados SQLite no Linux via FFI. A inicialização é feita no arquivo `lib/sqlcipher_init.dart`.
+
+*   **Dependência:** É necessário ter o pacote `libsqlcipher1` instalado no sistema.
+*   **Carregamento Dinâmico:** O app tenta carregar `libsqlcipher.so` dos diretórios padrão do sistema. Se falhar, utiliza um fallback para o caminho comum no Ubuntu/Debian (`/usr/lib/x86_64-linux-gnu/libsqlcipher.so`).
+*   **Chave de Criptografia:** A chave é gerada na primeira execução e armazenada com segurança usando `flutter_secure_storage` (que utiliza o **Libsecret** no Linux).
+
+### 2.3. Clonando o Repositório
 
 ```bash
 git clone <URL_DO_REPOSITORIO>

@@ -2,10 +2,10 @@
 Version=1.0
 Type=Application
 Name=Ouroboros Mobile
-Comment=Estudo inteligente e autônomo com banco de dados criptografado (v1.1.1)
-Exec=ouroboros-mobile-wrapper
+Comment=Smart and autonomous study tool with encrypted database (v1.1.1)
+Exec=ouroboros_mobile
 Icon=com.ouroboros.mobile
 Terminal=false
 Categories=Education;Office;
-Keywords=estudo;study;planejamento;revisão;simulado;
-StartupWMClass=com.ouroboros.mobile
+Keywords=study;planning;review;flashcards;exam;
+StartupWMClass=ouroboros_mobile
