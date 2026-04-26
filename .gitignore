@@ -47,3 +47,18 @@ app.*.map.json
 # Debian package build artifacts
 package_dir/
 package_dir.deb
+*.deb
+
+# Flatpak build artifacts
+.flatpak-builder/
+build-dir/
+repo/
+*.flatpak
+
+# Compressed archives
+*.tar.gz
+*.zip
+*.7z
+
+# Distribution folder
+dist/
