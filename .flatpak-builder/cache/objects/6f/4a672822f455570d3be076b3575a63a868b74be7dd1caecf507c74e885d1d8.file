@@ -1,0 +1,4 @@
+[Application]
+name=com.ouroboros.mobile
+runtime=org.gnome.Platform/x86_64/46
+sdk=org.gnome.Sdk/x86_64/46

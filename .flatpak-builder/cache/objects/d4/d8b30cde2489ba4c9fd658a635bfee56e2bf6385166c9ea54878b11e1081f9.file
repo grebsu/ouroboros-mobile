@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.1.1
+Type=Application
+Name=Ouroboros Mobile
+Comment=Estudo inteligente e autônomo com banco de dados criptografado
+Exec=ouroboros-mobile-wrapper
+Icon=com.ouroboros.mobile
+Terminal=false
+Categories=Education;Office;
+Keywords=estudo;study;planejamento;revisão;simulado;
+StartupWMClass=ouroboros_mobile

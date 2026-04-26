@@ -1,0 +1,4 @@
+#!/bin/bash
+cd /usr/lib/ouroboros-mobile
+export LD_LIBRARY_PATH="/usr/lib/ouroboros-mobile/lib:$LD_LIBRARY_PATH"
+exec ./ouroboros-mobile-bin "$@"

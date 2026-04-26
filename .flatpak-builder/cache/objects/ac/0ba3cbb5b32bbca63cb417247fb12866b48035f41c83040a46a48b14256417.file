@@ -1,0 +1,72 @@
+{
+  "id" : "com.ouroboros.mobile",
+  "runtime" : "org.gnome.Platform",
+  "runtime-version" : "46",
+  "runtime-commit" : "1adbb849eea4915c4ca9b5a7718d26a881d7f67f469a11822b52605933bcbe70",
+  "sdk" : "org.gnome.Sdk",
+  "sdk-commit" : "aa0461bd06103dd53177ff48cf1b0ece18e094cbc8d67c424545577e7d359cba",
+  "command" : "ouroboros-mobile-wrapper",
+  "modules" : [
+    {
+      "name" : "ouroboros-mobile",
+      "buildsystem" : "simple",
+      "sources" : [
+        {
+          "dest" : "bundle",
+          "path" : "../build/linux/x64/release/bundle",
+          "type" : "dir"
+        },
+        {
+          "path" : "com.ouroboros.mobile.desktop",
+          "type" : "file"
+        },
+        {
+          "dest" : "metainfo",
+          "path" : "metainfo",
+          "type" : "dir"
+        },
+        {
+          "dest" : "icons",
+          "path" : "icons",
+          "type" : "dir"
+        },
+        {
+          "path" : "ouroboros-mobile-wrapper",
+          "type" : "file"
+        },
+        {
+          "dest" : "extra-libs",
+          "path" : "libs",
+          "type" : "dir"
+        }
+      ],
+      "build-commands" : [
+        "install -d /app/bin /app/lib /app/share/applications /app/share/metainfo /app/share/icons/hicolor",
+        "cp -r bundle/lib/* /app/lib/",
+        "cp -r extra-libs/* /app/lib/",
+        "cp -r bundle/data /app/",
+        "install -m 755 bundle/ouroboros_mobile /app/bin/",
+        "ln -s /app/lib /app/bin/lib",
+        "ln -s /app/data /app/bin/data",
+        "install -m 755 ouroboros-mobile-wrapper /app/bin/",
+        "install -m 644 com.ouroboros.mobile.desktop /app/share/applications/",
+        "cp -r metainfo/* /app/share/metainfo/",
+        "cp -r icons/* /app/share/icons/hicolor/"
+      ]
+    }
+  ],
+  "finish-args" : [
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--socket=x11",
+    "--share=ipc",
+    "--share=network",
+    "--device=dri",
+    "--filesystem=home",
+    "--talk-name=org.freedesktop.secrets",
+    "--filesystem=xdg-run/keyring",
+    "--metadata=X-DConf=comm/",
+    "--talk-name=org.freedesktop.Notifications"
+  ],
+  "source-date-epoch" : 1776523115
+}

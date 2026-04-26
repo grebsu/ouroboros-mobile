@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component type="desktop">
+  <id>com.ouroboros.mobile</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <name>Ouroboros Mobile</name>
+  <summary>Estudo inteligente e autônomo com banco de dados criptografado</summary>
+  <description>
+    <p>
+      Ouroboros Mobile é uma ferramenta completa para estudantes que buscam organização e eficiência.
+      Com suporte a ciclos de estudo, revisões espaçadas e banco de dados criptografado com SQLCipher.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.ouroboros.mobile.desktop</launchable>
+  <provides>
+    <binary>ouroboros_mobile</binary>
+  </provides>
+</component>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component type="desktop">
+  <id>com.ouroboros.mobile</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <name>Ouroboros Mobile</name>
+  <summary>Smart and autonomous study tool with encrypted database</summary>
+  <description>
+    <p>
+      Ouroboros Mobile is a comprehensive tool for students seeking organization and efficiency.
+      Featuring support for study cycles, spaced repetition, and a secure database encrypted with SQLCipher.
+    </p>
+    <ul>
+      <li>Automated study cycles</li>
+      <li>Reviews based on forgetting curves</li>
+      <li>Secure database with SQLCipher encryption</li>
+      <li>Local synchronization via mDNS</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">com.ouroboros.mobile.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Home screen with study progress</caption>
+      <image>https://raw.githubusercontent.com/grebsu/ouroboros-mobile/main/screenshot_home.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Study planning interface</caption>
+      <image>https://raw.githubusercontent.com/grebsu/ouroboros-mobile/main/screenshot_planning.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Detailed performance statistics</caption>
+      <image>https://raw.githubusercontent.com/grebsu/ouroboros-mobile/main/screenshot_stats.png</image>
+    </screenshot>
+  </screenshots>
+  <url type="homepage">https://github.com/grebsu/ouroboros-mobile</url>
+  <developer_name>Glebson (grebsu)</developer_name>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="1.1.1" date="2026-04-18" />
+  </releases>
+  <provides>
+    <binary>ouroboros_mobile</binary>
+  </provides>
+</component>

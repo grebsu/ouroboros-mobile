@@ -1,0 +1,23 @@
+Package: ouroboros-mobile
+Version: 1.1.1
+Section: education
+Priority: optional
+Architecture: amd64
+Maintainer: Glebson Oliveira <glebson.olvr@gmail.com>
+Homepage: https://github.com/grebsu/ouroboros-mobile
+Depends: libgtk-3-0, libblkid1, liblzma5, libsecret-1-0, libjsoncpp25, libssl3 | libssl1.1, libc++1
+Recommends: sqlcipher
+Description: Estudo inteligente e autônomo com banco de dados criptografado
+ Ouroboros Mobile é um aplicativo Flutter para organização de estudos
+ com banco de dados seguro (SQLCipher).
+ .
+ Funcionalidades:
+  - Planos de estudo personalizados
+  - Ciclos de revisão espaçada
+  - Simulados e estatísticas
+  - Banco de dados criptografado com SQLCipher (biblioteca incluída)
+  - Sincronização entre dispositivos
+ .
+ Nota: A biblioteca SQLCipher (libsqlite3.so) já está incluída no pacote.
+ Não é necessário instalar libsqlcipher1 separadamente.
+License: GPL-3.0

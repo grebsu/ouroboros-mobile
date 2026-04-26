@@ -1,0 +1,26 @@
+[Application]
+name=com.ouroboros.mobile
+runtime=org.gnome.Platform/x86_64/46
+sdk=org.gnome.Sdk/x86_64/46
+command=ouroboros-mobile-wrapper
+
+[Context]
+shared=network;ipc;
+sockets=x11;wayland;fallback-x11;
+devices=dri;
+filesystems=home;xdg-run/keyring;xdg-config/dconf:ro;
+
+[Session Bus Policy]
+org.freedesktop.Notifications=talk
+org.freedesktop.secrets=talk
+
+[X-DConf]
+comm/=true
+
+[Extension com.ouroboros.mobile.Debug]
+directory=lib/debug
+autodelete=true
+no-autodownload=true
+
+[Build]
+built-extensions=com.ouroboros.mobile.Debug;

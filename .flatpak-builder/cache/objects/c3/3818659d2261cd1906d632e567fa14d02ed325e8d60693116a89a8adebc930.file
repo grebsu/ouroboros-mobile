@@ -1,0 +1,5 @@
+[Runtime]
+name=com.ouroboros.mobile.Debug
+
+[ExtensionOf]
+ref=app/com.ouroboros.mobile/x86_64/master

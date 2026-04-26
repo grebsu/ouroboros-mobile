@@ -36,8 +36,66 @@ class DatabaseService {
     return _database!;
   }
 
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getApplicationDocumentsDirectory();
+    final path = join(dbPath.path, filePath);
+    debugPrint('📂 DatabaseService: Caminho do banco: $path');
+
+    String? encryptionKey;
+    try {
+      debugPrint('🔑 DatabaseService: Lendo chave do SecureStorage...');
+      encryptionKey = await _storage.read(key: 'db_encryption_key');
+    } catch (e) {
+      debugPrint('⚠️ DatabaseService: Falha ao ler SecureStorage: $e');
+    }
+
+    if (encryptionKey == null) {
+      debugPrint('🔑 DatabaseService: Gerando nova chave de criptografia...');
+      encryptionKey = _generateNewEncryptionKey();
+      try {
+        await _storage.write(key: 'db_encryption_key', value: encryptionKey);
+        debugPrint('🔑 DatabaseService: Nova chave gerada e salva.');
+      } catch (e) {
+        debugPrint('⚠️ DatabaseService: Não foi possível salvar a chave: $e');
+      }
+    }
+
+    return await _openDatabaseWithCipher(path, encryptionKey);
+  }
+
   Future<Database> _openDatabaseWithCipher(String path, String key) async {
     debugPrint('🔍 DatabaseService: Abrindo banco com senha...');
+    
+    // No Desktop (Linux/Windows), o sqflite_sqlcipher não tem implementação nativa.
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+      return await ffi.databaseFactoryFfi.openDatabase(
+        path,
+        options: OpenDatabaseOptions(
+          version: 19,
+          onConfigure: (db) async {
+            // No SQLCipher Desktop, o PRAGMA key deve ser o primeiro comando.
+            await db.execute("PRAGMA key = '$key'");
+            try {
+              final result = await db.rawQuery('PRAGMA cipher_version;');
+              if (result.isNotEmpty) {
+                debugPrint('🔐 SQLCipher (Desktop) ativo. Versão: ${result.first.values.first}');
+              }
+            } catch (e) {
+              debugPrint('❌ SQLCipher (Desktop): Erro de descriptografia (chave errada?): $e');
+              rethrow;
+            }
+            await db.execute('PRAGMA foreign_keys = ON');
+          },
+          onCreate: (db, version) async {
+            debugPrint('🏗️ Criando banco criptografado na versão $version');
+            await _createDB(db, version);
+          },
+          onUpgrade: _onUpgrade,
+        ),
+      );
+    }
+
+    // No Mobile, usamos o suporte nativo do sqflite_sqlcipher
     return await openDatabase(
       path,
       password: key,
@@ -49,42 +107,16 @@ class DatabaseService {
       onUpgrade: _onUpgrade,
       onConfigure: (db) async {
         try {
-          // Verificar se SQLCipher está ativo
-          final List<Map<String, dynamic>> result = await db.rawQuery('PRAGMA cipher_version;');
+          final result = await db.rawQuery('PRAGMA cipher_version;');
           if (result.isNotEmpty && result.first.values.first != null) {
-            debugPrint('🔐 SQLCipher detectado e ativo. Versão: ${result.first.values.first}');
+            debugPrint('🔐 SQLCipher (Mobile) ativo. Versão: ${result.first.values.first}');
           }
         } catch (e) {
-          debugPrint('⚠️ SQLCipher: Erro ao verificar versão: $e');
+          debugPrint('⚠️ SQLCipher (Mobile): Erro ao verificar versão: $e');
         }
-
         await db.execute('PRAGMA foreign_keys = ON');
       },
     );
-  }
-
-  Future<Database> _initDB(String filePath) async {
-    final dbPath = await getApplicationDocumentsDirectory();
-    final path = join(dbPath.path, filePath);
-    debugPrint('📂 DatabaseService: Caminho do banco: $path');
-
-    try {
-      debugPrint('🔑 DatabaseService: Lendo chave do SecureStorage...');
-      String? encryptionKey = await _storage.read(key: 'db_encryption_key');
-      
-      if (encryptionKey == null) {
-        debugPrint('🔑 DatabaseService: Gerando nova chave de criptografia...');
-        encryptionKey = _generateNewEncryptionKey();
-        await _storage.write(key: 'db_encryption_key', value: encryptionKey);
-        debugPrint('🔑 DatabaseService: Nova chave gerada e salva.');
-      }
-
-      return await _openDatabaseWithCipher(path, encryptionKey);
-    } catch (e) {
-      debugPrint('❌ DatabaseService: ERRO NO SECURE STORAGE: $e');
-      // Fallback em caso de falha catastrófica do Keystore em ambiente de dev
-      return await _openDatabaseWithCipher(path, 'fallback_key_ouroboros');
-    }
   }
 
   String _generateNewEncryptionKey() {

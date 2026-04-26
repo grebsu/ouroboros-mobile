@@ -1,0 +1,11 @@
+ouroboros-mobile (1.1.1) stable; urgency=medium
+
+  * Versão inicial estável com suporte a SQLCipher
+  * Banco de dados criptografado com SQLCipher 4.14.0
+  * Suporte a login/registro com senhas hasheadas (BCrypt)
+  * Sincronização entre dispositivos via HTTP/mDNS
+  * Ícone e entrada no menu de aplicativos
+  * Correção de bugs na persistência de usuários
+  * Classificação indicativa: LIVRE para todos os públicos
+
+ -- Glebson Oliveira <glebson.olvr@gmail.com>  Thu, 17 Apr 2026 16:00:00 -0300
