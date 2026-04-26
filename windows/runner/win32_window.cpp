@@ -285,4 +285,15 @@ void Win32Window::UpdateTheme(HWND const window) {
     DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
                           &enable_dark_mode, sizeof(enable_dark_mode));
   }
+
+  // Set title bar color to #009688 (Teal)
+  // COLORREF is 0x00bbggrr
+  COLORREF title_bar_color = 0x00889600; 
+  DwmSetWindowAttribute(window, 35, // DWMWA_CAPTION_COLOR
+                        &title_bar_color, sizeof(title_bar_color));
+
+  // Set title text color to white
+  COLORREF title_text_color = 0x00FFFFFF;
+  DwmSetWindowAttribute(window, 36, // DWMWA_TEXT_COLOR
+                        &title_text_color, sizeof(title_text_color));
 }
