@@ -50,10 +50,27 @@ sudo dpkg -i ouroboros-mobile_1.1.2_amd64.deb
 sudo apt install -f  # Apenas se houver dependências de sistema faltando
 ```
 
-#### Flatpak (Flathub)
-```bash
-flatpak install flathub com.ouroboros.mobile
-```
+### 🪟 Windows (64-bit)
+
+#### Pacote MSIX (Windows 10/11)
+Baixe o pacote de instalação moderno para Windows:
+
+[![Download Windows](https://img.shields.io/badge/Download-MSIX-blue?style=for-the-badge&logo=windows)](https://github.com/grebsu/ouroboros-mobile/releases/latest)
+
+**Arquivo:** `ouroboros_mobile_1.1.2_amd64.msix`
+
+**Requisitos:** Windows 10 (versão 1809 ou superior) ou Windows 11 (64-bit)
+
+**Instalação:**
+1. Baixe o arquivo `.msix`
+2. Clique duas vezes no arquivo para abrir o instalador do Windows
+3. Clique em "Instalar" e aguarde a conclusão
+4. O aplicativo estará disponível no Menu Iniciar
+
+> **Nota:** Caso tenha problemas com certificados, você pode executar o seguinte comando no PowerShell (como administrador) para instalar:
+> ```powershell
+> Add-AppxPackage -Path .\ouroboros_mobile_1.1.2_amd64.msix
+> ```
 
 ---
 
@@ -72,10 +89,11 @@ flatpak install flathub com.ouroboros.mobile
 ## 🆕 Novidades na Versão v1.1.2 Hotfix (2026-04-25)
 
 ### 🐛 Correções Críticas e Estabilidade
-- **SQLCipher Nativo:** Substituição do motor de banco de dados por `sqflite_sqlcipher` oficial, garantindo estabilidade total no Android e Linux.
+- **SQLCipher Nativo:** Substituição do motor de banco de dados por `sqflite_sqlcipher` oficial, garantindo estabilidade total no Android, Linux e Windows.
 - **Resiliência Keystore:** Implementação de mecanismos de recuperação automática para evitar travamentos em dispositivos **Xiaomi/MIUI**.
-- **Build Unificado:** O Linux agora utiliza a mesma lógica de segurança do Android, permitindo portabilidade total dos dados via Sync.
+- **Build Unificado:** Linux e Windows agora utilizam a mesma lógica de segurança do Android.
 - **Feedback de Auth:** Melhores diagnósticos e mensagens visuais durante o fluxo de registro e login.
+- **Ecossistema Unificado:** Experiência 100% consistente e transparente entre as versões Android, Windows e Linux.
 
 ---
 
@@ -86,13 +104,14 @@ flatpak install flathub com.ouroboros.mobile
 - [x] Banco de dados criptografado com SQLCipher (AES-256)
 - [x] APK Estável para Android
 - [x] Pacote .deb Profissional para Linux
-- [x] Suporte Multiplataforma Unificado
+- [x] Pacote MSIX para Windows
+- [x] Suporte Multiplataforma Unificado (Android/Linux/Windows)
 
 ### 🚧 Próximas Melhorias
 - [ ] Ajustar criação de disciplina personalizada
 - [ ] Automatizar seleção randômica de cores para disciplinas
 - [ ] Implementar tópicos colapsáveis em modals de registro
-- [ ] Versão oficial para Windows (Port do sistema FFI)
+- [ ] Versão para macOS
 
 ### 🔜 Futuro
 - [ ] Sincronização via nuvem (opcional)
@@ -113,6 +132,25 @@ flutter build linux --release
 # Utilize os ativos gerados em build/linux/x64/release/bundle
 ```
 
+### Compilar para Windows (.msix)
+```bash
+flutter build windows --release
+# Em seguida, use uma ferramenta como msix packaging
+# flutter pub run msix:create
+```
+
+---
+
+## 💬 Contato e Suporte
+
+Tem dúvidas, sugestões ou quer contribuir com o projeto? Entre em contato!
+
+**📧 E-mail:** glebson.olvr@gmail.com
+
+**🐛 Reportar bugs:** [Abrir issue no GitHub](https://github.com/grebsu/ouroboros-mobile/issues)
+
+**💡 Sugestões e melhorias:** Fique à vontade para abrir uma issue ou enviar um e-mail.
+
 ---
 
 ## ❤️ Apoie o Projeto
@@ -122,7 +160,7 @@ O Ouroboros Mobile é um projeto independente. Se ele te ajudou, considere fazer
 <div align="center">
   <h3>💰 Faça sua contribuição via Pix!</h3>
   <img src="logo/qrcode-pix.png" alt="QR Code Pix" width="200"/>
-  <p><strong>Chave Pix (email):</strong> glebson@example.com</p>
+  <p><strong>Chave Pix (email):</strong> ouroboros743@gmail.com</p>
   <p>Qualquer valor ajuda a democratizar o estudo. ❤️</p>
 </div>
 
