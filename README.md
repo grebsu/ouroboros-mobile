@@ -15,7 +15,7 @@
 
 <p align="center">
   <img alt="Status" src="https://img.shields.io/badge/status-est%C3%A1vel-brightgreen">
-  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.1.2%20Hotfix-orange">
+  <img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-1.1.3-orange">
   <img alt="Plataforma" src="https://img.shields.io/badge/plataforma-Android%20%7C%20Linux%20%7C%20Windows-brightgreen">
   <img alt="Linguagem" src="https://img.shields.io/badge/feito%20com-Flutter-blue">
 </p>
@@ -42,7 +42,7 @@ Baixe a versão estável mais recente diretamente:
 **Requisitos:** Android 5.0 (API 21) ou superior. Recomenda-se Android 10+ para melhor desempenho do sistema de arquivos criptografado.
 
 ### 🐧 Linux (64-bit)
-Baixe a versão mais recente em formato `.deb` ou binário comprimido:
+Baixe a versão mais recente em formato `.deb` ou binário comprimido (v1.1.3):
 
 [![Download Linux](https://img.shields.io/badge/Download-Linux-blue?style=for-the-badge&logo=linux)](https://github.com/grebsu/ouroboros-mobile/releases/latest)
 
@@ -73,13 +73,18 @@ Suporte oficial em fase beta. Baixe o instalador ou executável portátil:
 
 ---
 
-## 🆕 Novidades na Versão v1.1.2 Hotfix (2026-04-25)
+## 🆕 Novidades na Versão v1.1.3 (2026-05-24)
 
-### 🐛 Correções Críticas e Estabilidade
-- **SQLCipher Nativo:** Substituição do motor de banco de dados por `sqflite_sqlcipher` oficial, garantindo estabilidade total no Android e Linux.
-- **Resiliência Keystore:** Implementação de mecanismos de recuperação automática para evitar travamentos em dispositivos **Xiaomi/MIUI**.
-- **Build Unificado:** O Linux agora utiliza a mesma lógica de segurança do Android, permitindo portabilidade total dos dados via Sync.
-- **Feedback de Auth:** Melhores diagnósticos e mensagens visuais durante o fluxo de registro e login.
+### 🚀 Mentoria Algorítmica Evoluída
+- **Configurações Dinâmicas:** Agora é possível configurar os níveis de estudo (Iniciante, Intermediário e Avançado) diretamente na tela de Mentoria, ajustando carga horária e duração das sessões.
+- **Controle de Embaralhamento:** Nova opção para ativar/desativar o embaralhamento do ciclo de estudos, com regra de "não repetição" estratégica.
+- **Gráfico de Resumo Aprimorado:** Visualização dinâmica dos ciclos projetados, com melhor precisão e suporte a placeholder de estado neutro.
+- **Layout de Seleção:** Grade de matérias responsiva para desktop (5 colunas) e mobile (2 colunas).
+
+### 🛠️ Melhorias e Correções
+- **Barra Lateral:** Largura ajustada para 400px em modo desktop para melhor visualização dos dados.
+- **Estabilidade:** Correção de bugs de layout e hierarquia no modal de registro de estudos.
+- **Navegação:** Novo fluxo de navegação fixo na base para criação de ciclos.
 
 ---
 
@@ -90,15 +95,18 @@ Suporte oficial em fase beta. Baixe o instalador ou executável portátil:
 - [x] Banco de dados criptografado com SQLCipher (AES-256)
 - [x] APK Estável para Android
 - [x] Suporte Multiplataforma (Linux, Android, Windows)
+- [x] Mentoria Algorítmica com configurações dinâmicas
+- [x] Layout responsivo (Desktop/Mobile)
+- [x] Controle de embaralhamento estratégico (Shuffle)
+- [x] Criação de disciplinas personalizadas
+- [x] Seleção randômica de cores para disciplinas
+- [x] Tópicos colapsáveis em modals de registro
 
 ### 🚧 Próximas Melhorias
-- [ ] Ajustar criação de disciplina personalizada
-- [ ] Automatizar seleção randômica de cores para disciplinas
-- [ ] Implementar tópicos colapsáveis em modals de registro
+- [ ] Implementar notificações de revisão espaçada (Push)
 
 ### 🔜 Futuro
 - [ ] Sincronização via nuvem (opcional)
-- [ ] Notificações de revisão espaçada (Push)
 
 ---
 
