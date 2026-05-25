@@ -123,6 +123,25 @@ flutter build linux --release
 # Utilize os ativos gerados em build/linux/x64/release/bundle
 ```
 
+### Compilar para Windows (.msix)
+```bash
+flutter build windows --release
+# Em seguida, use uma ferramenta como msix packaging
+# flutter pub run msix:create
+```
+
+---
+
+## 💬 Contato e Suporte
+
+Tem dúvidas, sugestões ou quer contribuir com o projeto? Entre em contato!
+
+**📧 E-mail:** glebson.olvr@gmail.com
+
+**🐛 Reportar bugs:** [Abrir issue no GitHub](https://github.com/grebsu/ouroboros-mobile/issues)
+
+**💡 Sugestões e melhorias:** Fique à vontade para abrir uma issue ou enviar um e-mail.
+
 ---
 
 ## ❤️ Apoie o Projeto
@@ -132,7 +151,7 @@ O Ouroboros Mobile é um projeto independente. Se ele te ajudou, considere fazer
 <div align="center">
   <h3>💰 Faça sua contribuição via Pix!</h3>
   <img src="logo/qrcode-pix.png" alt="QR Code Pix" width="200"/>
-  <p><strong>Chave Pix (email):</strong> glebson@example.com</p>
+  <p><strong>Chave Pix (email):</strong> ouroboros743@gmail.com</p>
   <p>Qualquer valor ajuda a democratizar o estudo. ❤️</p>
 </div>
 

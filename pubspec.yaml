@@ -38,6 +38,7 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   bcrypt: ^1.2.0
   sqlite3: ^2.4.0
+  msix: ^3.16.13
 
 dev_dependencies:
   flutter_test:
@@ -50,9 +51,22 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "logo/logo.png"
+  windows:
+    generate: true
+    image_path: "assets/branding/256x256.png"
+    icon_size: 256
+  image_path: "assets/branding/256x256.png"
   remove_alpha_ios: true
   adaptive_icon_background: "#009688"
+
+msix_config:
+  display_name: Ouroboros Mobile
+  publisher_display_name: Ouroboros Mobile
+  identity_name: com.ouroboros.mobile
+  msix_version: 1.1.2.0
+  logo_path: assets/branding/256x256.png
+  capabilities: internetClient
+  store: false
 
 flutter:
   uses-material-design: true

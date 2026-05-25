@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "ouroboros_mobile" "\0"
+            VALUE "CompanyName", "Ouroboros Mobile" "\0"
+            VALUE "FileDescription", "Ouroboros Mobile" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "ouroboros_mobile" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
+            VALUE "InternalName", "Ouroboros Mobile" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 Ouroboros Mobile. All rights reserved." "\0"
             VALUE "OriginalFilename", "ouroboros_mobile.exe" "\0"
-            VALUE "ProductName", "ouroboros_mobile" "\0"
+            VALUE "ProductName", "Ouroboros Mobile" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
