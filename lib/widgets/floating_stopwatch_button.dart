@@ -20,8 +20,16 @@ class FloatingStopwatchButton extends StatefulWidget {
 
 class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
     with TickerProviderStateMixin {
-  static const double _buttonSize = 56.0;
+  static const double _baseButtonSize = 56.0;
+  static const double _runningButtonSize = 80.0;
   static const double _margin = 16.0;
+
+  double get _buttonSize =>
+      (Provider.of<StopwatchProvider>(context, listen: false).isRunning)
+          ? _runningButtonSize
+          : _baseButtonSize;
+
+  bool? _lastIsRunning;
 
   Offset? _position;
   late final AnimationController _floatAnimationController;
@@ -373,6 +381,7 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
     });
 
     _fallAndSlideController.reset();
+    _fallAndSlideController.duration = const Duration(milliseconds: 400); // Dobro da velocidade para o deslize
 
     final cornerPosition = _getCornerPosition();
 
@@ -403,9 +412,11 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
 
     // Processar resultado do modal
     if (result != null && mounted) {
-      final time = result['time'] as int;
-      final subjectId = result['subjectId'] as String?;
-      final topic = result['topic'] as Topic?;
+      final int time = result['time'] as int;
+      final String? subjectId = result['subjectId'] as String?;
+      final Topic? topic = result['topic'] as Topic?;
+      final List<TopicWithTime>? topicsWithTime = result['topics'] as List<TopicWithTime>?;
+      final List<int>? topicsElapsedMs = result['topicsElapsedMs'] as List<int>?;
 
       final initialRecord = StudyRecord(
         id: const Uuid().v4(),
@@ -413,14 +424,32 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
         plan_id: currentPlanId,
         date: DateTime.now().toIso8601String(),
         subject_id: subjectId!,
-        topicsProgress: topic != null
-            ? [
-          TopicProgress(
-            topicId: topic.id.toString(),
-            topicText: topic.topic_text,
-          ),
-        ]
-            : [],
+        topicsProgress: topicsWithTime != null && topicsWithTime.isNotEmpty
+            ? topicsWithTime.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final t = entry.value;
+                // Usa o tempo real do tópico se disponível, senão fallback para o tempo alocado
+                final int actualTopicTime = (topicsElapsedMs != null && topicsElapsedMs.length > idx)
+                    ? topicsElapsedMs[idx]
+                    : (t.allocatedTimeSeconds * 1000);
+                
+                return TopicProgress(
+                  topicId: t.topic.id.toString(),
+                  topicText: t.topic.topic_text,
+                  userWeight: t.topic.userWeight,
+                  studyTime: actualTopicTime,
+                );
+              }).toList()
+            : (topic != null
+                ? [
+                    TopicProgress(
+                      topicId: topic.id.toString(),
+                      topicText: topic.topic_text,
+                      userWeight: topic.userWeight,
+                      studyTime: time, // Se for um tópico só, usa o tempo total
+                    ),
+                  ]
+                : []),
         study_time: time,
         category: 'teoria',
         review_periods: [],
@@ -474,9 +503,32 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
 
     return Consumer<StopwatchProvider>(
       builder: (context, stopwatchProvider, child) {
-        return Positioned(
-          left: _position!.dx + _bounceOffset.dx,
-          top: _position!.dy + _bounceOffset.dy,
+        if (_lastIsRunning != stopwatchProvider.isRunning) {
+          final wasRunning = _lastIsRunning;
+          _lastIsRunning = stopwatchProvider.isRunning;
+
+          if (wasRunning != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _position = _clampToBounds(_position!);
+                });
+              }
+            });
+          }
+        }
+
+        final currentPos = _clampToBounds(_position!);
+        final isAnimating = !_isDragging && !_isMovingToCenter &&
+            !_isReturningWithFall && !_isModalOpen && !_isSlidingToCorner;
+
+        return AnimatedPositioned(
+          duration: isAnimating
+              ? const Duration(milliseconds: 300)
+              : Duration.zero,
+          curve: Curves.easeInOut,
+          left: currentPos.dx + _bounceOffset.dx,
+          top: currentPos.dy + _bounceOffset.dy,
           child: AnimatedBuilder(
             animation: _floatAnimation,
             builder: (context, child) {
@@ -567,7 +619,9 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
 
                     _dragVelocity = Offset.zero;
                   },
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
                     width: _buttonSize,
                     height: _buttonSize,
                     decoration: BoxDecoration(
@@ -585,24 +639,30 @@ class _FloatingStopwatchButtonState extends State<FloatingStopwatchButton>
                     ),
                     child: stopwatchProvider.isRunning
                         ? Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.timer,
-                              color: Colors.white, size: 20),
-                          const SizedBox(width: 4),
-                          Text(
-                            stopwatchProvider.result,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.timer,
+                                        color: Colors.white, size: 28),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      stopwatchProvider.result,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    )
+                          )
                         : const Icon(
                       Icons.timer,
                       color: Colors.white,

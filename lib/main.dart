@@ -37,6 +37,7 @@ import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
 import 'package:ouroboros_mobile/providers/filter_provider.dart';
 import 'package:ouroboros_mobile/providers/history_provider.dart';
+import 'package:ouroboros_mobile/providers/mentoria_provider.dart';
 import 'package:ouroboros_mobile/providers/navigation_provider.dart';
 import 'package:ouroboros_mobile/providers/planning_provider.dart';
 import 'package:ouroboros_mobile/providers/plans_provider.dart';
@@ -772,19 +773,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 title: _isDrawerOpen ? const Text('') : Text(_allAppBarTitles.elementAt(selectedIndex)),
                 actions: <Widget>[
-                  if (selectedIndex == 1 && hasActiveCycle)
-                    Flexible(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Iniciar Estudo Sugerido'),
-                        onPressed: () => _handleGetRecommendation(context),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.teal,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        ),
-                      ),
-                    ),
                   if (selectedIndex == 1 && hasActiveCycle)
                     IconButton(
                       icon: Icon(_planningScreenEditMode ? Icons.check : Icons.edit),

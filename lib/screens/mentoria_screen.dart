@@ -1,183 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-class MentoriaProvider with ChangeNotifier {
-  // General
-  bool _sequentialTopics = false;
-
-  // Performance
-  bool _useHitRate = true;
-  bool _prioritizeLessStudiedTime = false;
-  bool _prioritizeMoreStudiedTime = false;
-  bool _prioritizeMostErrors = false;
-  bool _prioritizeLeastQuestions = false;
-
-  // Review
-  bool _prioritizePendingReviews = false;
-  bool _prioritizeMostReviewed = false;
-
-  // Temporality
-  bool _prioritizeRecentlyAdded = false;
-  bool _prioritizeNotStudiedInTimeWindow = false;
-  int _notStudiedInDays = 7;
-  bool _prioritizeNotRecentlyStudied = true; // NEW
-
-  // Relevancy
-  bool _prioritizeUnfinishedTopics = true;
-  bool _prioritizeTopicWeights = false;
-
-  // Manual
-  // Presets will be implemented later
-
-  // Getters
-  bool get sequentialTopics => _sequentialTopics;
-  bool get useHitRate => _useHitRate;
-  bool get prioritizeLessStudiedTime => _prioritizeLessStudiedTime;
-  bool get prioritizeMoreStudiedTime => _prioritizeMoreStudiedTime;
-  bool get prioritizeMostErrors => _prioritizeMostErrors;
-  bool get prioritizeLeastQuestions => _prioritizeLeastQuestions;
-  bool get prioritizePendingReviews => _prioritizePendingReviews;
-  bool get prioritizeMostReviewed => _prioritizeMostReviewed;
-  bool get prioritizeRecentlyAdded => _prioritizeRecentlyAdded;
-  bool get prioritizeNotStudiedInTimeWindow =>
-      _prioritizeNotStudiedInTimeWindow;
-  int get notStudiedInDays => _notStudiedInDays;
-  bool get prioritizeNotRecentlyStudied => _prioritizeNotRecentlyStudied; // NEW
-  bool get prioritizeUnfinishedTopics => _prioritizeUnfinishedTopics;
-  bool get prioritizeTopicWeights => _prioritizeTopicWeights;
-
-  MentoriaProvider() {
-    _loadPreferences();
-  }
-
-  void _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    _sequentialTopics = prefs.getBool('sequentialTopics') ?? true;
-    _useHitRate = prefs.getBool('useHitRate') ?? false;
-    _prioritizeLessStudiedTime =
-        prefs.getBool('prioritizeLessStudiedTime') ?? false;
-    _prioritizeMoreStudiedTime =
-        prefs.getBool('prioritizeMoreStudiedTime') ?? false;
-    _prioritizeMostErrors = prefs.getBool('prioritizeMostErrors') ?? false;
-    _prioritizeLeastQuestions =
-        prefs.getBool('prioritizeLeastQuestions') ?? false;
-    _prioritizePendingReviews =
-        prefs.getBool('prioritizePendingReviews') ?? false;
-    _prioritizeMostReviewed = prefs.getBool('prioritizeMostReviewed') ?? false;
-    _prioritizeRecentlyAdded =
-        prefs.getBool('prioritizeRecentlyAdded') ?? false;
-    _prioritizeNotStudiedInTimeWindow =
-        prefs.getBool('prioritizeNotStudiedInTimeWindow') ?? false;
-    _notStudiedInDays = prefs.getInt('notStudiedInDays') ?? 7;
-    _prioritizeNotRecentlyStudied =
-        prefs.getBool('prioritizeNotRecentlyStudied') ?? true; // NEW
-    _prioritizeUnfinishedTopics =
-        prefs.getBool('prioritizeUnfinishedTopics') ?? true;
-    _prioritizeTopicWeights = prefs.getBool('prioritizeTopicWeights') ?? false;
-    notifyListeners();
-  }
-
-  // Setters
-  void setSequentialTopics(bool value) async {
-    _sequentialTopics = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('sequentialTopics', value);
-    notifyListeners();
-  }
-
-  void setUseHitRate(bool value) async {
-    _useHitRate = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('useHitRate', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeLessStudiedTime(bool value) async {
-    _prioritizeLessStudiedTime = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeLessStudiedTime', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeMoreStudiedTime(bool value) async {
-    _prioritizeMoreStudiedTime = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeMoreStudiedTime', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeMostErrors(bool value) async {
-    _prioritizeMostErrors = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeMostErrors', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeLeastQuestions(bool value) async {
-    _prioritizeLeastQuestions = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeLeastQuestions', value);
-    notifyListeners();
-  }
-
-  void setPrioritizePendingReviews(bool value) async {
-    _prioritizePendingReviews = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizePendingReviews', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeMostReviewed(bool value) async {
-    _prioritizeMostReviewed = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeMostReviewed', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeRecentlyAdded(bool value) async {
-    _prioritizeRecentlyAdded = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeRecentlyAdded', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeNotStudiedInTimeWindow(bool value) async {
-    _prioritizeNotStudiedInTimeWindow = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeNotStudiedInTimeWindow', value);
-    notifyListeners();
-  }
-
-  void setNotStudiedInDays(int value) async {
-    _notStudiedInDays = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('notStudiedInDays', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeNotRecentlyStudied(bool value) async {
-    // NEW
-    _prioritizeNotRecentlyStudied = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeNotRecentlyStudied', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeUnfinishedTopics(bool value) async {
-    _prioritizeUnfinishedTopics = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeUnfinishedTopics', value);
-    notifyListeners();
-  }
-
-  void setPrioritizeTopicWeights(bool value) async {
-    _prioritizeTopicWeights = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('prioritizeTopicWeights', value);
-    notifyListeners();
-  }
-}
+import 'package:ouroboros_mobile/providers/mentoria_provider.dart';
 
 class MentoriaScreen extends StatelessWidget {
   const MentoriaScreen({super.key});
@@ -185,6 +8,9 @@ class MentoriaScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Configurações da Mentoria'),
+      ),
       body: Consumer<MentoriaProvider>(
         builder: (context, provider, child) {
           return ListView(
@@ -201,6 +27,95 @@ class MentoriaScreen extends StatelessWidget {
                 onChanged: (value) {
                   provider.setSequentialTopics(value);
                 },
+              ),
+              const Divider(),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Critérios de Recomendação Avançados',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Habilitar recomendação de múltiplos tópicos'),
+                subtitle: const Text(
+                  'Permite que o algoritmo sugira mais de um tópico por sessão, dividindo o tempo de estudo.',
+                ),
+                value: provider.multiTopicRecommendationEnabled,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setMultiTopicRecommendationEnabled(value),
+              ),
+              if (provider.multiTopicRecommendationEnabled) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      const Text('Máximo de tópicos por sessão:'),
+                      const SizedBox(width: 16.0),
+                      Expanded(
+                        child: Slider(
+                          value: provider.maxTopicsPerSession.toDouble(),
+                          min: 1,
+                          max: 5,
+                          divisions: 4,
+                          label: provider.maxTopicsPerSession.toString(),
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          inactiveColor: Colors.grey[300],
+                          onChanged: provider.sequentialTopics
+                              ? null
+                              : (value) =>
+                                  provider.setMaxTopicsPerSession(value.toInt()),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      const Text('Estratégia de alocação de tempo:'),
+                      const SizedBox(width: 16.0),
+                      Expanded(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: provider.timeAllocationStrategy,
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'proportional',
+                              child: Text('Proporcional à Pontuação'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'equal',
+                              child: Text('Divisão Igual'),
+                            ),
+                          ],
+                          onChanged: provider.sequentialTopics
+                              ? null
+                              : (value) =>
+                                  provider.setTimeAllocationStrategy(value!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              SwitchListTile(
+                title: const Text('Progressão automática para próxima matéria'),
+                subtitle: const Text(
+                  'Quando todos os tópicos da sessão atual forem concluídos, o cronômetro avançará automaticamente para a próxima matéria.',
+                ),
+                value: provider.automaticProgressionToNextSubject,
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
+                onChanged: provider.sequentialTopics
+                    ? null
+                    : (value) => provider.setAutomaticProgressionToNextSubject(value),
               ),
               const Divider(),
               const Padding(
@@ -345,7 +260,6 @@ class MentoriaScreen extends StatelessWidget {
                           provider.setPrioritizeNotStudiedInTimeWindow(value),
               ),
               SwitchListTile(
-                // NEW
                 title: const Text('Evitar repetição imediata'),
                 subtitle: const Text(
                   'Penaliza tópicos estudados muito recentemente para sugerir novos.',
@@ -374,9 +288,8 @@ class MentoriaScreen extends StatelessWidget {
                           divisions: 89,
                           label: provider.notStudiedInDays.toString(),
                           activeColor: Theme.of(context).colorScheme.primary,
-                          // Slider NÃO tem inactiveThumbColor ou inactiveTrackColor
                           inactiveColor:
-                              Colors.grey[300], // Cor da trilha quando inativo
+                              Colors.grey[300],
                           onChanged: provider.sequentialTopics
                               ? null
                               : (value) =>
@@ -390,7 +303,7 @@ class MentoriaScreen extends StatelessWidget {
               const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  'Critérios de Relevância', // NEW SECTION
+                  'Critérios de Relevância',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -420,9 +333,63 @@ class MentoriaScreen extends StatelessWidget {
                     ? null
                     : (value) => provider.setPrioritizeTopicWeights(value),
               ),
+              const Divider(),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Configuração de Níveis de Estudo',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              _buildLevelConfig(context, provider, 'Iniciante', provider.inicianteWorkload, provider.inicianteMinSession, provider.inicianteMaxSession, provider.setInicianteWorkload, provider.setInicianteSessionRange),
+              _buildLevelConfig(context, provider, 'Intermediário', provider.intermediarioWorkload, provider.intermediarioMinSession, provider.intermediarioMaxSession, provider.setIntermediarioWorkload, provider.setIntermediarioSessionRange),
+              _buildLevelConfig(context, provider, 'Avançado', provider.avancadoWorkload, provider.avancadoMinSession, provider.avancadoMaxSession, provider.setAvancadoWorkload, provider.setAvancadoSessionRange),
+              const Divider(),
+              SwitchListTile(
+                title: const Text('Embaralhar Ciclo'),
+                subtitle: const Text(
+                  'Se ativado, a ordem das sessões de estudo será aleatória a cada novo ciclo gerado.',
+                ),
+                value: provider.shuffleCycle,
+                activeColor: Theme.of(context).colorScheme.primary,
+                onChanged: (value) => provider.setShuffleCycle(value),
+              ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildLevelConfig(BuildContext context, MentoriaProvider provider, String title, int workload, int min, int max, Function(int) setWorkload, Function(int, int) setSession) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('Horas semanais: $workload'),
+            Slider(
+              value: workload.toDouble(),
+              min: 10,
+              max: 80,
+              divisions: 70,
+              label: workload.toString(),
+              onChanged: (val) => setWorkload(val.toInt()),
+            ),
+            Text('Sessão: $min a $max minutos'),
+            RangeSlider(
+              values: RangeValues(min.toDouble(), max.toDouble()),
+              min: 15,
+              max: 240,
+              divisions: 45,
+              labels: RangeLabels('$min', '$max'),
+              onChanged: (val) => setSession(val.start.toInt(), val.end.toInt()),
+            ),
+          ],
+        ),
       ),
     );
   }

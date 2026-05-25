@@ -19,7 +19,7 @@ class SubjectDetailScreen extends StatefulWidget {
 }
 
 class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
-  bool _allTopicsExpanded = true;
+  bool _allTopicsExpanded = false;
   int _chartPeriodIndex = 2; // 0: daily, 1: weekly, 2: monthly
 
   void _openStudyRegisterModal({StudyRecord? record, Topic? topic}) {
@@ -102,26 +102,24 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       ),
       child: Scaffold(
         appBar: AppBar(title: Text(widget.subject.subject)),
-        body: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: <Widget>[
-            // Header: Subject Name and Add Button
-
-            // Four Summary Sections
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final orientation = MediaQuery.of(context).orientation;
-                final isPortrait = orientation == Orientation.portrait;
-                final crossAxisCount = isPortrait ? 2 : 4;
-                final childAspectRatio = isPortrait ? 1.9 : 1.5;
-
-                return GridView.count(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: <Widget>[
+                // Header: Subject Name and Add Button
+    
+                // Four Summary Sections
+                GridView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16.0,
-                  mainAxisSpacing: 16.0,
-                  childAspectRatio: childAspectRatio,
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 300.0,
+                    crossAxisSpacing: 16.0,
+                    mainAxisSpacing: 16.0,
+                    childAspectRatio: 2.0,
+                  ),
                   children: <Widget>[
                     _buildSummaryCard(
                       context,
@@ -148,129 +146,129 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                       pagesRead.toString(),
                     ),
                   ],
-                );
-              },
-            ),
-
-            const SizedBox(height: 24.0),
-
-            // Edital Verticalizado (Topics)
-            Card(
-              elevation: 4.0,
-              color: Colors.teal,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Edital Verticalizado',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
+                ),
+    
+                const SizedBox(height: 24.0),
+    
+                // Edital Verticalizado (Topics)
+                Card(
+                  elevation: 4.0,
+                  color: Colors.teal,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Edital Verticalizado',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                _allTopicsExpanded
+                                    ? Icons.unfold_less
+                                    : Icons.unfold_more,
                                 color: Colors.white,
                               ),
+                              onPressed: () {
+                                setState(() {
+                                  _allTopicsExpanded = !_allTopicsExpanded;
+                                });
+                              },
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: Icon(
-                            _allTopicsExpanded
-                                ? Icons.unfold_less
-                                : Icons.unfold_more,
-                            color: Colors.white,
+                        const SizedBox(height: 8.0),
+                        // Display topics
+                        if (widget.subject.topics.isEmpty)
+                          const Text(
+                            'Nenhum tópico cadastrado para esta disciplina.',
+                          )
+                        else
+                          ..._buildTopicList(
+                            widget.subject.topics,
+                            0,
+                            historyProvider.allStudyRecords,
                           ),
-                          onPressed: () {
-                            setState(() {
-                              _allTopicsExpanded = !_allTopicsExpanded;
-                            });
-                          },
+                      ],
+                    ),
+                  ),
+                ),
+    
+                const SizedBox(height: 24.0),
+    
+                // Histórico de Registros
+                Card(
+                  elevation: 4.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Histórico de Registros',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
+                        _buildStudyHistoryTable(
+                          context,
+                          historyProvider.allStudyRecords
+                              .where((r) => r.subject_id == widget.subject.id)
+                              .toList(),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8.0),
-                    // Display topics
-                    if (widget.subject.topics.isEmpty)
-                      const Text(
-                        'Nenhum tópico cadastrado para esta disciplina.',
-                      )
-                    else
-                      ..._buildTopicList(
-                        widget.subject.topics,
-                        0,
-                        historyProvider.allStudyRecords,
-                      ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 24.0),
-
-            // Histórico de Registros
-            Card(
-              elevation: 4.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Histórico de Registros',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+    
+                const SizedBox(height: 24.0),
+    
+                // Evolução no Tempo
+                Card(
+                  elevation: 4.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Evolução no Tempo',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
+                        _buildChart(
+                          context,
+                          historyProvider.allStudyRecords
+                              .where((r) => r.subject_id == widget.subject.id)
+                              .toList(),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8.0),
-                    _buildStudyHistoryTable(
-                      context,
-                      historyProvider.allStudyRecords
-                          .where((r) => r.subject_id == widget.subject.id)
-                          .toList(),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-
-            const SizedBox(height: 24.0),
-
-            // Evolução no Tempo
-            Card(
-              elevation: 4.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Evolução no Tempo',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8.0),
-                    _buildChart(
-                      context,
-                      historyProvider.allStudyRecords
-                          .where((r) => r.subject_id == widget.subject.id)
-                          .toList(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

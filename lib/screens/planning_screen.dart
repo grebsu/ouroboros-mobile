@@ -85,68 +85,20 @@ class _PlanningScreenState extends State<PlanningScreen> {
     stopwatchProvider.setContext(
       planId: planId,
       subjectId: session.subjectId,
-      topic: topic,
-      durationMinutes: session.duration,
+      recommendedTopics: [
+        TopicWithTime(
+          topic: topic ?? Topic(id: -1, subject_id: session.subjectId, topic_text: 'Tópico não encontrado', lastModified: DateTime.now().millisecondsSinceEpoch),
+          allocatedTimeSeconds: session.duration * 60,
+          justification: 'Estudo planejado'
+        )
+      ],
+      onSessionCompleteCallback: (planId) {},
     );
 
-    final result = await showDialog<Map<String, dynamic>?>(
+    showDialog(
       context: context,
       builder: (ctx) => const StopwatchModal(),
     );
-
-    if (result != null) {
-      final int time = result['time'] as int;
-      final String? subjectId = result['subjectId'] as String?;
-      final Topic? topic = result['topic'] as Topic?;
-
-      if (subjectId != null && topic != null) {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final planningProvider = Provider.of<PlanningProvider>(
-          context,
-          listen: false,
-        ); // NOVO
-        final newRecord = StudyRecord(
-          id: Uuid().v4(),
-          userId: authProvider.currentUser!.name,
-          plan_id: activePlanProvider.activePlan!.id,
-          cycleId: planningProvider.currentCycleId, // NOVO
-          date: DateTime.now().toIso8601String(),
-          subject_id: subjectId,
-          topicsProgress: topic != null
-              ? [
-                  TopicProgress(
-                    topicId: topic.id.toString(),
-                    topicText: topic.topic_text,
-                  ),
-                ]
-              : [],
-          study_time: time,
-          category: 'teoria',
-          review_periods: [],
-          count_in_planning: true,
-          lastModified: DateTime.now().millisecondsSinceEpoch,
-        );
-
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (modalCtx) => StudyRegisterModal(
-            planId: newRecord.plan_id,
-            initialRecord: newRecord,
-            onSave: (record) {
-              Provider.of<HistoryProvider>(
-                context,
-                listen: false,
-              ).addStudyRecord(record);
-              Provider.of<PlanningProvider>(
-                context,
-                listen: false,
-              ).updateProgress(record);
-            },
-          ),
-        );
-      }
-    }
   }
 
   void _onRegisterStudy(BuildContext context, StudySession session) {
@@ -479,15 +431,46 @@ class _PlanningScreenState extends State<PlanningScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    DonutChart(
-                      cycle: planningProvider.studyCycle!,
-                      studyHours: _formatDuration(
-                        totalCycleDuration -
-                            planningProvider.currentProgressMinutes,
-                      ),
-                      sessionProgressMap: planningProvider.sessionProgressMap,
-                      currentProgressMinutes:
-                          planningProvider.currentProgressMinutes, // NOVO
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          height: 320,
+                          width: 320,
+                          child: DonutChart(
+                            size: 320,
+                            cycle: planningProvider.studyCycle!,
+                            studyHours: _formatDuration(
+                              totalCycleDuration -
+                                  planningProvider.currentProgressMinutes,
+                            ),
+                            sessionProgressMap: planningProvider.sessionProgressMap,
+                            currentProgressMinutes:
+                                planningProvider.currentProgressMinutes,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Consumer<PlanningProvider>(
+                          builder: (context, provider, child) {
+                            final studyCycle = provider.studyCycle;
+                            if (studyCycle == null || studyCycle.isEmpty) return const SizedBox.shrink();
+
+                            final sessionProgressMap = provider.sessionProgressMap;
+                            final uncompletedSessions = studyCycle.where((session) {
+                              final progress = sessionProgressMap[session.id] ?? 0;
+                              return progress < session.duration;
+                            }).toList();
+
+                            if (uncompletedSessions.length < 2) return const SizedBox.shrink();
+
+                            return IconButton(
+                              icon: const Icon(Icons.shuffle, color: Colors.teal),
+                              tooltip: 'Embaralhar sessões não estudadas',
+                              onPressed: () => planningProvider.shuffleUncompletedSessions(),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 20),
                     if (widget.isEditMode)

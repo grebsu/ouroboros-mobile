@@ -27,11 +27,7 @@ class SubjectsScreen extends StatelessWidget {
             );
           }
 
-          final orientation = MediaQuery.of(context).orientation;
-          final crossAxisCount = orientation == Orientation.portrait ? 1 : 3;
-          final childAspectRatio = orientation == Orientation.portrait
-              ? 1.4
-              : 1.0;
+          final screenWidth = MediaQuery.of(context).size.width;
 
           final totalStudyHours = provider.getTotalStudyHours();
           final totalQuestions = provider.getTotalQuestions();
@@ -77,18 +73,21 @@ class SubjectsScreen extends StatelessWidget {
                         Icons.book,
                         totalStudyHours,
                         'Total de Horas',
+                        iconSize: 42,
                       ),
                       _buildOverallStat(
                         context,
                         Icons.quiz,
                         totalQuestions.toString(),
                         'Total de Questões',
+                        iconSize: 42,
                       ),
                       _buildOverallStat(
                         context,
                         Icons.bar_chart,
                         '${overallPerformance.toStringAsFixed(0)}%',
                         'Desempenho Geral',
+                        iconSize: 42,
                       ),
                     ],
                   ),
@@ -101,11 +100,11 @@ class SubjectsScreen extends StatelessWidget {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: childAspectRatio,
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 400.0,
+                  crossAxisSpacing: 12.0,
+                  mainAxisSpacing: 12.0,
+                  childAspectRatio: 1.2,
                 ),
                 itemCount: provider.subjects.length,
                 itemBuilder: (context, index) {
@@ -122,7 +121,12 @@ class SubjectsScreen extends StatelessWidget {
                     subject.id,
                   );
 
-                  return GestureDetector(
+                  return _SubjectCardWidget(
+                    subject: subject,
+                    studyHours: studyHours,
+                    questions: questions.toString(),
+                    performance: '${performance.toStringAsFixed(0)}%',
+                    planName: planName,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -132,14 +136,6 @@ class SubjectsScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    child: _buildSubjectCard(
-                      context,
-                      subject,
-                      studyHours,
-                      questions.toString(),
-                      '${performance.toStringAsFixed(0)}%',
-                      [planName],
-                    ),
                   );
                 },
               ),
@@ -154,9 +150,11 @@ class SubjectsScreen extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String value,
-    String label,
-  ) {
+    String label, {
+    double iconSize = 24.0,
+  }) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Container(
           padding: const EdgeInsets.all(8.0),
@@ -164,7 +162,7 @@ class SubjectsScreen extends StatelessWidget {
             color: Colors.white,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 42, color: Colors.teal),
+          child: Icon(icon, size: iconSize, color: Colors.teal),
         ),
         const SizedBox(height: 4.0),
         Text(
@@ -172,112 +170,229 @@ class SubjectsScreen extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: Colors.white,
+            fontSize: iconSize > 30 ? 16 : 14,
           ),
         ),
         Text(
           label,
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(fontSize: 12, color: Colors.white),
+          ).textTheme.bodySmall?.copyWith(
+            fontSize: iconSize > 30 ? 12 : 10,
+            color: Colors.white,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
     );
   }
+}
 
-  Widget _buildSubjectCard(
-    BuildContext context,
-    Subject subject,
-    String studyHours,
-    String questions,
-    String performance,
-    List<String> plans,
-  ) {
-    return Card(
-      color: Color(int.parse(subject.color.replaceFirst('#', '0xFF'))),
-      elevation: 4.0,
-      shape: RoundedRectangleBorder(
-        side: BorderSide(
-          color: Color(int.parse(subject.color.replaceFirst('#', '0xFF'))),
-          width: 2,
-        ), // Use subject color
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              subject.subject,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.white,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center, // Centralize the subject title
+class _SubjectCardWidget extends StatefulWidget {
+  final Subject subject;
+  final String studyHours;
+  final String questions;
+  final String performance;
+  final String planName;
+  final VoidCallback onTap;
+
+  const _SubjectCardWidget({
+    required this.subject,
+    required this.studyHours,
+    required this.questions,
+    required this.performance,
+    required this.planName,
+    required this.onTap,
+  });
+
+  @override
+  State<_SubjectCardWidget> createState() => _SubjectCardWidgetState();
+}
+
+class _SubjectCardWidgetState extends State<_SubjectCardWidget> {
+  bool _showOverlay = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _showOverlay = true),
+      onExit: (_) => setState(() => _showOverlay = false),
+      child: GestureDetector(
+        onTap: () {
+          if (_showOverlay) {
+            widget.onTap(); // Segundo toque: navega
+          } else {
+            setState(() => _showOverlay = true); // Primeiro toque: mostra overlay
+          }
+        },
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          color: Color(int.parse(widget.subject.color.replaceFirst('#', '0xFF'))),
+          elevation: _showOverlay ? 8.0 : 4.0,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              color: Color(int.parse(widget.subject.color.replaceFirst('#', '0xFF'))),
+              width: 2,
             ),
-            const SizedBox(height: 8.0),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _buildOverallStat(
-                    context,
-                    Icons.timer,
-                    studyHours,
-                    'Horas',
-                  ),
-                ),
-                const SizedBox(width: 8.0),
-                Expanded(
-                  child: _buildOverallStat(
-                    context,
-                    Icons.check_circle,
-                    questions,
-                    'Questões',
-                  ),
-                ),
-                const SizedBox(width: 8.0),
-                Expanded(
-                  child: _buildOverallStat(
-                    context,
-                    Icons.trending_up,
-                    performance,
-                    'Desempenho',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              'Presente nos Planos:',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 4.0),
-            SingleChildScrollView(
-              child: Wrap(
-                spacing: 4.0,
-                runSpacing: 2.0,
-                children: plans
-                    .map(
-                      (plan) => Chip(
-                        label: Text(plan, style: const TextStyle(fontSize: 10)),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      widget.subject.subject,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
                       ),
-                    )
-                    .toList(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: _buildStatItem(
+                            context,
+                            Icons.timer,
+                            widget.studyHours,
+                            'Horas',
+                          ),
+                        ),
+                        const SizedBox(width: 4.0),
+                        Expanded(
+                          child: _buildStatItem(
+                            context,
+                            Icons.check_circle,
+                            widget.questions,
+                            'Questões',
+                          ),
+                        ),
+                        const SizedBox(width: 4.0),
+                        Expanded(
+                          child: _buildStatItem(
+                            context,
+                            Icons.trending_up,
+                            widget.performance,
+                            'Desempenho',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Presente nos Planos:',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4.0),
+                    SizedBox(
+                      height: 32,
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 4.0,
+                          runSpacing: 2.0,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            Chip(
+                              label: Text(widget.planName,
+                                  style: const TextStyle(fontSize: 9)),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              backgroundColor: Colors.white.withOpacity(0.9),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              // Overlay de "Visualizar"
+              IgnorePointer( // Permite que o GestureDetector do pai receba o clique
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: _showOverlay ? 1.0 : 0.0,
+                  child: Container(
+                    color: Colors.black.withOpacity(0.5),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(
+                            Icons.visibility,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Visualizar',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStatItem(
+    BuildContext context,
+    IconData icon,
+    String value,
+    String label,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          padding: const EdgeInsets.all(8.0),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 24.0, color: Colors.teal),
+        ),
+        const SizedBox(height: 4.0),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontSize: 14,
+          ),
+        ),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(
+            fontSize: 10,
+            color: Colors.white,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }

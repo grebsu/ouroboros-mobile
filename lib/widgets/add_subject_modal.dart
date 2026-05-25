@@ -169,6 +169,16 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
     });
   }
 
+  void _handleToggleExpanded(Topic topic) {
+    setState(() {
+      _recursiveTopicUpdate(
+        _currentTopics,
+        topic,
+        (t) => t.copyWith(isExpanded: !t.isExpanded),
+      );
+    });
+  }
+
   void _handleDeleteTopic(Topic topic) {
     setState(() {
       _recursiveTopicDelete(_currentTopics, topic);
@@ -179,6 +189,7 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
     final newTopic = Topic(
       topic_text: '',
       isEditing: true,
+      isExpanded: true, // Expande ao adicionar
       lastModified: DateTime.now().millisecondsSinceEpoch,
     );
     setState(() {
@@ -188,6 +199,7 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
         _recursiveTopicUpdate(_currentTopics, parent, (t) {
           t.sub_topics ??= [];
           t.sub_topics!.add(newTopic);
+          t.isExpanded = true; // Garante que o pai esteja aberto para ver o novo item
           return t;
         });
       }
@@ -488,30 +500,7 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                     ],
                   ),
                   const Divider(),
-                  Container(
-                    constraints: const BoxConstraints(
-                      maxHeight: 450, // Limita a altura da área dos tópicos
-                    ),
-                    child: ScrollbarTheme(
-                      data: ScrollbarThemeData(
-                        thumbColor: MaterialStateProperty.all(Colors.teal),
-                      ),
-                      child: Scrollbar(
-                        controller: _scrollController,
-                        thumbVisibility: true,
-                        radius: const Radius.circular(8),
-                        thickness: 8.0,
-                        interactive: true,
-                        child: SingleChildScrollView(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.only(
-                            right: 12.0,
-                          ), // Adiciona padding à direita para a scrollbar
-                          child: _buildTopicTree(_currentTopics, 0),
-                        ),
-                      ),
-                    ),
-                  ),
+                  _buildTopicTree(_currentTopics, 0),
                 ],
               ),
             ),
@@ -530,6 +519,7 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: topics.map((topic) {
+        final hasChildren = topic.sub_topics != null && topic.sub_topics!.isNotEmpty;
         return Column(
           children: [
             Padding(
@@ -542,9 +532,10 @@ class _AddSubjectModalState extends State<AddSubjectModal> {
                 onDelete: () => _handleDeleteTopic(topic),
                 onToggleEdit: () => _handleToggleEdit(topic),
                 onAddChild: () => _handleAddTopic(parent: topic),
+                onToggleExpanded: () => _handleToggleExpanded(topic),
               ),
             ),
-            if (topic.sub_topics != null && topic.sub_topics!.isNotEmpty)
+            if (hasChildren && topic.isExpanded)
               _buildTopicTree(topic.sub_topics!, level + 1),
           ],
         );
@@ -560,6 +551,7 @@ class _TopicCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onToggleEdit;
   final VoidCallback onAddChild;
+  final VoidCallback onToggleExpanded;
 
   const _TopicCard({
     required this.topic,
@@ -568,53 +560,81 @@ class _TopicCard extends StatelessWidget {
     required this.onDelete,
     required this.onToggleEdit,
     required this.onAddChild,
+    required this.onToggleExpanded,
   });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final hasChildren = topic.sub_topics != null && topic.sub_topics!.isNotEmpty;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 2.0),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8.0),
+        color: topic.isExpanded && hasChildren ? Colors.teal.withOpacity(0.03) : null,
       ),
       child: Row(
         children: [
+          // Ícone de expansão
+          if (hasChildren)
+            IconButton(
+              icon: Icon(
+                topic.isExpanded ? Icons.arrow_drop_down : Icons.arrow_right,
+                size: 20,
+              ),
+              onPressed: onToggleExpanded,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            )
+          else
+            const SizedBox(width: 24), // Espaço vazio para alinhar com os pais
+
           Checkbox(
             value: topic.isSelected,
             onChanged: (value) => onToggleSelected(value ?? false),
             visualDensity: VisualDensity.compact,
+            activeColor: Colors.teal,
           ),
           Expanded(
-            child: topic.isEditing
-                ? IntrinsicWidth(
-                    child: TextFormField(
-                      initialValue: topic.topic_text,
-                      autofocus: true,
-                      style: textTheme.bodyMedium,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
+            child: GestureDetector(
+              onTap: hasChildren ? onToggleExpanded : null,
+              child: topic.isEditing
+                  ? IntrinsicWidth(
+                      child: TextFormField(
+                        initialValue: topic.topic_text,
+                        autofocus: true,
+                        style: textTheme.bodyMedium,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onFieldSubmitted: (newName) {
+                          if (newName.isNotEmpty) {
+                            onUpdate(newName);
+                          } else {
+                            onDelete(); // Deleta se o nome for vazio
+                          }
+                        },
+                        onTapOutside: (_) {
+                          if (topic.topic_text.isNotEmpty) {
+                            onToggleEdit(); // Salva ao clicar fora
+                          } else {
+                            onDelete();
+                          }
+                        },
                       ),
-                      onFieldSubmitted: (newName) {
-                        if (newName.isNotEmpty) {
-                          onUpdate(newName);
-                        } else {
-                          onDelete(); // Deleta se o nome for vazio
-                        }
-                      },
-                      onTapOutside: (_) {
-                        if (topic.topic_text.isNotEmpty) {
-                          onToggleEdit(); // Salva ao clicar fora
-                        } else {
-                          onDelete();
-                        }
-                      },
+                    )
+                  : Text(
+                      topic.topic_text,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: hasChildren ? FontWeight.bold : FontWeight.normal,
+                      ),
                     ),
-                  )
-                : Text(topic.topic_text, style: textTheme.bodyMedium),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.add, size: 20, color: Colors.green),

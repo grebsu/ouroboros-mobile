@@ -1,9 +1,11 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/providers/planning_provider.dart';
+import 'package:ouroboros_mobile/providers/mentoria_provider.dart';
 import 'package:ouroboros_mobile/widgets/topic_weights_modal.dart';
 
 class CycleCreationScreen extends StatefulWidget {
@@ -19,13 +21,13 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
   int _currentStep = 0;
   bool? _isManualMode;
 
-  Set<String> _selectedSubjects = {};
+  List<String> _selectedSubjects = [];
   Map<String, Map<String, double>> _subjectSettings = {};
 
   // New state variables for guided mode
-  String? _selectedWorkloadLevel;
-  String? _selectedQuestionsLevel;
-  String? _selectedSessionLevel;
+  String? _selectedWorkloadLevel = 'Iniciante';
+  String? _selectedQuestionsLevel = 'Iniciante';
+  String? _selectedSessionLevel = 'Iniciante';
 
   final _manualWorkloadController = TextEditingController();
   final _manualGuidedQuestionsGoalController = TextEditingController();
@@ -47,6 +49,378 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
   final _manualDurationController = TextEditingController();
   final _manualQuestionsGoalController = TextEditingController(text: '250');
   final _subjectSearchController = TextEditingController();
+  bool _isSummaryVisible = true;
+  bool _isEditingSubjects = false; // Declarar a variável aqui
+
+  // Helper to advance steps
+  void _advanceStep(List<Map<String, dynamic>> workloadLevels, List<Map<String, dynamic>> sessionLevels) {
+    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
+    
+    if (_currentStep == 0 && _selectedSubjects.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecione ao menos uma matéria.')));
+        return;
+    }
+    
+    if (_currentStep < 2) {
+        setState(() => _currentStep++);
+    } else {
+        _saveGuidedCycle(allSubjectsProvider, workloadLevels, sessionLevels);
+    }
+  }
+
+  Widget _buildCurrentStepContent(BuildContext context, AllSubjectsProvider allSubjectsProvider, List<Map<String, dynamic>> workloadLevels, List<Map<String, dynamic>> sessionLevels) {
+    switch (_currentStep) {
+      case 0: return _buildSubjectSelection(allSubjectsProvider);
+      case 1: return _buildWeightsStep(allSubjectsProvider);
+      case 2: return _buildUnifiedConfigurationStep(workloadLevels, sessionLevels);
+      default: return const Center(child: Text("Passo inválido"));
+    }
+  }
+
+  Widget _buildSubjectSelection(AllSubjectsProvider allSubjectsProvider) {
+    final filteredSubjects = allSubjectsProvider.uniqueSubjectsByName
+        .where((s) => s.subject.toLowerCase().contains(_subjectSearchQuery.toLowerCase()))
+        .toList();
+    
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _subjectSearchController,
+                decoration: const InputDecoration(labelText: 'Buscar matéria', prefixIcon: Icon(Icons.search)),
+              ),
+            ),
+            TextButton(
+              onPressed: () => setState(() {
+                if (_selectedSubjects.length == filteredSubjects.length) {
+                  _selectedSubjects.clear();
+                } else {
+                  for (var s in filteredSubjects) {
+                    if (!_selectedSubjects.contains(s.id)) _selectedSubjects.add(s.id);
+                  }
+                }
+              }),              child: Text(_selectedSubjects.length == filteredSubjects.length ? 'Desmarcar Todos' : 'Selecionar Todos'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: GridView.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: MediaQuery.of(context).size.width > 1024 ? 5 : (MediaQuery.of(context).size.width > 600 ? 3 : 2),
+              childAspectRatio: 2.8,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: filteredSubjects.length,
+            itemBuilder: (context, index) {
+              final subject = filteredSubjects[index];
+              final isSelected = _selectedSubjects.contains(subject.id);
+              final color = Color(int.parse(subject.color.replaceFirst('#', '0xFF')));
+              
+              return InkWell(
+                onTap: () => setState(() {
+                if (_selectedSubjects.contains(subject.id)) {
+                _selectedSubjects.remove(subject.id);
+                } else {
+                _selectedSubjects.add(subject.id);
+                }
+                }),                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected ? color : color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color, width: isSelected ? 2 : 1),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    subject.subject,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeightsStep(AllSubjectsProvider allSubjectsProvider) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("Defina os Pesos", style: Theme.of(context).textTheme.headlineSmall),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await allSubjectsProvider.calculateAndApplyTopicWeights(_selectedSubjects.toList());
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pesos calculados!')));
+              },
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Calcular Pesos'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 350,
+              childAspectRatio: 1.1,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            itemCount: _selectedSubjects.length,
+            itemBuilder: (context, index) {
+              final subjectId = _selectedSubjects.elementAt(index);
+              final subject = allSubjectsProvider.subjects.firstWhere((s) => s.id == subjectId);
+              _subjectSettings.putIfAbsent(subjectId, () => {'importance': 3, 'knowledge': 3});
+              final color = Color(int.parse(subject.color.replaceFirst('#', '0xFF')));
+              
+              return Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: color, width: 2)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              subject.subject,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.tune),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => showDialog(context: context, builder: (context) => TopicWeightsModal(subject: subject)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      const Text("Importância", style: TextStyle(fontSize: 12)),
+                      Flexible(
+                        child: Slider(
+                          value: _subjectSettings[subjectId]!['importance']!, min: 1, max: 5, divisions: 4, activeColor: color, 
+                          onChanged: (v) => setState(() => _subjectSettings[subjectId]!['importance'] = v)
+                        ),
+                      ),
+                      const Text("Conhecimento", style: TextStyle(fontSize: 12)),
+                      Flexible(
+                        child: Slider(
+                          value: _subjectSettings[subjectId]!['knowledge']!, min: 1, max: 5, divisions: 4, activeColor: color, 
+                          onChanged: (v) => setState(() => _subjectSettings[subjectId]!['knowledge'] = v)
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnifiedConfigurationStep(List<Map<String, dynamic>> workloadLevels, List<Map<String, dynamic>> sessionLevels) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 80),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Configuração Final", style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 24),
+          _buildConfigSection(
+            title: "Carga Horária Semanal",
+            options: workloadLevels,
+            selected: _selectedWorkloadLevel,
+            onChanged: (val) => setState(() => _selectedWorkloadLevel = val),
+            manualController: _manualWorkloadController,
+            label: "Horas",
+          ),
+          _buildConfigSection(
+            title: "Meta de Questões",
+            options: questionsLevels,
+            selected: _selectedQuestionsLevel,
+            onChanged: (val) => setState(() => _selectedQuestionsLevel = val),
+            manualController: _manualGuidedQuestionsGoalController,
+            label: "Questões",
+          ),
+          _buildConfigSection(
+            title: "Duração das Sessões",
+            options: sessionLevels,
+            selected: _selectedSessionLevel,
+            onChanged: (val) => setState(() => _selectedSessionLevel = val),
+            manualController: _manualSessionDurationController,
+            label: "Minutos",
+          ),
+          const SizedBox(height: 24),
+          Text("Dias de Estudo", style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12, runSpacing: 12,
+            children: _daysOfWeek.map((day) => FilterChip(
+              label: Text(day),
+              selected: _selectedDays.contains(day),
+              onSelected: (s) => setState(() => s ? _selectedDays.add(day) : _selectedDays.remove(day)),
+              selectedColor: Colors.teal.shade200,
+            )).toList()
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfigSection({
+    required String title,
+    required List<Map<String, dynamic>> options,
+    required String? selected,
+    required Function(String) onChanged,
+    required TextEditingController manualController,
+    required String label,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12, runSpacing: 12,
+            children: [
+              ...options.map((opt) {
+                final isSelected = selected == opt['level'];
+                return ChoiceChip(
+                  label: Text(opt['level']),
+                  selected: isSelected,
+                  onSelected: (s) => onChanged(opt['level']),
+                );
+              }),
+              ChoiceChip(
+                label: const Text("Manual"),
+                selected: selected == 'Manual',
+                onSelected: (s) => onChanged('Manual'),
+              ),
+            ],
+          ),
+          if (selected == 'Manual')
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: SizedBox(
+                width: 200,
+                child: TextField(
+                  controller: manualController,
+                  decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Projeção de horas baseada nos pesos atuais e nível de conhecimento
+  List<Map<String, dynamic>> _calculateProjectedDistribution() {
+    final mentoriaProvider = Provider.of<MentoriaProvider>(context, listen: false);
+    final totalHoursMap = {
+      'Iniciante': mentoriaProvider.inicianteWorkload.toDouble(),
+      'Intermediário': mentoriaProvider.intermediarioWorkload.toDouble(),
+      'Avançado': mentoriaProvider.avancadoWorkload.toDouble(),
+    };
+    
+    final totalHours = totalHoursMap[_selectedWorkloadLevel] ?? 
+        (double.tryParse(_manualWorkloadController.text) ?? 0.0);
+    
+    final totalMinutes = totalHours * 60.0;
+    
+    if (_selectedSubjects.isEmpty || totalMinutes <= 0) {
+        return [{
+            'id': 'placeholder',
+            'name': 'Aguardando matérias',
+            'minutes': 100.0,
+            'sessions': 0,
+            'color': Colors.grey.shade400,
+        }];
+    }
+
+    // Obter min/max session duration baseado no nível selecionado
+    int minSession = 30;
+    int maxSession = 50;
+    if (_selectedSessionLevel == 'Manual') {
+      final manualDuration = int.tryParse(_manualSessionDurationController.text) ?? 60;
+      minSession = manualDuration;
+      maxSession = manualDuration;
+    } else if (_selectedSessionLevel != null) {
+      if (_selectedSessionLevel == 'Iniciante') {
+        minSession = mentoriaProvider.inicianteMinSession;
+        maxSession = mentoriaProvider.inicianteMaxSession;
+      } else if (_selectedSessionLevel == 'Intermediário') {
+        minSession = mentoriaProvider.intermediarioMinSession;
+        maxSession = mentoriaProvider.intermediarioMaxSession;
+      } else if (_selectedSessionLevel == 'Avançado') {
+        minSession = mentoriaProvider.avancadoMinSession;
+        maxSession = mentoriaProvider.avancadoMaxSession;
+      }
+    }
+
+    double totalPriorityScore = 0;
+    final Map<String, double> priorityScores = {};
+    final allSubjects = Provider.of<AllSubjectsProvider>(context, listen: false).subjects;
+
+    for (var id in _selectedSubjects) {
+        final importance = (_subjectSettings[id]?['importance'] ?? 3.0).toDouble();
+        final knowledge = (_subjectSettings[id]?['knowledge'] ?? 3.0).toDouble();
+        final score = importance * (6.0 - knowledge);
+        priorityScores[id] = score;
+        totalPriorityScore += score;
+    }
+
+    if (totalPriorityScore <= 0) totalPriorityScore = 1.0;
+
+    final distribution = <Map<String, dynamic>>[];
+    for (var id in _selectedSubjects) {
+        final subject = allSubjects.firstWhere((s) => s.id == id);
+        final score = priorityScores[id] ?? 0.0;
+        final idealMinutes = (score / totalPriorityScore) * totalMinutes;
+        
+        // Simular a lógica do PlanningProvider para cálculo de sessões
+        final averageSessionDuration = (minSession + maxSession) / 2.0;
+        int numberOfSessions = (idealMinutes / averageSessionDuration).round();
+        
+        if (numberOfSessions > 0) {
+            int sessionDuration = (idealMinutes / numberOfSessions).round();
+            if (sessionDuration < minSession) sessionDuration = minSession;
+            if (sessionDuration > maxSession) sessionDuration = maxSession;
+            
+            final actualMinutes = (numberOfSessions * sessionDuration).toDouble();
+            
+            distribution.add({
+                'id': subject.id,
+                'name': subject.subject,
+                'minutes': actualMinutes,
+                'sessions': numberOfSessions,
+                'color': Color(int.parse(subject.color.replaceFirst('#', '0xFF'))),
+            });
+        }
+    }
+    return distribution;
+  }
 
   final ScrollController _subjectSelectionController = ScrollController();
   final ScrollController _subjectSettingsController = ScrollController();
@@ -60,6 +434,10 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
         _subjectSearchQuery = _subjectSearchController.text;
       });
     });
+    // Add listeners for manual inputs
+    _manualWorkloadController.addListener(() => setState(() {}));
+    _manualQuestionsGoalController.addListener(() => setState(() {}));
+    _manualSessionDurationController.addListener(() => setState(() {}));
   }
 
   @override
@@ -77,28 +455,6 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
   }
 
   String _subjectSearchQuery = '';
-
-  // Data for the new interactive steps
-  final List<Map<String, dynamic>> workloadLevels = [
-    {
-      'level': 'Iniciante',
-      'hours': '20-28 horas',
-      'value': 24,
-      'icon': Icons.child_care,
-    },
-    {
-      'level': 'Intermediário',
-      'hours': '28-36 horas',
-      'value': 32,
-      'icon': Icons.trending_up,
-    },
-    {
-      'level': 'Avançado',
-      'hours': '36-44 horas',
-      'value': 40,
-      'icon': Icons.workspace_premium,
-    },
-  ];
 
   final List<Map<String, dynamic>> questionsLevels = [
     {
@@ -127,39 +483,11 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
     },
   ];
 
-  final List<Map<String, dynamic>> sessionLevels = [
-    {
-      'level': 'Iniciante',
-      'duration': '30 a 50 minutos',
-      'description':
-          'Construção da resistência e do hábito. Maior tempo dedicado à Teoria (≈60%).',
-      'min': 30,
-      'max': 50,
-      'icon': Icons.hourglass_empty,
-    },
-    {
-      'level': 'Intermediário',
-      'duration': '50 a 90 minutos',
-      'description':
-          'Consolidação. Equilíbrio entre Teoria/Revisão (≈40%) e Questões (≈40%).',
-      'min': 50,
-      'max': 90,
-      'icon': Icons.hourglass_bottom,
-    },
-    {
-      'level': 'Avançado/Profissional',
-      'duration': '1h30 a 2 horas',
-      'description':
-          'Otimização. Maior parte do tempo dedicada à Prática e Revisão Ativa (Questões e Simulados ≈60−70%).',
-      'min': 90,
-      'max': 120,
-      'icon': Icons.hourglass_full,
-    },
-  ];
-
   List<Step> _getSteps(
     BuildContext context,
     AllSubjectsProvider allSubjectsProvider,
+    List<Map<String, dynamic>> workloadLevels,
+    List<Map<String, dynamic>> sessionLevels,
   ) {
     final filteredSubjects = allSubjectsProvider.uniqueSubjectsByName
         .where(
@@ -1098,6 +1426,58 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final mentoriaProvider = Provider.of<MentoriaProvider>(context, listen: false);
+    final List<Map<String, dynamic>> workloadLevels = [
+      {
+        'level': 'Iniciante',
+        'hours': '${mentoriaProvider.inicianteWorkload} horas',
+        'value': mentoriaProvider.inicianteWorkload,
+        'icon': Icons.child_care,
+      },
+      {
+        'level': 'Intermediário',
+        'hours': '${mentoriaProvider.intermediarioWorkload} horas',
+        'value': mentoriaProvider.intermediarioWorkload,
+        'icon': Icons.trending_up,
+      },
+      {
+        'level': 'Avançado',
+        'hours': '${mentoriaProvider.avancadoWorkload} horas',
+        'value': mentoriaProvider.avancadoWorkload,
+        'icon': Icons.workspace_premium,
+      },
+    ];
+
+    final List<Map<String, dynamic>> sessionLevels = [
+      {
+        'level': 'Iniciante',
+        'duration': '${mentoriaProvider.inicianteMinSession} a ${mentoriaProvider.inicianteMaxSession} minutos',
+        'description':
+            'Construção da resistência e do hábito. Maior tempo dedicado à Teoria (≈60%).',
+        'min': mentoriaProvider.inicianteMinSession,
+        'max': mentoriaProvider.inicianteMaxSession,
+        'icon': Icons.hourglass_empty,
+      },
+      {
+        'level': 'Intermediário',
+        'duration': '${mentoriaProvider.intermediarioMinSession} a ${mentoriaProvider.intermediarioMaxSession} minutos',
+        'description':
+            'Consolidação. Equilíbrio entre Teoria/Revisão (≈40%) e Questões (≈40%).',
+        'min': mentoriaProvider.intermediarioMinSession,
+        'max': mentoriaProvider.intermediarioMaxSession,
+        'icon': Icons.hourglass_bottom,
+      },
+      {
+        'level': 'Avançado',
+        'duration': '${mentoriaProvider.avancadoMinSession} a ${mentoriaProvider.avancadoMaxSession} minutos',
+        'description':
+            'Otimização. Maior parte do tempo dedicada à Prática e Revisão Ativa (Questões e Simulados ≈60−70%).',
+        'min': mentoriaProvider.avancadoMinSession,
+        'max': mentoriaProvider.avancadoMaxSession,
+        'icon': Icons.hourglass_full,
+      },
+    ];
+
     return ScaffoldMessenger(
       key: _scaffoldMessengerKey,
       child: Scaffold(
@@ -1110,241 +1490,170 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                 : 'Modo Guiado',
           ),
         ),
-        body: Consumer<AllSubjectsProvider>(
-          builder: (context, allSubjectsProvider, child) {
-            if (_isManualMode == null) {
-              return _buildModeSelection();
-            }
-            if (_isManualMode!) {
-              return _buildManualMode(allSubjectsProvider);
-            }
-            // Guided Mode Stepper
-            final isLightMode =
-                Theme.of(context).brightness == Brightness.light;
-
-            return Theme(
-              data: Theme.of(context).copyWith(
-                canvasColor: isLightMode ? Colors.white : Colors.teal[400],
-                colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: Colors.teal,
-                  secondary: Colors.teal,
-                ),
-                scrollbarTheme: ScrollbarThemeData(
-                  thumbColor: MaterialStateProperty.all(Colors.teal),
-                  thumbVisibility: MaterialStateProperty.all(true),
-                  radius: const Radius.circular(
-                    8.0,
-                  ), // Adiciona bordas arredondadas
-                  crossAxisMargin:
-                      -14, // Adiciona margem à direita do scrollbar
-                ),
-              ),
-              child: Stepper(
-                key: _stepperKey,
-                currentStep: _currentStep,
-                type: StepperType.horizontal,
-                margin: EdgeInsets.zero,
-
-                steps: _getSteps(context, allSubjectsProvider),
-                controlsBuilder:
-                    (BuildContext context, ControlsDetails details) {
-                      return Container();
-                    },
-              ),
-            );
-          },
-        ),
-        persistentFooterButtons: _isManualMode == null
-            ? null
-            : (_isManualMode!
-                  ? [
-                      TextButton(
-                        onPressed: () => setState(() {
-                          _isManualMode = null;
-                        }),
-                        style: TextButton.styleFrom(
-                          foregroundColor:
-                              Colors.teal, // Definir a cor do texto como teal
-                        ),
-                        child: const Text('Voltar'),
-                      ),
-                      ElevatedButton(
-                        onPressed: _saveManualCycle,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Salvar Ciclo'),
-                      ),
-                    ]
-                  : [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: <Widget>[
-                            if (_currentStep > 0)
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    if (_currentStep > 0) {
-                                      _currentStep -= 1;
-                                    }
-                                  });
-                                },
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors
-                                      .teal, // Definir a cor do texto como teal
+        body: _isManualMode == null
+            ? _buildModeSelection()
+            : _isManualMode!
+            ? _buildManualMode(Provider.of<AllSubjectsProvider>(context))
+            : Column(
+                children: [
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(24.0),
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  child: _buildCurrentStepContent(context, Provider.of<AllSubjectsProvider>(context), workloadLevels, sessionLevels),
                                 ),
-                                child: const Text('Voltar'),
-                              ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () {
-                                final allSubjectsProvider =
-                                    Provider.of<AllSubjectsProvider>(
-                                      context,
-                                      listen: false,
-                                    );
-                                // Validation for step 0 (Subjects)
-                                if (_currentStep == 0 &&
-                                    _selectedSubjects.isEmpty) {
-                                  _scaffoldMessengerKey.currentState?.showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Por favor, selecione pelo menos uma matéria para continuar.',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                  return;
-                                }
-
-                                // Validation for step 2 (Workload)
-                                if (_currentStep == 2) {
-                                  final isWorkloadNotSet =
-                                      _selectedWorkloadLevel == null;
-                                  final isManualWorkloadEmpty =
-                                      _selectedWorkloadLevel == 'Manual' &&
-                                      _manualWorkloadController.text.isEmpty;
-
-                                  if (isWorkloadNotSet ||
-                                      isManualWorkloadEmpty) {
-                                    _scaffoldMessengerKey.currentState
-                                        ?.showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Por favor, defina a carga horária para continuar.',
-                                            ),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                    return;
-                                  }
-                                }
-
-                                // Validation for step 3 (Questions Goal)
-                                if (_currentStep == 3) {
-                                  final isQuestionsLevelNotSet =
-                                      _selectedQuestionsLevel == null;
-                                  final isManualQuestionsGoalEmpty =
-                                      _selectedQuestionsLevel == 'Manual' &&
-                                      _manualGuidedQuestionsGoalController
-                                          .text
-                                          .isEmpty;
-
-                                  if (isQuestionsLevelNotSet ||
-                                      isManualQuestionsGoalEmpty) {
-                                    _scaffoldMessengerKey.currentState
-                                        ?.showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Por favor, defina a meta de questões para continuar.',
-                                            ),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                    return;
-                                  }
-                                }
-
-                                // Validation for step 4 (Session Duration)
-                                if (_currentStep == 4) {
-                                  final isSessionLevelNotSet =
-                                      _selectedSessionLevel == null;
-                                  final isManualSessionDurationEmpty =
-                                      _selectedSessionLevel == 'Manual' &&
-                                      _manualSessionDurationController
-                                          .text
-                                          .isEmpty;
-
-                                  if (isSessionLevelNotSet ||
-                                      isManualSessionDurationEmpty) {
-                                    _scaffoldMessengerKey.currentState
-                                        ?.showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Por favor, defina a duração das sessões para continuar.',
-                                            ),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                    return;
-                                  }
-                                }
-
-                                // Validation for step 5 (Study Days)
-                                if (_currentStep == 5) {
-                                  if (_selectedDays.isEmpty) {
-                                    _scaffoldMessengerKey.currentState
-                                        ?.showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Por favor, selecione pelo menos um dia de estudo para continuar.',
-                                            ),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                    return;
-                                  }
-                                }
-
-                                // If validation passes, proceed
-                                if (_currentStep <
-                                    _getSteps(
-                                          context,
-                                          allSubjectsProvider,
-                                        ).length -
-                                        1) {
-                                  setState(() {
-                                    _currentStep += 1;
-                                  });
-                                } else {
-                                  _saveGuidedCycle(allSubjectsProvider);
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: Text(
-                                _currentStep ==
-                                        _getSteps(
-                                              context,
-                                              Provider.of<AllSubjectsProvider>(
-                                                context,
-                                                listen: false,
-                                              ),
-                                            ).length -
-                                            1
-                                    ? 'Gerar'
-                                    : 'Continuar',
                               ),
                             ),
+                            if (MediaQuery.of(context).size.width > 600)
+                              SizedBox(width: 400, child: _buildSidebar(context)),
                           ],
                         ),
+                        if (MediaQuery.of(context).size.width <= 600 && _isSummaryVisible)
+                          Positioned.fill(child: Container(color: Theme.of(context).scaffoldBackgroundColor, child: _buildSidebar(context))),
+                        if (MediaQuery.of(context).size.width <= 600 && !_isSummaryVisible)
+                          Positioned(
+                            bottom: 20,
+                            right: 20,
+                            child: FloatingActionButton(
+                              onPressed: () => setState(() => _isSummaryVisible = true),
+                              child: const Icon(Icons.analytics),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (_currentStep > 0)
+                          TextButton(
+                            onPressed: () => setState(() => _currentStep--),
+                            child: const Text('Voltar'),
+                          ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => _advanceStep(workloadLevels, sessionLevels),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          ),
+                          icon: const Icon(Icons.arrow_forward),
+                          label: Text(_currentStep < 2 ? 'Continuar' : 'Gerar Ciclo'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildSidebar(BuildContext context) {
+    final distribution = _calculateProjectedDistribution();
+    return Container(
+      width: MediaQuery.of(context).size.width > 600 ? 400 : double.infinity,
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        border: MediaQuery.of(context).size.width > 600 ? Border(left: BorderSide(color: Colors.grey.shade300)) : null,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Resumo', style: Theme.of(context).textTheme.titleLarge),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _isSummaryVisible = false)),
+              ],
+            ),
+            const Divider(),
+            distribution.isNotEmpty ? SizedBox(
+              height: 350,
+              child: PieChart(
+                PieChartData(
+                  sectionsSpace: 0,
+                  centerSpaceRadius: 60,
+                  sections: distribution.map((d) => PieChartSectionData(
+                    value: d['minutes'] as double,
+                    color: d['color'] as Color,
+                    title: d['id'] == 'placeholder' ? "" : "${(d['minutes'] as double? ?? 0.0).toStringAsFixed(0)}m",
+                    radius: 80,
+                    titlePositionPercentageOffset: 0.55,
+                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white),
+                  )).toList(),
+                ),
+              ),
+            ) : const SizedBox.shrink(),
+            const SizedBox(height: 16),
+            ExpansionTile(
+              title: Text("Resumo das Matérias (${_selectedSubjects.length})", style: const TextStyle(fontWeight: FontWeight.bold)),
+              childrenPadding: EdgeInsets.zero,
+              tilePadding: EdgeInsets.zero,
+              children: [
+                 Row(
+                   mainAxisAlignment: MainAxisAlignment.end,
+                   children: [
+                      IconButton(
+                        icon: Icon(_isEditingSubjects ? Icons.check : Icons.edit),
+                        onPressed: () => setState(() => _isEditingSubjects = !_isEditingSubjects),
                       ),
-                    ]),
+                   ],
+                 ),
+                 ...distribution.map((d) {
+                    final subjectId = d['id'];
+                    if (subjectId == 'placeholder') return const SizedBox.shrink();
+                    
+                    final subject = Provider.of<AllSubjectsProvider>(context, listen: false).subjects.firstWhere((s) => s.id == subjectId);
+                    final importance = _subjectSettings[subjectId]?['importance']?.toInt() ?? 3;
+                    final knowledge = _subjectSettings[subjectId]?['knowledge']?.toInt() ?? 3;
+                    final color = d['color'];
+                    return Card(
+                      color: color.withOpacity(0.1),
+                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
+                      child: ListTile(
+                        visualDensity: VisualDensity.compact,
+                        leading: CircleAvatar(backgroundColor: color, radius: 8),
+                        title: Text(subject.subject, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        subtitle: Text("Imp. $importance, Conf. $knowledge", style: const TextStyle(fontSize: 11)),
+                        trailing: _isEditingSubjects ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(icon: const Icon(Icons.copy, size: 16), onPressed: () => setState(() {
+                                final newId = "${subjectId}_dup_${DateTime.now().millisecondsSinceEpoch}";
+                                _selectedSubjects.add(newId);
+                                _subjectSettings[newId] = Map.from(_subjectSettings[subjectId]!);
+                            })),
+                            IconButton(icon: const Icon(Icons.delete, size: 16, color: Colors.red), onPressed: () => setState(() => _selectedSubjects.remove(subjectId))),
+                          ],
+                        ) : null,
+                      ),
+                    );
+                }).toList(),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text("Carga: ${_selectedWorkloadLevel ?? 'N/A'}"),
+            Text("Questões: ${_selectedQuestionsLevel ?? 'N/A'}"),
+            Text("Sessões: ${_selectedSessionLevel ?? 'N/A'}"),
+          ],
+        ),
       ),
     );
   }
@@ -1686,7 +1995,8 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
     );
   }
 
-  void _saveGuidedCycle(AllSubjectsProvider allSubjectsProvider) {
+  void _saveGuidedCycle(AllSubjectsProvider allSubjectsProvider, List<Map<String, dynamic>> workloadLevels, List<Map<String, dynamic>> sessionLevels) {
+    final mentoriaProvider = Provider.of<MentoriaProvider>(context, listen: false);
     if ((_selectedWorkloadLevel == null ||
             (_selectedWorkloadLevel == 'Manual' &&
                 _manualWorkloadController.text.isEmpty)) ||
@@ -1754,6 +2064,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
       subjectSettings: _subjectSettings,
       subjects: selectedSubjectsData,
       weeklyQuestionsGoal: questionsValue.toString(),
+      shuffle: mentoriaProvider.shuffleCycle,
     );
     Navigator.of(context).pop();
   }

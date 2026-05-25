@@ -95,48 +95,31 @@ class _TopicWeightsModalState extends State<TopicWeightsModal> {
         topic.is_grouping_topic == true ||
         (topic.sub_topics != null && topic.sub_topics!.isNotEmpty);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(left: level * 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isGroupingTopic ? '* ${topic.topic_text}' : topic.topic_text,
-                style: TextStyle(
-                  fontWeight: isGroupingTopic
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                ),
-              ),
-              if (!isGroupingTopic && topic.id != null)
-                Row(
-                  children: [
-                    Expanded(
-                      child: Slider(
-                        value: (_topicWeights[topic.id!] ?? 3).toDouble(),
-                        min: 1,
-                        max: 5,
-                        divisions: 4,
-                        label: (_topicWeights[topic.id!] ?? 3).toString(),
-                        onChanged: (value) {
-                          _handleWeightChange(topic.id!, value.round());
-                        },
-                      ),
-                    ),
-                    Text((_topicWeights[topic.id!] ?? 3).toString()),
-                  ],
-                ),
-            ],
-          ),
+    if (isGroupingTopic) {
+      return ExpansionTile(
+        title: Text(
+          topic.topic_text,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        if (topic.sub_topics != null)
-          ...topic.sub_topics!.map(
-            (subTopic) => _buildTopicRow(subTopic, level + 1),
-          ),
-      ],
-    );
+        initiallyExpanded: false, // Default collapsed
+        childrenPadding: const EdgeInsets.only(left: 16.0),
+        children: topic.sub_topics?.map((subTopic) => _buildTopicRow(subTopic, level + 1)).toList() ?? [],
+      );
+    } else {
+      return ListTile(
+        title: Text(topic.topic_text),
+        subtitle: topic.id != null
+            ? Slider(
+                value: (_topicWeights[topic.id!] ?? 3).toDouble(),
+                min: 1,
+                max: 5,
+                divisions: 4,
+                label: (_topicWeights[topic.id!] ?? 3).toString(),
+                onChanged: (value) => _handleWeightChange(topic.id!, value.round()),
+              )
+            : null,
+        trailing: topic.id != null ? Text((_topicWeights[topic.id!] ?? 3).toString()) : null,
+      );
+    }
   }
 }

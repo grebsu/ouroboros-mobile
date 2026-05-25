@@ -57,10 +57,10 @@ class HistoryProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchHistory() async {
+  Future<void> fetchHistory({bool showLoading = true}) async {
     if (_authProvider?.currentUser == null) return;
     print('HistoryProvider: Iniciando fetchHistory...');
-    _setLoading(true);
+    if (showLoading) _setLoading(true);
     _allStudyRecords = await _dbService.readStudyRecordsForUser(
       _authProvider!.currentUser!.name,
     );
@@ -157,7 +157,8 @@ class HistoryProvider with ChangeNotifier {
     }).toList();
     print('HistoryProvider: Registros filtrados: ${_records.length}');
 
-    _setLoading(false);
+    if (showLoading) _setLoading(false);
+    if (!showLoading) notifyListeners(); // Se for silencioso, ainda precisamos avisar que os dados mudaram
     print('HistoryProvider: fetchHistory concluído.');
   }
 
@@ -215,7 +216,7 @@ class HistoryProvider with ChangeNotifier {
     required String planId,
   }) async {
     if (_authProvider?.currentUser == null) return;
-    _setLoading(true);
+    // Removido _setLoading(true) para ser instantâneo
     try {
       final allRecords = await _dbService.readStudyRecordsForUser(
         _authProvider!.currentUser!.name,
@@ -278,7 +279,7 @@ class HistoryProvider with ChangeNotifier {
         await _dbService.createStudyRecord(newRecord);
       }
     } finally {
-      await fetchHistory();
+      await fetchHistory(showLoading: false); // Refresh silencioso
     }
   }
 

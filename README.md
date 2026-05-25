@@ -42,18 +42,22 @@ Baixe a versão estável mais recente diretamente:
 **Requisitos:** Android 5.0 (API 21) ou superior. Recomenda-se Android 10+ para melhor desempenho do sistema de arquivos criptografado.
 
 ### 🐧 Linux (64-bit)
+Baixe a versão mais recente em formato `.deb` ou binário comprimido:
 
-#### Pacote .deb (Ubuntu/Debian/Zorin/Mint)
-A versão v1.1.2+ já inclui todas as dependências nativas (SQLCipher). Basta baixar e instalar:
+[![Download Linux](https://img.shields.io/badge/Download-Linux-blue?style=for-the-badge&logo=linux)](https://github.com/grebsu/ouroboros-mobile/releases/latest)
+
+**Instalação (.deb):**
 ```bash
-sudo dpkg -i ouroboros-mobile_1.1.2_amd64.deb
-sudo apt install -f  # Apenas se houver dependências de sistema faltando
+sudo dpkg -i ouroboros-mobile_*.deb
+sudo apt install -f
 ```
 
-#### Flatpak (Flathub)
-```bash
-flatpak install flathub com.ouroboros.mobile
-```
+### 🪟 Windows (64-bit)
+Suporte oficial em fase beta. Baixe o instalador ou executável portátil:
+
+[![Download Windows](https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge&logo=windows)](https://github.com/grebsu/ouroboros-mobile/releases/latest)
+
+**Requisitos:** Windows 10 ou superior (64-bit).
 
 ---
 
@@ -85,14 +89,12 @@ flatpak install flathub com.ouroboros.mobile
 - [x] Sincronização local via Wi-Fi (mDNS)
 - [x] Banco de dados criptografado com SQLCipher (AES-256)
 - [x] APK Estável para Android
-- [x] Pacote .deb Profissional para Linux
-- [x] Suporte Multiplataforma Unificado
+- [x] Suporte Multiplataforma (Linux, Android, Windows)
 
 ### 🚧 Próximas Melhorias
 - [ ] Ajustar criação de disciplina personalizada
 - [ ] Automatizar seleção randômica de cores para disciplinas
 - [ ] Implementar tópicos colapsáveis em modals de registro
-- [ ] Versão oficial para Windows (Port do sistema FFI)
 
 ### 🔜 Futuro
 - [ ] Sincronização via nuvem (opcional)

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
-import 'package:ouroboros_mobile/screens/mentoria_screen.dart';
+import 'package:ouroboros_mobile/providers/mentoria_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
@@ -372,6 +372,7 @@ class PlanningProvider with ChangeNotifier {
     required Map<String, Map<String, double>> subjectSettings,
     required List<Subject> subjects,
     required String weeklyQuestionsGoal,
+    required bool shuffle,
   }) {
     resetStudyCycle();
 
@@ -421,7 +422,9 @@ class PlanningProvider with ChangeNotifier {
       }
     }
 
-    generatedCycle.shuffle();
+    if (shuffle) {
+      generatedCycle.shuffle();
+    }
     _studyCycle = generatedCycle;
     _currentCycleId = const Uuid().v4();
 
@@ -435,6 +438,26 @@ class PlanningProvider with ChangeNotifier {
     _studyCycle = manualCycle;
     _currentCycleId = const Uuid().v4();
 
+    saveData();
+    notifyListeners();
+  }
+
+  void shuffleUncompletedSessions() {
+    if (_studyCycle == null) return;
+
+    final completedSessions = _studyCycle!.where((session) {
+      final progress = _sessionProgressMap[session.id] ?? 0;
+      return progress >= session.duration;
+    }).toList();
+    
+    final uncompletedSessions = _studyCycle!.where((session) {
+      final progress = _sessionProgressMap[session.id] ?? 0;
+      return progress < session.duration;
+    }).toList();
+    
+    uncompletedSessions.shuffle();
+    
+    _studyCycle = [...completedSessions, ...uncompletedSessions];
     saveData();
     notifyListeners();
   }
@@ -480,7 +503,7 @@ class PlanningProvider with ChangeNotifier {
   }) {
     if (_studyCycle == null || _studyCycle!.isEmpty) {
       return {
-        'recommendedTopic': null,
+        'recommendedTopics': <TopicWithTime>[],
         'justification': 'Nenhum ciclo de estudos ativo.',
         'nextSession': null,
       };
@@ -501,7 +524,7 @@ class PlanningProvider with ChangeNotifier {
 
     if (nextSession == null) {
       return {
-        'recommendedTopic': null,
+        'recommendedTopics': <TopicWithTime>[],
         'justification': 'Parabéns! Você concluiu todas as sessões deste ciclo.',
         'nextSession': null,
       };
@@ -512,7 +535,7 @@ class PlanningProvider with ChangeNotifier {
     );
     if (subject == null || subject.topics.isEmpty) {
       return {
-        'recommendedTopic': null,
+        'recommendedTopics': <TopicWithTime>[],
         'justification': 'Seguindo a ordem do seu ciclo de estudos.',
         'nextSession': nextSession,
       };
@@ -523,7 +546,7 @@ class PlanningProvider with ChangeNotifier {
         .toList();
     if (allTopics.isEmpty) {
       return {
-        'recommendedTopic': null,
+        'recommendedTopics': <TopicWithTime>[],
         'justification': 'Não há tópicos cadastrados para esta matéria.',
         'nextSession': nextSession,
       };
@@ -538,16 +561,24 @@ class PlanningProvider with ChangeNotifier {
         );
       });
 
+      final recommendedTopics = <TopicWithTime>[];
+      if (firstUnstudiedTopic != null) {
+        recommendedTopics.add(TopicWithTime(
+          topic: firstUnstudiedTopic,
+          allocatedTimeSeconds: nextSession.duration * 60, // Aloca todo o tempo para o primeiro tópico (convertido para segundos)
+          justification: 'Recomendação sequencial ativada.',
+        ));
+      }
+
       return {
-        'recommendedTopic': firstUnstudiedTopic ?? allTopics.first,
+        'recommendedTopics': recommendedTopics,
         'justification': 'Recomendação sequencial ativada.',
         'nextSession': nextSession,
       };
     }
 
-    Topic? bestTopic;
-    double maxScore = -1.0;
     final now = DateTime.now();
+    final Map<Topic, double> topicScores = {};
 
     for (var topic in allTopics) {
       final List<TopicProgress> topicProgresses = studyRecords
@@ -701,23 +732,71 @@ class PlanningProvider with ChangeNotifier {
         criteriaCount++;
       }
 
-      double finalScore = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+      topicScores[topic] = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+    }
 
-      if (finalScore > maxScore) {
-        maxScore = finalScore;
-        bestTopic = topic;
+    // Sort topics by score in descending order
+    final sortedTopics = topicScores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    List<TopicWithTime> recommendedTopics = [];
+    String justification = 'Sugerido com base nos seus critérios de mentoria.';
+
+    if (mentoriaProvider?.multiTopicRecommendationEnabled == true &&
+        mentoriaProvider?.maxTopicsPerSession != null &&
+        mentoriaProvider!.maxTopicsPerSession > 1) {
+      final int maxTopics = mentoriaProvider!.maxTopicsPerSession;
+      final int totalSessionDurationSeconds = nextSession.duration * 60;
+      final String timeAllocationStrategy = mentoriaProvider?.timeAllocationStrategy ?? 'proportional';
+
+      final selectedTopics = sortedTopics.take(maxTopics).toList();
+      double totalSelectedScore = selectedTopics.fold(0.0, (sum, entry) => sum + entry.value);
+
+      int remainingTimeSeconds = totalSessionDurationSeconds;
+
+      for (int i = 0; i < selectedTopics.length; i++) {
+        final topic = selectedTopics[i].key;
+        final score = selectedTopics[i].value;
+        int allocatedTimeSeconds = 0;
+
+        if (timeAllocationStrategy == 'proportional' && totalSelectedScore > 0) {
+          allocatedTimeSeconds = (totalSessionDurationSeconds * (score / totalSelectedScore)).round();
+        } else {
+          // Equal split or if totalSelectedScore is 0
+          allocatedTimeSeconds = (totalSessionDurationSeconds / selectedTopics.length).round();
+        }
+
+        // Adjust for remaining time in the last topic to ensure total matches
+        if (i == selectedTopics.length - 1) {
+          allocatedTimeSeconds = remainingTimeSeconds;
+        } else if (allocatedTimeSeconds > remainingTimeSeconds) {
+          allocatedTimeSeconds = remainingTimeSeconds;
+        }
+
+        recommendedTopics.add(TopicWithTime(
+          topic: topic,
+          allocatedTimeSeconds: allocatedTimeSeconds,
+          justification: justification,
+        ));
+        remainingTimeSeconds -= allocatedTimeSeconds;
+      }
+    } else {
+      // Single topic recommendation
+      Topic? bestTopic = sortedTopics.isNotEmpty ? sortedTopics.first.key : null;
+      if (bestTopic != null) {
+        recommendedTopics.add(TopicWithTime(
+          topic: bestTopic,
+          allocatedTimeSeconds: nextSession.duration * 60,
+          justification: justification,
+        ));
       }
     }
 
-    String justification = 'Sugerido com base nos seus critérios de mentoria.';
-    if (bestTopic == null && allTopics.isNotEmpty) {
-      bestTopic = allTopics.first;
-    }
-
     return {
-      'recommendedTopic': bestTopic,
+      'recommendedTopics': recommendedTopics,
       'justification': justification,
       'nextSession': nextSession,
     };
+
   }
 }

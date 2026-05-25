@@ -37,6 +37,7 @@ class Topic {
   final int? userWeight;
   bool isSelected;
   bool isEditing;
+  bool isExpanded; // Novo: controla se o tópico está expandido na UI
   final int? lastModified;
 
   Topic({
@@ -50,6 +51,7 @@ class Topic {
     this.userWeight,
     this.isSelected = true,
     this.isEditing = false,
+    this.isExpanded = false,
     this.lastModified,
   });
 
@@ -135,6 +137,7 @@ class Topic {
     int? userWeight,
     bool? isSelected,
     bool? isEditing,
+    bool? isExpanded,
     int? lastModified,
   }) {
     return Topic(
@@ -148,6 +151,7 @@ class Topic {
       userWeight: userWeight ?? this.userWeight,
       isSelected: isSelected ?? this.isSelected,
       isEditing: isEditing ?? this.isEditing,
+      isExpanded: isExpanded ?? this.isExpanded,
       lastModified: lastModified ?? this.lastModified,
     );
   }
@@ -163,6 +167,7 @@ class TopicProgress {
   final String? notes;
   final bool isTheoryFinished;
   final int? userWeight;
+  final int studyTime; // NOVO: Tempo de estudo em milissegundos
 
   TopicProgress({
     required this.topicId,
@@ -173,6 +178,7 @@ class TopicProgress {
     this.notes,
     this.isTheoryFinished = false,
     this.userWeight,
+    this.studyTime = 0, // Default 0
   });
 
   factory TopicProgress.fromMap(Map<String, dynamic> map) {
@@ -193,6 +199,7 @@ class TopicProgress {
       notes: map['notes'] as String?,
       isTheoryFinished: map['isTheoryFinished'] as bool? ?? false,
       userWeight: map['userWeight'] as int?,
+      studyTime: map['studyTime'] as int? ?? 0,
     );
   }
 
@@ -206,6 +213,7 @@ class TopicProgress {
       'notes': notes,
       'isTheoryFinished': isTheoryFinished,
       'userWeight': userWeight,
+      'studyTime': studyTime,
     };
   }
 
@@ -218,6 +226,7 @@ class TopicProgress {
     String? notes,
     bool? isTheoryFinished,
     int? userWeight,
+    int? studyTime,
   }) {
     return TopicProgress(
       topicId: topicId ?? this.topicId,
@@ -228,6 +237,7 @@ class TopicProgress {
       notes: notes ?? this.notes,
       isTheoryFinished: isTheoryFinished ?? this.isTheoryFinished,
       userWeight: userWeight ?? this.userWeight,
+      studyTime: studyTime ?? this.studyTime,
     );
   }
 }
@@ -947,6 +957,18 @@ class User {
 }
 
 // Helper para agregar dados de TopicProgress
+class TopicWithTime {
+  final Topic topic;
+  final int allocatedTimeSeconds;
+  final String justification;
+
+  TopicWithTime({
+    required this.topic,
+    required this.allocatedTimeSeconds,
+    required this.justification,
+  });
+}
+
 class AggregatedTopicProgress {
   final int totalQuestions;
   final int correctQuestions;

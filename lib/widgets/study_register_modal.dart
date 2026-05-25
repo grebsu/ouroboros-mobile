@@ -9,6 +9,7 @@ import 'package:ouroboros_mobile/providers/active_plan_provider.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
 
 import 'package:ouroboros_mobile/providers/planning_provider.dart';
+import 'package:ouroboros_mobile/widgets/topic_selection_sheet.dart';
 
 class StudyRegisterModal extends StatefulWidget {
   final String planId;
@@ -69,6 +70,7 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
   late TextEditingController _activeTpIncorrectQuestionsController;
   late TextEditingController _activeTpStartPageController;
   late TextEditingController _activeTpEndPageController;
+  late TextEditingController _activeTpTimeController; // NOVO
   late List<Map<String, int>> _activeTpPages;
   late List<Map<String, String>> _activeTpVideos;
   // NOVO: Controladores para os campos de vídeo
@@ -89,6 +91,7 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
     _activeTpIncorrectQuestionsController = TextEditingController(text: '0');
     _activeTpStartPageController = TextEditingController(text: '0');
     _activeTpEndPageController = TextEditingController(text: '0');
+    _activeTpTimeController = TextEditingController(text: '00:00:00'); // NOVO
     _activeTpPages = [];
     _activeTpVideos = [
       {'title': '', 'start': '00:00:00', 'end': '00:00:00'},
@@ -156,6 +159,7 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
             topicText: widget.topic!.topic_text,
             isTheoryFinished: false, // Default
             userWeight: widget.topic!.userWeight,
+            studyTime: widget.initialTime ?? 0, // NOVO
           ),
         );
         // Carregar os dados do TopicProgress recém-criado
@@ -173,6 +177,7 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
     _activeTpIncorrectQuestionsController.dispose();
     _activeTpStartPageController.dispose();
     _activeTpEndPageController.dispose();
+    _activeTpTimeController.dispose(); // NOVO
 
     // NOVO: Descarte dos controladores de vídeo
     for (var controller in _activeTpVideoTitleControllers) {
@@ -425,7 +430,7 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
           maxChildSize: 0.9,
           minChildSize: 0.4,
           builder: (BuildContext context, ScrollController scrollController) {
-            return _TopicSelectionSheet(
+            return TopicSelectionSheet(
               topics: _allAvailableTopics, // Passa todos os tópicos disponíveis
               scrollController: scrollController,
               onTopicsSelected: (topics) {
@@ -524,6 +529,8 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
         int.tryParse(_activeTpIncorrectQuestionsController.text) ?? 0;
     final totalQuestions = correct + incorrect;
 
+    final tpTime = _parseTime(_activeTpTimeController.text); // NOVO
+
     // Constrói a lista de páginas para salvar
     List<Map<String, int>> pagesToSave = [];
     final startPage = int.tryParse(_activeTpStartPageController.text) ?? 0;
@@ -560,6 +567,7 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
       videos: videosToSave, // Salva a lista filtrada
       notes: _notesController.text.isEmpty ? null : _notesController.text,
       isTheoryFinished: _activeTpIsTeoriaFinalizada,
+      studyTime: tpTime, // NOVO
     );
   }
 
@@ -751,90 +759,96 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
     ThemeData theme,
     bool isDesktop,
   ) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.initialRecord == null
-              ? 'Adicionar Registro'
-              : 'Editar Registro',
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (widget.justification != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary.withOpacity(0.1),
-                    border: Border(
-                      left: BorderSide(
-                        width: 4,
-                        color: theme.colorScheme.secondary,
-                      ),
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Sugestão do Algoritmo',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(widget.justification!),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              isDesktop
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _buildDateField(theme, isDesktop)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildContentSelectors(theme, isDesktop),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        _buildDateField(theme, isDesktop),
-                        const SizedBox(height: 12),
-                        _buildContentSelectors(theme, isDesktop),
-                      ],
-                    ),
-              const SizedBox(height: 12),
-              _buildTimeAndTopicSelectors(theme, isDesktop),
-              const SizedBox(height: 16),
-              // NOVO: Seletor de TopicProgress e campos de progresso associados
-              _buildTopicProgressSelector(theme),
-              _buildProgressFields(theme, isDesktop),
-              _buildVideosFields(theme),
-              const SizedBox(height: 16),
-              _buildCheckboxes(),
-              if (_isReviewSchedulingEnabled) _buildReviewPeriods(),
-              const SizedBox(height: 16),
-              _buildNotesField(theme),
-            ],
+    return Material(
+      color: theme.scaffoldBackgroundColor,
+      child: Column(
+        children: [
+          AppBar(
+            title: Text(
+              widget.initialRecord == null
+                  ? 'Adicionar Registro'
+                  : 'Editar Registro',
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
-        ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (widget.justification != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondary.withOpacity(0.1),
+                          border: Border(
+                            left: BorderSide(
+                              width: 4,
+                              color: theme.colorScheme.secondary,
+                            ),
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Sugestão do Algoritmo',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(widget.justification!),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    isDesktop
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildDateField(theme, isDesktop)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildContentSelectors(theme, isDesktop),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            children: [
+                              _buildDateField(theme, isDesktop),
+                              const SizedBox(height: 12),
+                              _buildContentSelectors(theme, isDesktop),
+                            ],
+                          ),
+                    const SizedBox(height: 12),
+                    _buildTimeAndTopicSelectors(theme, isDesktop),
+                    const SizedBox(height: 16),
+                    _buildTopicProgressSelector(theme),
+                    _buildProgressFields(theme, isDesktop),
+                    _buildVideosFields(theme),
+                    const SizedBox(height: 16),
+                    _buildCheckboxes(),
+                    if (_isReviewSchedulingEnabled) _buildReviewPeriods(),
+                    const SizedBox(height: 16),
+                    _buildNotesField(theme),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _buildBottomBar(context),
+        ],
       ),
-      bottomSheet: _buildBottomBar(context),
     );
   }
 
@@ -1340,6 +1354,7 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
           : activeTp.videos,
     );
     _activeTpIsTeoriaFinalizada = activeTp.isTheoryFinished;
+    _activeTpTimeController.text = _formatTime(activeTp.studyTime); // NOVO
     _notesController.text = activeTp.notes ?? '';
 
     // NOVO: Gerenciamento dos controladores de vídeo
@@ -1377,9 +1392,42 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
   Widget _buildProgressFields(ThemeData theme, bool isDesktop) {
     return Column(
       children: [
+        _buildRelativeTimeField(theme),
+        const SizedBox(height: 16),
         _buildQuestionsSection(theme),
         const SizedBox(height: 16),
         _buildPagesSection(theme),
+      ],
+    );
+  }
+
+  Widget _buildRelativeTimeField(ThemeData theme) {
+    if (_currentTopicsProgress.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        const Text("Tempo no Tópico", style: TextStyle(fontSize: 16)),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _activeTpTimeController,
+          decoration: InputDecoration(
+            labelText: 'Tempo Relativo (HH:MM:SS)',
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: theme.colorScheme.onSurface),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.teal, width: 2.0),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 16,
+            ),
+          ),
+          keyboardType: TextInputType.datetime,
+          textAlign: TextAlign.center,
+          onChanged: (v) => _updateActiveTopicProgressFromControllers(),
+          style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+        ),
       ],
     );
   }
@@ -2083,212 +2131,5 @@ class _StudyRegisterModalState extends State<StudyRegisterModal> {
       }
     }
     return null;
-  }
-} // Fim da classe _StudyRegisterModalState
-
-// Novo Widget para renderizar a árvore de tópicos
-class _TopicTreeWidget extends StatelessWidget {
-  final List<Topic> topics;
-  final int level;
-  final ValueChanged<Topic> onToggleTopicSelection; // Alterado
-  final Set<Topic> selectedTopics; // Alterado
-
-  const _TopicTreeWidget({
-    required this.topics,
-    required this.level,
-    required this.onToggleTopicSelection, // Alterado
-    required this.selectedTopics, // Alterado
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    List<Widget> items = [];
-    for (var topic in topics) {
-      final isGrouping =
-          (topic.sub_topics?.isNotEmpty ?? false) ||
-          (topic.is_grouping_topic ?? false);
-
-      if (isGrouping) {
-        items.add(
-          Padding(
-            padding: EdgeInsets.only(left: level * 16.0),
-            child: ExpansionTile(
-              leading: const Icon(Icons.folder, color: Colors.teal),
-              title: Text(
-                topic.topic_text,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              children: [
-                _TopicTreeWidget(
-                  topics: topic.sub_topics ?? [],
-                  level: level + 1,
-                  onToggleTopicSelection: onToggleTopicSelection, // Ajustado
-                  selectedTopics: selectedTopics, // Ajustado
-                ),
-              ],
-              tilePadding: EdgeInsets.zero,
-              expandedCrossAxisAlignment: CrossAxisAlignment.start,
-              iconColor: Colors.teal,
-              collapsedIconColor: Colors.teal,
-            ),
-          ),
-        );
-      } else {
-        items.add(
-          Padding(
-            padding: EdgeInsets.only(
-              left: level * 16.0 + 4.0,
-              right: 4.0,
-              top: 2.0,
-              bottom: 2.0,
-            ),
-            child: ListTile(
-              leading: Checkbox(
-                value: selectedTopics.contains(topic), // Ajustado
-                onChanged: (bool? value) {
-                  onToggleTopicSelection(topic); // Ajustado: apenas alterna
-                },
-                activeColor: Colors.teal,
-              ),
-              title: Text(
-                topic.topic_text,
-                style: TextStyle(color: theme.colorScheme.onSurface),
-              ),
-              onTap: () =>
-                  onToggleTopicSelection(topic), // Ajustado: apenas alterna
-              selected: selectedTopics.contains(topic), // Ajustado
-              selectedTileColor: Colors.teal.withOpacity(0.1),
-            ),
-          ),
-        );
-      }
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: items,
-    );
-  }
-}
-
-// Nova classe para o BottomSheet de seleção de tópico
-class _TopicSelectionSheet extends StatefulWidget {
-  final List<Topic> topics;
-  final ScrollController scrollController;
-  final ValueChanged<List<Topic>> onTopicsSelected; // Alterado para List<Topic>
-  final List<String> initialSelectedTopicIds; // Alterado para lista de IDs
-
-  const _TopicSelectionSheet({
-    required this.topics,
-    required this.scrollController,
-    required this.onTopicsSelected,
-    this.initialSelectedTopicIds = const [], // Default para lista vazia
-  });
-
-  @override
-  State<_TopicSelectionSheet> createState() => _TopicSelectionSheetState();
-}
-
-class _TopicSelectionSheetState extends State<_TopicSelectionSheet> {
-  final Set<Topic> _selectedTopics = {}; // Set para multi-seleção
-
-  @override
-  void initState() {
-    super.initState();
-    // Inicializa o Set com os IDs dos tópicos pré-selecionados
-    for (String id in widget.initialSelectedTopicIds) {
-      final topic = _findTopicById(widget.topics, id);
-      if (topic != null) {
-        _selectedTopics.add(topic);
-      }
-    }
-  }
-
-  // Função auxiliar para encontrar um tópico pelo ID em uma lista hierárquica
-  Topic? _findTopicById(List<Topic> topics, String id) {
-    for (var topic in topics) {
-      if (topic.id.toString() == id) {
-        // Comparar como String
-        return topic;
-      }
-      if (topic.sub_topics != null) {
-        final found = _findTopicById(topic.sub_topics!, id);
-        if (found != null) {
-          return found;
-        }
-      }
-    }
-    return null;
-  }
-
-  void _toggleTopicSelection(Topic topic) {
-    setState(() {
-      if (_selectedTopics.contains(topic)) {
-        _selectedTopics.remove(topic);
-      } else {
-        _selectedTopics.add(topic);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Selecione os Tópicos',
-          style: TextStyle(color: theme.colorScheme.onSurface),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              widget.onTopicsSelected(
-                _selectedTopics.toList(),
-              ); // Retorna a lista de tópicos selecionados
-            },
-            child: Text(
-              'Confirmar (${_selectedTopics.length})',
-              style: const TextStyle(
-                color: Colors.teal,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: ScrollbarTheme(
-        data: ScrollbarThemeData(
-          thumbColor: MaterialStateProperty.all(Colors.teal),
-          radius: const Radius.circular(10),
-          thickness: MaterialStateProperty.all(8),
-        ),
-        child: Scrollbar(
-          thumbVisibility: true,
-          controller: widget.scrollController,
-          child: ListView(
-            controller: widget.scrollController,
-            padding: const EdgeInsets.only(right: 16.0),
-            children: [
-              _TopicTreeWidget(
-                topics: widget.topics,
-                level: 0,
-                onToggleTopicSelection:
-                    _toggleTopicSelection, // Passa o callback de toggle
-                selectedTopics:
-                    _selectedTopics, // Passa o Set de tópicos selecionados
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

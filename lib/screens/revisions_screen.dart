@@ -438,6 +438,22 @@ class _ReviewRecordCard extends StatelessWidget {
     return null;
   }
 
+  // Função auxiliar para encontrar um Topic por texto em uma lista hierárquica
+  Topic? _findTopicByText(List<Topic> topics, String text) {
+    for (var topic in topics) {
+      if (topic.topic_text == text) {
+        return topic;
+      }
+      if (topic.sub_topics != null && topic.sub_topics!.isNotEmpty) {
+        final found = _findTopicByText(topic.sub_topics!, text);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final studyRecord = studyRecords.firstWhere(
@@ -836,20 +852,48 @@ class _ReviewRecordCard extends StatelessWidget {
                             .firstWhereOrNull(
                               (s) => s.id == studyRecord.subject_id,
                             );
-                        // Para o tópico, vamos usar o primeiro topicProgress para fins de contexto no cronômetro
-                        final topicForStopwatch =
-                            subject != null &&
-                                studyRecord.topicsProgress.isNotEmpty
-                            ? _findTopicInSubject(
-                                subject.topics,
-                                studyRecord.topicsProgress.first.topicId,
-                              )
-                            : null;
+
+                        final List<TopicWithTime> recommendedTopics = [];
+                        if (subject != null) {
+                          // Tenta encontrar os tópicos reais baseados nos nomes salvos na revisão
+                          for (var topicText in reviewRecord.topics) {
+                            final topic = _findTopicByText(subject.topics, topicText);
+                            if (topic != null) {
+                              recommendedTopics.add(
+                                TopicWithTime(
+                                  topic: topic,
+                                  allocatedTimeSeconds: 3600,
+                                  justification: 'Revisão manual',
+                                ),
+                              );
+                            }
+                          }
+
+                          // Fallback: se não encontrou nada via texto, usa o que tem no studyRecord
+                          if (recommendedTopics.isEmpty) {
+                            for (var tp in studyRecord.topicsProgress) {
+                              final topic = _findTopicInSubject(subject.topics, tp.topicId);
+                              if (topic != null) {
+                                recommendedTopics.add(
+                                  TopicWithTime(
+                                    topic: topic,
+                                    allocatedTimeSeconds: 3600,
+                                    justification: 'Revisão manual',
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        }
 
                         stopwatchProvider.setContext(
                           planId: planId,
                           subjectId: studyRecord.subject_id,
-                          topic: topicForStopwatch,
+                          recommendedTopics: recommendedTopics,
+                          onSessionCompleteCallback: (planId) {
+                            // Lidar com o fim da sessão de revisão, se necessário.
+                            // Por enquanto, apenas observamos.
+                          },
                         );
 
                         final result = await showDialog<Map<String, dynamic>?>(
@@ -861,27 +905,40 @@ class _ReviewRecordCard extends StatelessWidget {
                           final int time = result['time'] as int;
                           final String? returnedSubjectId = result['subjectId'] as String?;
                           final Topic? returnedTopic = result['topic'] as Topic?;
+                          final List<TopicWithTime>? returnedTopicsWithTime = result['topics'] as List<TopicWithTime>?;
 
                           if (returnedSubjectId != null &&
-                              returnedTopic != null) {
+                              (returnedTopic != null || (returnedTopicsWithTime != null && returnedTopicsWithTime.isNotEmpty))) {
                             final authProvider = Provider.of<AuthProvider>(
                               context,
                               listen: false,
                             );
 
-                            final newTopicProgressForRecord = TopicProgress(
-                              topicId: returnedTopic.id.toString(),
-                              topicText: returnedTopic.topic_text,
-                              questions: {
-                                'total': 0,
-                                'correct': 0,
-                              }, // Zera para preenchimento manual
-                              pages: [],
-                              videos: [],
-                              notes: null,
-                              isTheoryFinished: false,
-                              userWeight: returnedTopic.userWeight,
-                            );
+                            final List<TopicProgress> topicsProgress = returnedTopicsWithTime != null && returnedTopicsWithTime.isNotEmpty
+                                ? returnedTopicsWithTime.map((t) => TopicProgress(
+                                    topicId: t.topic.id.toString(),
+                                    topicText: t.topic.topic_text,
+                                    questions: {'total': 0, 'correct': 0},
+                                    pages: [],
+                                    videos: [],
+                                    notes: null,
+                                    isTheoryFinished: false,
+                                    userWeight: t.topic.userWeight,
+                                    studyTime: t.allocatedTimeSeconds * 1000,
+                                  )).toList()
+                                : [
+                                    TopicProgress(
+                                      topicId: returnedTopic!.id.toString(),
+                                      topicText: returnedTopic.topic_text,
+                                      questions: {'total': 0, 'correct': 0},
+                                      pages: [],
+                                      videos: [],
+                                      notes: null,
+                                      isTheoryFinished: false,
+                                      userWeight: returnedTopic.userWeight,
+                                      studyTime: time,
+                                    )
+                                  ];
 
                             final newRecord = StudyRecord(
                               id: const Uuid().v4(),
@@ -893,9 +950,7 @@ class _ReviewRecordCard extends StatelessWidget {
                               subject_id: returnedSubjectId,
                               category: 'revisao',
                               study_time: time,
-                              topicsProgress: [
-                                newTopicProgressForRecord,
-                              ], // Um TopicProgress para o que foi estudado
+                              topicsProgress: topicsProgress, // NOVO: Múltiplos tópicos
                               review_periods: [],
                               count_in_planning: true,
                               lastModified:

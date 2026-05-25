@@ -107,39 +107,44 @@ class EditalScreen extends StatelessWidget {
         final overallStats = _computeOverallStats(computedSubjects);
 
         return Scaffold(
-          body: ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: [
-              _buildOverallProgress(
-                context,
-                overallStats.completed,
-                overallStats.total,
-                overallStats.progress,
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: ListView(
+                padding: const EdgeInsets.all(16.0),
+                children: [
+                  _buildOverallProgress(
+                    context,
+                    overallStats.completed,
+                    overallStats.total,
+                    overallStats.progress,
+                  ),
+                  const SizedBox(height: 24),
+                  ...computedSubjects
+                      .map(
+                        (subject) => _SubjectCard(
+                          subject: subject,
+                          onToggleCompletion: (subjectId, topicText, planId) {
+                            context.read<HistoryProvider>().toggleTopicCompletion(
+                              subjectId: subjectId,
+                              topicText: topicText,
+                              planId: planId,
+                            );
+                          },
+                          onRegisterStudy: (topic) {
+                            _showStudyRegisterModalForTopic(
+                              context,
+                              subject.originalSubject,
+                              topic,
+                              activePlanProvider,
+                            );
+                          },
+                        ),
+                      )
+                      .toList(),
+                ],
               ),
-              const SizedBox(height: 24),
-              ...computedSubjects
-                  .map(
-                    (subject) => _SubjectCard(
-                      subject: subject,
-                      onToggleCompletion: (subjectId, topicText, planId) {
-                        context.read<HistoryProvider>().toggleTopicCompletion(
-                          subjectId: subjectId,
-                          topicText: topicText,
-                          planId: planId,
-                        );
-                      },
-                      onRegisterStudy: (topic) {
-                        _showStudyRegisterModalForTopic(
-                          context,
-                          subject.originalSubject,
-                          topic,
-                          activePlanProvider,
-                        );
-                      },
-                    ),
-                  )
-                  .toList(),
-            ],
+            ),
           ),
         );
       },
@@ -375,6 +380,8 @@ class _SubjectCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
+        key: PageStorageKey(subject.originalSubject.id), // Persiste o estado de expansão
+        initiallyExpanded: false, // Garante que inicia colapsado
         leading: Container(width: 8, color: subjectColor),
         title: Text(
           subject.originalSubject.subject,
@@ -402,55 +409,44 @@ class _SubjectCard extends StatelessWidget {
             ],
           ),
         ),
-        children: [_buildTopicsTable(context)],
+        children: _buildTopicTree(context, subject.topics),
       ),
     );
   }
 
-  Widget _buildTopicsTable(BuildContext context) {
-    return DataTable(
-      columnSpacing: 2, // Reduced spacing
-      dataRowMinHeight: 40,
-      dataRowMaxHeight: double.infinity, // Allow rows to expand vertically
-      columns: const [
-        DataColumn(label: Text('')), // New column for checkbox
-        DataColumn(
-          label: Expanded(
-            child: Text(
-              'Tópico',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-        DataColumn(
-          label: Icon(Icons.check_circle, color: Colors.green),
-          tooltip: 'Corretas',
-        ),
-        DataColumn(
-          label: Icon(Icons.cancel, color: Colors.red),
-          tooltip: 'Erradas',
-        ),
-        DataColumn(
-          label: Icon(Icons.functions, color: Colors.blue),
-          tooltip: 'Total',
-        ),
-        DataColumn(
-          label: Text('%', style: TextStyle(fontWeight: FontWeight.bold)),
-          tooltip: 'Performance',
-        ),
-        DataColumn(
-          label: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
-      ],
-      rows: _buildTopicRows(context, subject.topics),
-    );
+  List<Widget> _buildTopicTree(BuildContext context, List<_ComputedTopic> topics) {
+    return topics.map((topic) => _TopicTile(
+      topic: topic,
+      subjectColor: Color(int.parse(subject.originalSubject.color.replaceFirst('#', '0xFF'))),
+      onToggleCompletion: (t) => onToggleCompletion(
+        t.originalTopic.subject_id!,
+        t.originalTopic.topic_text,
+        subject.originalSubject.plan_id,
+      ),
+      onRegisterStudy: (t) => onRegisterStudy(t),
+    )).toList();
   }
+}
 
-  List<DataRow> _buildTopicRows(
-    BuildContext context,
-    List<_ComputedTopic> topics,
-  ) {
-    List<DataRow> rows = [];
+class _TopicTile extends StatelessWidget {
+  final _ComputedTopic topic;
+  final Color subjectColor;
+  final Function(_ComputedTopic) onToggleCompletion;
+  final Function(_ComputedTopic) onRegisterStudy;
+
+  const _TopicTile({
+    required this.topic,
+    required this.subjectColor,
+    required this.onToggleCompletion,
+    required this.onRegisterStudy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasSubtopics = topic.isGroupingTopic;
+    final double leftPadding = 16.0 + (topic.level * 16.0);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bool isWideScreen = screenWidth > 700;
 
     Color getPerformanceColor(double percentage) {
       if (percentage >= 80) return Colors.green;
@@ -458,117 +454,110 @@ class _SubjectCard extends StatelessWidget {
       return Colors.red;
     }
 
-    for (var topic in topics) {
-      rows.add(
-        DataRow(
-          cells: [
-            DataCell(
-              // New DataCell for checkbox
-              !topic.isGroupingTopic
-                  ? Checkbox(
-                      value: topic.isCompleted,
-                      onChanged: (val) {
-                        onToggleCompletion(
-                          topic.originalTopic.subject_id!,
-                          topic.originalTopic.topic_text,
-                          subject.originalSubject.plan_id,
-                        );
-                      },
-                      activeColor:
-                          Colors.teal, // Adicionado para mudar a cor para teal
-                      materialTapTargetSize: MaterialTapTargetSize
-                          .shrinkWrap, // Make checkbox more compact
-                    )
-                  : const SizedBox.shrink(),
-            ),
-            DataCell(
-              Row(
-                children: [
-                  SizedBox(width: 20.0 * topic.level),
-                  if (topic.isGroupingTopic)
-                    const Icon(Icons.folder, color: Colors.teal, size: 18),
-                  if (topic.isGroupingTopic) const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      topic.originalTopic.topic_text,
-                      style: TextStyle(
-                        fontWeight: topic.isGroupingTopic
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                ],
+    Widget buildStatsRow() {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSmallStat(topic.correctQuestions.toString(), Colors.green, isWideScreen),
+          Text(' / ', style: TextStyle(fontSize: isWideScreen ? 12 : 10, color: Colors.grey)),
+          _buildSmallStat(topic.totalQuestions.toString(), Colors.blue, isWideScreen),
+          SizedBox(width: isWideScreen ? 16 : 8),
+          SizedBox(
+            width: isWideScreen ? 80 : 40,
+            height: isWideScreen ? 6 : 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: topic.performance / 100,
+                backgroundColor: Colors.grey[200],
+                color: getPerformanceColor(topic.performance),
               ),
             ),
-            DataCell(
-              Center(
-                child: Text(
-                  topic.correctQuestions.toString(),
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${topic.performance.toStringAsFixed(0)}%',
+            style: TextStyle(
+              fontSize: isWideScreen ? 13 : 10,
+              fontWeight: FontWeight.bold,
+              color: getPerformanceColor(topic.performance),
             ),
-            DataCell(
-              Center(
-                child: Text(
-                  (topic.totalQuestions - topic.correctQuestions).toString(),
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            DataCell(
-              Center(
-                child: Text(
-                  topic.totalQuestions.toString(),
-                  style: const TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            DataCell(
-              Row(
-                children: [
-                  SizedBox(
-                    width: 50, // Largura da barra de progresso
-                    child: LinearProgressIndicator(
-                      value: topic.performance / 100,
-                      backgroundColor: Colors.grey[300],
-                      color: getPerformanceColor(topic.performance),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text('${topic.performance.toStringAsFixed(0)}%'),
-                ],
-              ),
-            ),
-            DataCell(
-              Row(
-                children: [
-                  if (!topic.isGroupingTopic)
-                    IconButton(
-                      icon: const Icon(Icons.add_circle),
-                      onPressed: () => onRegisterStudy(topic),
-                      tooltip: 'Registrar Estudo',
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       );
-      if (topic.isGroupingTopic) {
-        rows.addAll(_buildTopicRows(context, topic.subTopics));
-      }
     }
-    return rows;
+
+    if (hasSubtopics) {
+      return ExpansionTile(
+        key: PageStorageKey(topic.originalTopic.id), // Persiste o estado do tópico
+        initiallyExpanded: false, // Garante que inicia colapsado
+        tilePadding: EdgeInsets.only(left: leftPadding, right: 8),
+        leading: Icon(Icons.folder_open, size: isWideScreen ? 24 : 20, color: Colors.teal),
+        title: Text(
+          topic.originalTopic.topic_text,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: isWideScreen ? 16 : 14,
+          ),
+        ),
+        trailing: buildStatsRow(),
+        children: topic.subTopics.map((sub) => _TopicTile(
+          topic: sub,
+          subjectColor: subjectColor,
+          onToggleCompletion: onToggleCompletion,
+          onRegisterStudy: onRegisterStudy,
+        )).toList(),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: leftPadding,
+        right: 8,
+        top: isWideScreen ? 8 : 4,
+        bottom: isWideScreen ? 8 : 4,
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: isWideScreen ? 28 : 24,
+            height: isWideScreen ? 28 : 24,
+            child: Checkbox(
+              value: topic.isCompleted,
+              onChanged: (_) => onToggleCompletion(topic),
+              activeColor: Colors.teal,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              topic.originalTopic.topic_text,
+              style: TextStyle(fontSize: isWideScreen ? 15 : 14),
+            ),
+          ),
+          buildStatsRow(),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(Icons.add_circle_outline, size: isWideScreen ? 24 : 20, color: Colors.teal),
+            onPressed: () => onRegisterStudy(topic),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: 'Registrar Estudo',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmallStat(String value, Color color, bool isWide) {
+    return Text(
+      value,
+      style: TextStyle(
+        fontSize: isWide ? 13 : 11,
+        fontWeight: FontWeight.bold,
+        color: color,
+      ),
+    );
   }
 }

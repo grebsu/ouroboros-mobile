@@ -236,7 +236,17 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
     stopwatchProvider.setContext(
       planId: widget.plan.id,
       subjectId: session.subjectId,
-      topic: topic,
+      recommendedTopics: [
+        TopicWithTime(
+          topic: topic ?? Topic(id: -1, subject_id: session.subjectId, topic_text: 'Tópico não encontrado', lastModified: DateTime.now().millisecondsSinceEpoch),
+          allocatedTimeSeconds: session.duration * 60,
+          justification: 'Estudo planejado',
+        )
+      ],
+      onSessionCompleteCallback: (planId) {
+        // Lógica para o que acontece após o fim da sessão de estudo planejada
+        // Por exemplo, registrar o estudo ou avançar o planejamento.
+      },
     );
 
     final result = await showDialog<Map<String, dynamic>?>(
@@ -250,6 +260,7 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
       final int time = result['time'] as int;
       final String? subjectId = result['subjectId'] as String?;
       final Topic? topic = result['topic'] as Topic?;
+      final List<TopicWithTime>? topicsWithTime = result['topics'] as List<TopicWithTime>?;
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final record = StudyRecord(
@@ -258,14 +269,25 @@ class _PlanDetailScreenContentState extends State<_PlanDetailScreenContent> {
         plan_id: widget.plan.id,
         date: DateTime.now().toIso8601String(),
         subject_id: subjectId!,
-        topicsProgress: topic != null
-            ? [
-                TopicProgress(
-                  topicId: topic.id.toString(),
-                  topicText: topic.topic_text,
-                ),
-              ]
-            : [],
+        topicsProgress: topicsWithTime != null && topicsWithTime.isNotEmpty
+            ? topicsWithTime
+                .map((t) => TopicProgress(
+                      topicId: t.topic.id.toString(),
+                      topicText: t.topic.topic_text,
+                      userWeight: t.topic.userWeight,
+                      studyTime: t.allocatedTimeSeconds * 1000,
+                    ))
+                .toList()
+            : (topic != null
+                ? [
+                    TopicProgress(
+                      topicId: topic.id.toString(),
+                      topicText: topic.topic_text,
+                      userWeight: topic.userWeight,
+                      studyTime: time,
+                    ),
+                  ]
+                : []),
         study_time: time,
         category: 'teoria',
         review_periods: [],
