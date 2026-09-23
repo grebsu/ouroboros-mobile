@@ -29,6 +29,26 @@ class AllSubjectsProvider with ChangeNotifier {
     return uniqueSubjects;
   }
 
+  /// Returns the subjects that belong to one study plan, keeping the
+  /// historical behaviour of showing one entry per subject name.
+  ///
+  /// Filtering must happen before de-duplication: the same subject name can
+  /// legitimately exist in more than one plan and each entry has its own ID.
+  List<Subject> uniqueSubjectsForPlan(String planId) {
+    final uniqueSubjects = <Subject>[];
+    final subjectNames = <String>{};
+
+    for (final subject in _subjects.where(
+      (subject) => subject.plan_id == planId,
+    )) {
+      if (subjectNames.add(subject.subject)) {
+        uniqueSubjects.add(subject);
+      }
+    }
+
+    return uniqueSubjects;
+  }
+
   Future<Subject?> getSubjectByNameAndPlanId(String name, String planId) async {
     try {
       return _subjects.firstWhere(
@@ -154,8 +174,11 @@ class AllSubjectsProvider with ChangeNotifier {
     return percentage;
   }
 
-  String getTotalStudyHours() {
-    final totalMilliseconds = _studyRecords.fold<int>(
+  String getTotalStudyHours({String? planId}) {
+    final filteredRecords = planId != null
+        ? _studyRecords.where((r) => r.plan_id == planId)
+        : _studyRecords;
+    final totalMilliseconds = filteredRecords.fold<int>(
       0,
       (sum, record) => sum + record.study_time,
     );
@@ -165,32 +188,46 @@ class AllSubjectsProvider with ChangeNotifier {
     return '${hours.floor()}h ${minutes.round()}m';
   }
 
-  int getTotalQuestions() {
-    final studyQuestions = _studyRecords.fold<int>(0, (sum, record) {
+  int getTotalQuestions({String? planId}) {
+    final filteredStudy = planId != null
+        ? _studyRecords.where((r) => r.plan_id == planId)
+        : _studyRecords;
+    final filteredSimulado = planId != null
+        ? _simuladoRecords.where((r) => r.plan_id == planId)
+        : _simuladoRecords;
+
+    final studyQuestions = filteredStudy.fold<int>(0, (sum, record) {
       return sum +
           record.topicsProgress.fold<int>(
             0,
             (tpSum, tp) => tpSum + (tp.questions['total'] ?? 0),
           );
     });
-    final simuladoQuestions = _simuladoRecords
+    final simuladoQuestions = filteredSimulado
         .expand((record) => record.subjects)
         .fold<int>(0, (sum, subject) => sum + subject.total_questions);
     return studyQuestions + simuladoQuestions;
   }
 
-  double getOverallPerformance() {
+  double getOverallPerformance({String? planId}) {
     int totalCorrect = 0;
     int totalQuestions = 0;
 
-    for (final record in _studyRecords) {
+    final filteredStudy = planId != null
+        ? _studyRecords.where((r) => r.plan_id == planId)
+        : _studyRecords;
+    final filteredSimulado = planId != null
+        ? _simuladoRecords.where((r) => r.plan_id == planId)
+        : _simuladoRecords;
+
+    for (final record in filteredStudy) {
       for (var tp in record.topicsProgress) {
         totalCorrect += tp.questions['correct'] ?? 0;
         totalQuestions += tp.questions['total'] ?? 0;
       }
     }
 
-    for (final record in _simuladoRecords) {
+    for (final record in filteredSimulado) {
       for (final subject in record.subjects) {
         totalCorrect += subject.correct;
         totalQuestions += subject.total_questions;

@@ -63,10 +63,9 @@ class PlanningProvider with ChangeNotifier {
     }
 
     _planId = newPlanId;
+    _clearDataInMemory();
 
-    if (_planId == null) {
-      _clearDataInMemory();
-    } else {
+    if (_planId != null) {
       loadData();
     }
   }

@@ -7,6 +7,7 @@ import 'dart:collection';
 class SimuladosProvider extends ChangeNotifier {
   final DatabaseService _dbService = DatabaseService.instance;
   final AuthProvider? _authProvider;
+  String? _activePlanId;
   List<SimuladoRecord> _simulados = [];
   bool _isLoading = false;
 
@@ -19,6 +20,12 @@ class SimuladosProvider extends ChangeNotifier {
       UnmodifiableListView(_simulados);
   bool get isLoading => _isLoading;
 
+  void updateForPlan(String? planId) {
+    if (_activePlanId == planId) return;
+    _activePlanId = planId;
+    fetchSimulados();
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
@@ -27,9 +34,13 @@ class SimuladosProvider extends ChangeNotifier {
   Future<void> fetchSimulados() async {
     if (_authProvider?.currentUser == null) return;
     _setLoading(true);
-    _simulados = await _dbService.readAllSimuladoRecordsForUser(
+    final all = await _dbService.readAllSimuladoRecordsForUser(
       _authProvider!.currentUser!.name,
     );
+    // Filtrar por plano ativo, se houver um definido
+    _simulados = _activePlanId != null
+        ? all.where((s) => s.plan_id == _activePlanId).toList()
+        : all;
     _setLoading(false);
   }
 

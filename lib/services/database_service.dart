@@ -3,24 +3,18 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
-import 'dart:math';
 import 'package:path/path.dart';
-import 'package:sqflite_sqlcipher/sqflite.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/data_models.dart';
 import '../models/backup_model.dart';
+import '../models/question_model.dart';
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._init();
   static Database? _database;
-  final _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      resetOnError: true,
-    ),
-  );
 
   DatabaseService._init();
 
@@ -41,53 +35,22 @@ class DatabaseService {
     final path = join(dbPath.path, filePath);
     debugPrint('📂 DatabaseService: Caminho do banco: $path');
 
-    String? encryptionKey;
-    try {
-      debugPrint('🔑 DatabaseService: Lendo chave do SecureStorage...');
-      encryptionKey = await _storage.read(key: 'db_encryption_key');
-    } catch (e) {
-      debugPrint('⚠️ DatabaseService: Falha ao ler SecureStorage: $e');
-    }
-
-    if (encryptionKey == null) {
-      debugPrint('🔑 DatabaseService: Gerando nova chave de criptografia...');
-      encryptionKey = _generateNewEncryptionKey();
-      try {
-        await _storage.write(key: 'db_encryption_key', value: encryptionKey);
-        debugPrint('🔑 DatabaseService: Nova chave gerada e salva.');
-      } catch (e) {
-        debugPrint('⚠️ DatabaseService: Não foi possível salvar a chave: $e');
-      }
-    }
-
-    return await _openDatabaseWithCipher(path, encryptionKey);
+    return await _openDatabase(path);
   }
 
-  Future<Database> _openDatabaseWithCipher(String path, String key) async {
-    debugPrint('🔍 DatabaseService: Abrindo banco com senha...');
+  Future<Database> _openDatabase(String path) async {
+    debugPrint('🔍 DatabaseService: Abrindo banco SQLite...');
     
-    // No Desktop (Linux/Windows), o sqflite_sqlcipher não tem implementação nativa.
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       return await ffi.databaseFactoryFfi.openDatabase(
         path,
         options: OpenDatabaseOptions(
-          version: 19,
+          version: 20,
           onConfigure: (db) async {
-            // No SQLCipher Desktop, o PRAGMA key deve ser o primeiro comando.
-            await db.execute("PRAGMA key = '$key'");
-            try {
-              final result = await db.rawQuery('PRAGMA cipher_version;');
-              if (result.isNotEmpty) {
-                debugPrint('🔐 SQLCipher (Desktop) ativo. Versão: ${result.first.values.first}');
-              }
-            } catch (e) {
-              debugPrint('❌ SQLCipher (Desktop): Erro de descriptografia (chave errada?): $e');
-              rethrow;
-            }
             await db.execute('PRAGMA foreign_keys = ON');
           },
           onCreate: (db, version) async {
-            debugPrint('🏗️ Criando banco criptografado na versão $version');
+            debugPrint('🏗️ Criando banco SQLite na versão $version');
             await _createDB(db, version);
           },
           onUpgrade: _onUpgrade,
@@ -95,36 +58,18 @@ class DatabaseService {
       );
     }
 
-    // No Mobile, usamos o suporte nativo do sqflite_sqlcipher
     return await openDatabase(
       path,
-      password: key,
-      version: 19,
+      version: 20,
       onCreate: (db, version) async {
-        debugPrint('🏗️ Criando banco criptografado na versão $version');
+        debugPrint('🏗️ Criando banco SQLite na versão $version');
         await _createDB(db, version);
       },
       onUpgrade: _onUpgrade,
       onConfigure: (db) async {
-        try {
-          final result = await db.rawQuery('PRAGMA cipher_version;');
-          if (result.isNotEmpty && result.first.values.first != null) {
-            debugPrint('🔐 SQLCipher (Mobile) ativo. Versão: ${result.first.values.first}');
-          }
-        } catch (e) {
-          debugPrint('⚠️ SQLCipher (Mobile): Erro ao verificar versão: $e');
-        }
         await db.execute('PRAGMA foreign_keys = ON');
       },
     );
-  }
-
-  String _generateNewEncryptionKey() {
-    // Generate a secure random key using a cryptographically secure random number generator
-    // For production, consider a more robust key management strategy.
-    // This is a placeholder for demonstration purposes.
-    final List<int> bytes = List<int>.generate(32, (i) => Random().nextInt(256));
-    return base64UrlEncode(bytes);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -329,6 +274,38 @@ class DatabaseService {
         )
       ''');
     }
+    if (oldVersion < 20) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS questions (
+          id TEXT PRIMARY KEY,
+          master_subject_id INTEGER NOT NULL,
+          master_topic_id INTEGER,
+          enunciado TEXT NOT NULL,
+          alternativas TEXT NOT NULL,
+          gabarito TEXT NOT NULL,
+          comentario_professor TEXT,
+          comentario_forum TEXT,
+          banca TEXT,
+          ano TEXT,
+          orgao TEXT,
+          lastModified INTEGER,
+          FOREIGN KEY (master_subject_id) REFERENCES master_subjects (id) ON DELETE CASCADE,
+          FOREIGN KEY (master_topic_id) REFERENCES master_topics (id) ON DELETE SET NULL
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS user_question_responses (
+          id TEXT PRIMARY KEY,
+          userId TEXT NOT NULL,
+          question_id TEXT NOT NULL,
+          selected_alternative TEXT,
+          is_correct INTEGER NOT NULL,
+          answered_at TEXT NOT NULL,
+          lastModified INTEGER,
+          FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
+        )
+      ''');
+    }
   }
 
   Future<void> _createMasterTables(Database db) async {
@@ -479,6 +456,38 @@ class DatabaseService {
         username $textType UNIQUE,
         hashedPassword $textType,
         lastModified INTEGER
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS questions (
+        id TEXT PRIMARY KEY,
+        master_subject_id INTEGER NOT NULL,
+        master_topic_id INTEGER,
+        enunciado TEXT NOT NULL,
+        alternativas TEXT NOT NULL,
+        gabarito TEXT NOT NULL,
+        comentario_professor TEXT,
+        comentario_forum TEXT,
+        banca TEXT,
+        ano TEXT,
+        orgao TEXT,
+        lastModified INTEGER,
+        FOREIGN KEY (master_subject_id) REFERENCES master_subjects (id) ON DELETE CASCADE,
+        FOREIGN KEY (master_topic_id) REFERENCES master_topics (id) ON DELETE SET NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS user_question_responses (
+        id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        question_id TEXT NOT NULL,
+        selected_alternative TEXT,
+        is_correct INTEGER NOT NULL,
+        answered_at TEXT NOT NULL,
+        lastModified INTEGER,
+        FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
       )
     ''');
 
@@ -1197,5 +1206,67 @@ class DatabaseService {
         }
       }
     });
+  }
+
+  // Question CRUD & Query operations
+  Future<void> createQuestion(Question question) async {
+    final db = await instance.database;
+    await db.insert('questions', question.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Question>> readQuestionsForTopic(int masterTopicId) async {
+    final db = await instance.database;
+    final maps = await db.query('questions', where: 'master_topic_id = ?', whereArgs: [masterTopicId]);
+    return maps.map((map) => Question.fromMap(map)).toList();
+  }
+
+  Future<List<Question>> readQuestionsForMasterSubject(int masterSubjectId) async {
+    final db = await instance.database;
+    final maps = await db.query('questions', where: 'master_subject_id = ?', whereArgs: [masterSubjectId]);
+    return maps.map((map) => Question.fromMap(map)).toList();
+  }
+
+  Future<List<Question>> readQuestionsForUserTopic(String subjectName, String topicName) async {
+    final db = await instance.database;
+    
+    final subjectMaps = await db.query(
+      'master_subjects',
+      where: 'LOWER(name) = LOWER(?)',
+      whereArgs: [subjectName],
+    );
+    if (subjectMaps.isEmpty) return [];
+    final masterSubjectId = subjectMaps.first['id'] as int;
+
+    final topicMaps = await db.query(
+      'master_topics',
+      where: 'master_subject_id = ? AND LOWER(name) = LOWER(?)',
+      whereArgs: [masterSubjectId, topicName],
+    );
+    if (topicMaps.isEmpty) {
+      return readQuestionsForMasterSubject(masterSubjectId);
+    }
+    final masterTopicId = topicMaps.first['id'] as int;
+
+    return readQuestionsForTopic(masterTopicId);
+  }
+
+  Future<void> createUserQuestionResponse(UserQuestionResponse response) async {
+    final db = await instance.database;
+    await db.insert('user_question_responses', response.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<UserQuestionResponse>> readUserQuestionResponses(String userId) async {
+    final db = await instance.database;
+    final maps = await db.query('user_question_responses', where: 'userId = ?', whereArgs: [userId]);
+    return maps.map((map) => UserQuestionResponse.fromMap(map)).toList();
+  }
+
+  Future<UserQuestionResponse?> readResponseForQuestion(String questionId, String userId) async {
+    final db = await instance.database;
+    final maps = await db.query('user_question_responses', where: 'question_id = ? AND userId = ?', whereArgs: [questionId, userId]);
+    if (maps.isNotEmpty) {
+      return UserQuestionResponse.fromMap(maps.first);
+    }
+    return null;
   }
 }

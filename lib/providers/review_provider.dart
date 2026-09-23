@@ -8,6 +8,7 @@ import 'package:ouroboros_mobile/providers/auth_provider.dart';
 class ReviewProvider with ChangeNotifier {
   final DatabaseService _dbService = DatabaseService.instance;
   final AuthProvider? _authProvider;
+  String? _activePlanId;
   List<ReviewRecord> _allReviewRecords = [];
   List<ReviewRecord> _pendingReviews = [];
   List<ReviewRecord> _completedReviews = [];
@@ -22,6 +23,12 @@ class ReviewProvider with ChangeNotifier {
     fetchReviews();
   }
 
+  void updateForPlan(String? planId) {
+    if (_activePlanId == planId) return;
+    _activePlanId = planId;
+    fetchReviews();
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
@@ -33,6 +40,12 @@ class ReviewProvider with ChangeNotifier {
     _allReviewRecords = await _dbService.getAllReviewRecords(
       _authProvider!.currentUser!.name,
     );
+    // Filtrar por plano ativo, se houver um definido
+    if (_activePlanId != null) {
+      _allReviewRecords = _allReviewRecords
+          .where((r) => r.plan_id == _activePlanId)
+          .toList();
+    }
     _filterReviews();
     _setLoading(false);
   }

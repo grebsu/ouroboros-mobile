@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:provider/provider.dart';
+import 'package:ouroboros_mobile/screens/questions/questions_list_screen.dart';
 import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/providers/history_provider.dart';
 import 'package:ouroboros_mobile/providers/planning_provider.dart';
@@ -319,6 +320,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
               .expand((r) => r.topicsProgress.map((tp) => tp.topicText))
               .toSet(),
           onAdd: (Topic topic) => _openStudyRegisterModal(topic: topic),
+          subjectName: widget.subject.subject,
         ),
       );
     }
@@ -702,6 +704,7 @@ class TopicListItem extends StatefulWidget {
   final bool isInitiallyExpanded;
   final Set<String> studiedTopicTexts;
   final Function(Topic) onAdd;
+  final String subjectName;
 
   const TopicListItem({
     super.key,
@@ -710,6 +713,7 @@ class TopicListItem extends StatefulWidget {
     required this.isInitiallyExpanded,
     required this.studiedTopicTexts,
     required this.onAdd,
+    required this.subjectName,
   });
 
   @override
@@ -778,6 +782,24 @@ class _TopicListItemState extends State<TopicListItem> {
                     ? Colors.green.shade100
                     : Colors.red.shade100,
               ),
+              if (!hasSubtopics)
+                IconButton(
+                  icon: const Icon(
+                    Icons.quiz,
+                    color: Colors.tealAccent,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => QuestionsListScreen(
+                          subjectName: widget.subjectName,
+                          topicName: widget.topic.topic_text,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               IconButton(
                 icon: Icon(
                   Icons.add_circle_outline,
@@ -798,6 +820,7 @@ class _TopicListItemState extends State<TopicListItem> {
               isInitiallyExpanded: widget.isInitiallyExpanded,
               studiedTopicTexts: widget.studiedTopicTexts,
               onAdd: widget.onAdd,
+              subjectName: widget.subjectName,
             ),
           ),
       ],

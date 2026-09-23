@@ -4,24 +4,31 @@ import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:ouroboros_mobile/screens/subject_detail_screen.dart';
 
+import 'package:ouroboros_mobile/providers/active_plan_provider.dart';
+
 class SubjectsScreen extends StatelessWidget {
   const SubjectsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Consumer<AllSubjectsProvider>(
-        builder: (context, provider, child) {
+      body: Consumer2<AllSubjectsProvider, ActivePlanProvider>(
+        builder: (context, provider, activePlanProvider, child) {
           if (provider.isLoading) {
             return const Center(
               child: CircularProgressIndicator(color: Colors.teal),
             );
           }
 
-          if (provider.subjects.isEmpty) {
+          final activePlanId = activePlanProvider.activePlanId;
+          final subjects = activePlanId != null
+              ? provider.subjects.where((s) => s.plan_id == activePlanId).toList()
+              : provider.subjects;
+
+          if (subjects.isEmpty) {
             return const Center(
               child: Text(
-                'Nenhuma matéria encontrada.',
+                'Nenhuma matéria encontrada para este plano.',
                 style: TextStyle(fontSize: 18, color: Colors.grey),
               ),
             );
@@ -29,9 +36,12 @@ class SubjectsScreen extends StatelessWidget {
 
           final screenWidth = MediaQuery.of(context).size.width;
 
-          final totalStudyHours = provider.getTotalStudyHours();
-          final totalQuestions = provider.getTotalQuestions();
-          final overallPerformance = provider.getOverallPerformance();
+          final totalStudyHours =
+              provider.getTotalStudyHours(planId: activePlanId);
+          final totalQuestions =
+              provider.getTotalQuestions(planId: activePlanId);
+          final overallPerformance =
+              provider.getOverallPerformance(planId: activePlanId);
 
           return ListView(
             padding: const EdgeInsets.all(16.0),
@@ -106,9 +116,9 @@ class SubjectsScreen extends StatelessWidget {
                   mainAxisSpacing: 12.0,
                   childAspectRatio: 1.2,
                 ),
-                itemCount: provider.subjects.length,
+                itemCount: subjects.length,
                 itemBuilder: (context, index) {
-                  final subject = provider.subjects[index];
+                  final subject = subjects[index];
                   final planName =
                       provider.plansMap[subject.plan_id]?.name ??
                       'Plano Desconhecido';
@@ -244,16 +254,14 @@ class _SubjectCardWidgetState extends State<_SubjectCardWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: <Widget>[
-                    Text(
-                      widget.subject.subject,
+                    _HoverMarqueeText(
+                      text: widget.subject.subject,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                         color: Colors.white,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
+                      isHovered: _showOverlay,
                     ),
                     const Spacer(),
                     Row(
@@ -305,8 +313,14 @@ class _SubjectCardWidgetState extends State<_SubjectCardWidget> {
                           alignment: WrapAlignment.center,
                           children: [
                             Chip(
-                              label: Text(widget.planName,
-                                  style: const TextStyle(fontSize: 9)),
+                              label: Text(
+                                widget.planName,
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  color: Colors.teal,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               visualDensity: VisualDensity.compact,
                               padding: EdgeInsets.zero,
                               backgroundColor: Colors.white.withOpacity(0.9),
@@ -393,6 +407,112 @@ class _SubjectCardWidgetState extends State<_SubjectCardWidget> {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+}
+
+class _HoverMarqueeText extends StatefulWidget {
+  final String text;
+  final TextStyle? style;
+  final bool isHovered;
+
+  const _HoverMarqueeText({
+    required this.text,
+    this.style,
+    required this.isHovered,
+  });
+
+  @override
+  State<_HoverMarqueeText> createState() => _HoverMarqueeTextState();
+}
+
+class _HoverMarqueeTextState extends State<_HoverMarqueeText> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isAnimating = false;
+
+  @override
+  void didUpdateWidget(covariant _HoverMarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isHovered != oldWidget.isHovered) {
+      if (widget.isHovered) {
+        _startScrolling();
+      } else {
+        _stopScrolling();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startScrolling() async {
+    if (_isAnimating) return;
+    _isAnimating = true;
+
+    // Wait a brief moment before starting to scroll
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted || !widget.isHovered) {
+      _isAnimating = false;
+      return;
+    }
+
+    if (!_scrollController.hasClients) {
+      _isAnimating = false;
+      return;
+    }
+
+    final maxScrollExtent = _scrollController.position.maxScrollExtent;
+    if (maxScrollExtent > 0) {
+      final duration = Duration(milliseconds: (maxScrollExtent * 30).round());
+      while (widget.isHovered && mounted) {
+        await _scrollController.animateTo(
+          maxScrollExtent,
+          duration: duration,
+          curve: Curves.linear,
+        );
+        if (!widget.isHovered || !mounted) break;
+        await Future.delayed(const Duration(milliseconds: 1000));
+        if (!widget.isHovered || !mounted) break;
+        _scrollController.jumpTo(0.0);
+        await Future.delayed(const Duration(milliseconds: 1000));
+      }
+    }
+    _isAnimating = false;
+  }
+
+  void _stopScrolling() {
+    _isAnimating = false;
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isHovered) {
+      return Text(
+        widget.text,
+        style: widget.style,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+      );
+    }
+
+    return Center(
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        child: Text(
+          widget.text,
+          style: widget.style,
+          maxLines: 1,
+        ),
+      ),
     );
   }
 }

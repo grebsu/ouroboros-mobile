@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ouroboros_mobile/providers/auth_provider.dart';
+import 'package:ouroboros_mobile/sqlite_init.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:ouroboros_mobile/services/database_service.dart';
@@ -73,6 +74,7 @@ void main() {
     late Database db;
 
     setUpAll(() async {
+      configureSqliteDynamicLibrary();
       sqfliteFfiInit();
     });
 

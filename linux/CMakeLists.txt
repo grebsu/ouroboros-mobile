@@ -42,6 +42,7 @@ endif()
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_14)
   target_compile_options(${TARGET} PRIVATE -Wall -Werror)
+  target_compile_options(${TARGET} PRIVATE -Wno-error=deprecated-literal-operator)
   target_compile_options(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:-O3>")
   target_compile_definitions(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")
 endfunction()
@@ -127,5 +128,11 @@ if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
     COMPONENT Runtime)
 endif()
 
-# Copiar SQLCipher para o bundle de produção
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/libs/libsqlite3.so" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}")
+install(CODE "
+  if(EXISTS \"/lib64/libsqlite3.so.0\")
+    file(CREATE_LINK
+      \"/lib64/libsqlite3.so.0\"
+      \"${INSTALL_BUNDLE_LIB_DIR}/libsqlite3.so\"
+      SYMBOLIC)
+  endif()
+  " COMPONENT Runtime)

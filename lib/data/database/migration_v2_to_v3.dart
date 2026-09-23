@@ -1,4 +1,4 @@
-import 'package:sqflite_sqlcipher/sqflite.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:ouroboros_mobile/data/database/schema_v3.dart';
 import 'package:flutter/foundation.dart';
 

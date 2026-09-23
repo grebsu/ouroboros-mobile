@@ -7,12 +7,22 @@ import 'package:ouroboros_mobile/models/data_models.dart';
 class RemindersProvider with ChangeNotifier {
   List<ReminderNote> _notes = [];
   bool _isLoading = false;
-  static const String _prefsKey = 'reminderNotes';
+  String? _activePlanId;
+  static const String _basePrefsKey = 'reminderNotes';
 
   List<ReminderNote> get notes => _notes;
   bool get isLoading => _isLoading;
 
+  String get _prefsKey =>
+      _activePlanId != null ? '${_basePrefsKey}_$_activePlanId' : _basePrefsKey;
+
   RemindersProvider() {
+    _loadNotes();
+  }
+
+  void updateForPlan(String? planId) {
+    if (_activePlanId == planId) return;
+    _activePlanId = planId;
     _loadNotes();
   }
 

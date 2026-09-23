@@ -47,6 +47,7 @@ import 'package:ouroboros_mobile/providers/simulados_provider.dart';
 import 'package:ouroboros_mobile/providers/stopwatch_provider.dart';
 import 'package:ouroboros_mobile/providers/subject_provider.dart';
 import 'package:ouroboros_mobile/screens/backup_screen.dart';
+import 'package:ouroboros_mobile/screens/courses_screen.dart';
 import 'package:ouroboros_mobile/screens/edital_screen.dart';
 import 'package:ouroboros_mobile/screens/history_screen.dart';
 import 'package:ouroboros_mobile/screens/home_screen.dart';
@@ -54,6 +55,7 @@ import 'package:ouroboros_mobile/screens/login_screen.dart';
 import 'package:ouroboros_mobile/screens/mentoria_screen.dart';
 import 'package:ouroboros_mobile/screens/planning_screen.dart';
 import 'package:ouroboros_mobile/screens/plans_screen.dart';
+import 'package:ouroboros_mobile/screens/questions_screen.dart';
 import 'package:ouroboros_mobile/screens/revisions_screen.dart';
 import 'package:ouroboros_mobile/screens/simulados_screen.dart';
 import 'package:ouroboros_mobile/screens/simulados/add_edit_simulado_screen.dart';
@@ -65,7 +67,7 @@ import 'package:ouroboros_mobile/services/database_service.dart';
 import 'package:ouroboros_mobile/services/mdns_advertiser.dart';
 import 'package:ouroboros_mobile/services/mdns_discovery_service.dart';
 import 'package:ouroboros_mobile/services/sync_service.dart';
-import 'package:ouroboros_mobile/sqlcipher_init.dart';
+import 'package:ouroboros_mobile/sqlite_init.dart';
 import 'package:ouroboros_mobile/widgets/confirmation_modal.dart';
 import 'package:ouroboros_mobile/widgets/create_plan_modal.dart';
 import 'package:ouroboros_mobile/widgets/filter_modal.dart';
@@ -73,7 +75,6 @@ import 'package:ouroboros_mobile/widgets/floating_stopwatch_button.dart';
 import 'package:ouroboros_mobile/widgets/plan_selector.dart';
 import 'package:ouroboros_mobile/widgets/pulsing_glowing_icon.dart';
 import 'package:ouroboros_mobile/widgets/study_register_modal.dart';
-import 'package:ouroboros_mobile/sqlcipher_init.dart';
 
 final restartNotifier = ValueNotifier<int>(0);
 final GlobalKey<ScaffoldMessengerState> snackbarKey =
@@ -82,7 +83,7 @@ GlobalKey<ScaffoldMessengerState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  initSqlCipher();
+  _initDatabaseFactory();
 
   await initializeDateFormatting(
     'pt_BR',
@@ -97,6 +98,14 @@ void main() async {
   }
 
   runApp(const RootWidget());
+}
+
+void _initDatabaseFactory() {
+  if (!kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
+    configureSqliteDynamicLibrary();
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 }
 
 class RootWidget extends StatelessWidget {
@@ -165,28 +174,31 @@ class RootWidget extends StatelessWidget {
               update: (context, auth, previous) =>
                   ActivePlanProvider(authProvider: auth),
             ),
-            ChangeNotifierProxyProvider<AuthProvider, ReviewProvider>(
+            // ReviewProvider: reage à mudança de plano
+            ChangeNotifierProxyProvider2<AuthProvider, ActivePlanProvider,
+                ReviewProvider>(
               create: (context) => ReviewProvider(
                 authProvider: Provider.of<AuthProvider>(context, listen: false),
               ),
-              update: (context, auth, previous) =>
-                  ReviewProvider(authProvider: auth),
+              update: (context, auth, activePlan, previous) =>
+                  previous!..updateForPlan(activePlan.activePlanId),
             ),
             ChangeNotifierProvider(create: (context) => FilterProvider()),
-            ChangeNotifierProxyProvider3<AuthProvider, ReviewProvider,
-                FilterProvider, HistoryProvider>(
+            // HistoryProvider: reage à mudança de plano
+            ChangeNotifierProxyProvider4<AuthProvider, ActivePlanProvider,
+                ReviewProvider, FilterProvider, HistoryProvider>(
               create: (context) => HistoryProvider(
                 Provider.of<ReviewProvider>(context, listen: false),
                 Provider.of<FilterProvider>(context, listen: false),
                 Provider.of<AuthProvider>(context, listen: false),
               ),
-              update: (context, auth, reviewProvider, filterProvider,
-                  previousHistory) {
-                return HistoryProvider(
-                  reviewProvider,
-                  filterProvider,
-                  auth,
-                );
+              update: (context, auth, activePlan, reviewProvider,
+                  filterProvider, previous) {
+                if (previous == null) {
+                  return HistoryProvider(reviewProvider, filterProvider, auth)
+                    ..updateForPlan(activePlan.activePlanId);
+                }
+                return previous..updateForPlan(activePlan.activePlanId);
               },
             ),
             ChangeNotifierProxyProvider<AuthProvider, SubjectProvider>(
@@ -197,10 +209,22 @@ class RootWidget extends StatelessWidget {
                   SubjectProvider(authProvider: auth),
             ),
             ChangeNotifierProvider(create: (_) => MentoriaProvider()),
-            ChangeNotifierProvider(create: (_) => RemindersProvider()),
-            ChangeNotifierProvider(
-              create: (_) => SimuladosProvider(),
+            // RemindersProvider: reage à mudança de plano
+            ChangeNotifierProxyProvider<ActivePlanProvider, RemindersProvider>(
+              create: (_) => RemindersProvider(),
+              update: (context, activePlan, previous) =>
+                  previous!..updateForPlan(activePlan.activePlanId),
             ),
+            // SimuladosProvider: reage à mudança de plano e corrige o AuthProvider ausente
+            ChangeNotifierProxyProvider2<AuthProvider, ActivePlanProvider,
+                SimuladosProvider>(
+              create: (context) => SimuladosProvider(
+                authProvider: Provider.of<AuthProvider>(context, listen: false),
+              ),
+              update: (context, auth, activePlan, previous) =>
+                  previous!..updateForPlan(activePlan.activePlanId),
+            ),
+
             ChangeNotifierProxyProvider3<AuthProvider, ActivePlanProvider,
                 HistoryProvider, PlanningProvider>(
               create: (context) => PlanningProvider(
@@ -596,8 +620,62 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool _isDrawerOpen = false;
   bool _planningScreenEditMode = false;
 
-  late List<Widget> _allScreens;
-  late List<String> _allAppBarTitles;
+  static const List<String> _allAppBarTitles = <String>[
+    'Planos',
+    'Planejamento',
+    'Revisões',
+    'Estatísticas',
+    'Histórico',
+    'Home',
+    'Cursos',
+    'Matérias',
+    'Questões',
+    'Edital',
+    'Simulados',
+    'Mentoria Algorítmica',
+    'Apoie o Projeto',
+    'Backup',
+  ];
+
+  Widget _buildScreen(int index) {
+    switch (index) {
+      case 0:
+        return const PlansScreen();
+      case 1:
+        return PlanningScreen(
+          isEditMode: _planningScreenEditMode,
+          onToggleEditMode: _togglePlanningScreenEditMode,
+          onResetCycle: () =>
+              Provider.of<PlanningProvider>(context, listen: false).resetStudyCycle(),
+        );
+      case 2:
+        return const RevisionsScreen();
+      case 3:
+        return const StatsScreen();
+      case 4:
+        return const HistoryScreen();
+      case 5:
+        return const DashboardScreen();
+      case 6:
+        return const CoursesScreen();
+      case 7:
+        return const SubjectsScreen();
+      case 8:
+        return const QuestionsScreen();
+      case 9:
+        return const EditalScreen();
+      case 10:
+        return const SimuladosScreen();
+      case 11:
+        return const MentoriaScreen();
+      case 12:
+        return const SupportScreen();
+      case 13:
+        return const BackupScreen();
+      default:
+        return const DashboardScreen();
+    }
+  }
 
   @override
   void initState() {
@@ -617,41 +695,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 500),
     );
     _syncRotationAnimation = Tween<double>(begin: 0, end: 1).animate(_syncRotationController);
-
-    _allScreens = <Widget>[
-      PlansScreen(),
-      PlanningScreen(
-        isEditMode: _planningScreenEditMode,
-        onToggleEditMode: _togglePlanningScreenEditMode,
-        onResetCycle: () =>
-            Provider.of<PlanningProvider>(context, listen: false).resetStudyCycle(),
-      ),
-      RevisionsScreen(),
-      StatsScreen(),
-      HistoryScreen(),
-      DashboardScreen(),
-      SubjectsScreen(),
-      EditalScreen(),
-      SimuladosScreen(),
-      MentoriaScreen(),
-      SupportScreen(),
-      BackupScreen(),
-    ];
-
-    _allAppBarTitles = <String>[
-      'Planos',
-      'Planejamento',
-      'Revisões',
-      'Estatísticas',
-      'Histórico',
-      'Home',
-      'Matérias',
-      'Edital',
-      'Simulados',
-      'Mentoria Algorítmica',
-      'Apoie o Projeto',
-      'Backup',
-    ];
   }
 
   @override
@@ -668,12 +711,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void _togglePlanningScreenEditMode() {
     setState(() {
       _planningScreenEditMode = !_planningScreenEditMode;
-      _allScreens[1] = PlanningScreen(
-        isEditMode: _planningScreenEditMode,
-        onToggleEditMode: _togglePlanningScreenEditMode,
-        onResetCycle: () =>
-            Provider.of<PlanningProvider>(context, listen: false).resetStudyCycle(),
-      );
     });
   }
 
@@ -771,7 +808,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                title: _isDrawerOpen ? const Text('') : Text(_allAppBarTitles.elementAt(selectedIndex)),
+                title: _isDrawerOpen
+                    ? const Text('')
+                    : Text(
+                        selectedIndex < _allAppBarTitles.length
+                            ? _allAppBarTitles[selectedIndex]
+                            : '',
+                      ),
                 actions: <Widget>[
                   if (selectedIndex == 1 && hasActiveCycle)
                     IconButton(
@@ -880,7 +923,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ],
                       ),
                     ),
-                  if (selectedIndex == 8)
+                  if (selectedIndex == 10)
                     Flexible(
                       child: ElevatedButton.icon(
                         onPressed: () {
@@ -942,7 +985,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ],
                       ),
                     ),
-                  if (selectedIndex == 7)
+                  if (selectedIndex == 9)
                     Flexible(
                       child: ElevatedButton.icon(
                         onPressed: () {},
@@ -968,7 +1011,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                  if (selectedIndex == 9)
+                  if (selectedIndex == 11)
                     IconButton(
                       icon: const Icon(Icons.share),
                       onPressed: () {},
@@ -976,7 +1019,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ),
                 ],
               ),
-              body: _allScreens.elementAt(selectedIndex),
+              body: _buildScreen(selectedIndex),
               onDrawerChanged: (isOpened) {
                 setState(() {
                   _isDrawerOpen = isOpened;
@@ -1013,6 +1056,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             _buildDrawerItem(
                               context,
                               index: 6,
+                              icon: Icons.school,
+                              label: 'Cursos',
+                              selectedIndex: selectedIndex,
+                              onTap: _onDrawerItemTapped,
+                            ),
+                            _buildDrawerItem(
+                              context,
+                              index: 7,
                               icon: Icons.book,
                               label: 'Matérias',
                               selectedIndex: selectedIndex,
@@ -1020,7 +1071,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             ),
                             _buildDrawerItem(
                               context,
-                              index: 7,
+                              index: 8,
+                              icon: Icons.quiz,
+                              label: 'Questões',
+                              selectedIndex: selectedIndex,
+                              onTap: _onDrawerItemTapped,
+                            ),
+                            _buildDrawerItem(
+                              context,
+                              index: 9,
                               icon: Icons.description,
                               label: 'Edital',
                               selectedIndex: selectedIndex,
@@ -1028,15 +1087,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             ),
                             _buildDrawerItem(
                               context,
-                              index: 8,
-                              icon: Icons.quiz,
+                              index: 10,
+                              icon: Icons.assignment_turned_in,
                               label: 'Simulados',
                               selectedIndex: selectedIndex,
                               onTap: _onDrawerItemTapped,
                             ),
                             _buildDrawerItem(
                               context,
-                              index: 9,
+                              index: 11,
                               icon: Icons.psychology,
                               label: 'Mentoria Algorítmica',
                               selectedIndex: selectedIndex,
@@ -1044,7 +1103,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             ),
                             _buildDrawerItem(
                               context,
-                              index: 10,
+                              index: 12,
                               icon: Icons.favorite,
                               label: 'Apoie o Projeto',
                               selectedIndex: selectedIndex,
@@ -1053,7 +1112,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             ),
                             _buildDrawerItem(
                               context,
-                              index: 11,
+                              index: 13,
                               icon: Icons.backup,
                               label: 'Backup',
                               selectedIndex: selectedIndex,

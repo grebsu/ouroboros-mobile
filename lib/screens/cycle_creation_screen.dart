@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ouroboros_mobile/models/data_models.dart';
 import 'package:ouroboros_mobile/providers/all_subjects_provider.dart';
+import 'package:ouroboros_mobile/providers/active_plan_provider.dart';
 import 'package:ouroboros_mobile/providers/planning_provider.dart';
 import 'package:ouroboros_mobile/providers/mentoria_provider.dart';
 import 'package:ouroboros_mobile/widgets/topic_weights_modal.dart';
@@ -50,38 +51,94 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
   final _manualQuestionsGoalController = TextEditingController(text: '250');
   final _subjectSearchController = TextEditingController();
   bool _isSummaryVisible = true;
+  bool _isSummaryInitialized = false;
   bool _isEditingSubjects = false; // Declarar a variável aqui
+  String? _activePlanId;
+  bool _hasResolvedActivePlan = false;
+
+  List<Subject> _subjectsForActivePlan(
+    BuildContext context,
+    AllSubjectsProvider allSubjectsProvider,
+  ) {
+    final activePlanId =
+        Provider.of<ActivePlanProvider>(context, listen: false).activePlanId;
+    if (activePlanId == null) return const [];
+    return allSubjectsProvider.uniqueSubjectsForPlan(activePlanId);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isSummaryInitialized) {
+      _isSummaryVisible = MediaQuery.of(context).size.width > 600;
+      _isSummaryInitialized = true;
+    }
+    final activePlanId = Provider.of<ActivePlanProvider>(context).activePlanId;
+
+    if (_hasResolvedActivePlan && _activePlanId != activePlanId) {
+      _selectedSubjects.clear();
+      _subjectSettings.clear();
+      _manualStudySessions.clear();
+      _manualSelectedSubject = null;
+      _currentStep = 0;
+    }
+
+    _activePlanId = activePlanId;
+    _hasResolvedActivePlan = true;
+  }
 
   // Helper to advance steps
-  void _advanceStep(List<Map<String, dynamic>> workloadLevels, List<Map<String, dynamic>> sessionLevels) {
-    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(context, listen: false);
-    
+  void _advanceStep(
+    List<Map<String, dynamic>> workloadLevels,
+    List<Map<String, dynamic>> sessionLevels,
+  ) {
+    final allSubjectsProvider = Provider.of<AllSubjectsProvider>(
+      context,
+      listen: false,
+    );
+
     if (_currentStep == 0 && _selectedSubjects.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecione ao menos uma matéria.')));
-        return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione ao menos uma matéria.')),
+      );
+      return;
     }
-    
+
     if (_currentStep < 2) {
-        setState(() => _currentStep++);
+      setState(() => _currentStep++);
     } else {
-        _saveGuidedCycle(allSubjectsProvider, workloadLevels, sessionLevels);
+      _saveGuidedCycle(allSubjectsProvider, workloadLevels, sessionLevels);
     }
   }
 
-  Widget _buildCurrentStepContent(BuildContext context, AllSubjectsProvider allSubjectsProvider, List<Map<String, dynamic>> workloadLevels, List<Map<String, dynamic>> sessionLevels) {
+  Widget _buildCurrentStepContent(
+    BuildContext context,
+    AllSubjectsProvider allSubjectsProvider,
+    List<Map<String, dynamic>> workloadLevels,
+    List<Map<String, dynamic>> sessionLevels,
+  ) {
     switch (_currentStep) {
-      case 0: return _buildSubjectSelection(allSubjectsProvider);
-      case 1: return _buildWeightsStep(allSubjectsProvider);
-      case 2: return _buildUnifiedConfigurationStep(workloadLevels, sessionLevels);
-      default: return const Center(child: Text("Passo inválido"));
+      case 0:
+        return _buildSubjectSelection(allSubjectsProvider);
+      case 1:
+        return _buildWeightsStep(allSubjectsProvider);
+      case 2:
+        return _buildUnifiedConfigurationStep(workloadLevels, sessionLevels);
+      default:
+        return const Center(child: Text("Passo inválido"));
     }
   }
 
   Widget _buildSubjectSelection(AllSubjectsProvider allSubjectsProvider) {
-    final filteredSubjects = allSubjectsProvider.uniqueSubjectsByName
-        .where((s) => s.subject.toLowerCase().contains(_subjectSearchQuery.toLowerCase()))
-        .toList();
-    
+    final filteredSubjects =
+        _subjectsForActivePlan(context, allSubjectsProvider)
+            .where(
+              (s) => s.subject.toLowerCase().contains(
+                _subjectSearchQuery.toLowerCase(),
+              ),
+            )
+            .toList();
+
     return Column(
       children: [
         Row(
@@ -89,7 +146,10 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
             Expanded(
               child: TextField(
                 controller: _subjectSearchController,
-                decoration: const InputDecoration(labelText: 'Buscar matéria', prefixIcon: Icon(Icons.search)),
+                decoration: const InputDecoration(
+                  labelText: 'Buscar matéria',
+                  prefixIcon: Icon(Icons.search),
+                ),
               ),
             ),
             TextButton(
@@ -98,10 +158,16 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                   _selectedSubjects.clear();
                 } else {
                   for (var s in filteredSubjects) {
-                    if (!_selectedSubjects.contains(s.id)) _selectedSubjects.add(s.id);
+                    if (!_selectedSubjects.contains(s.id))
+                      _selectedSubjects.add(s.id);
                   }
                 }
-              }),              child: Text(_selectedSubjects.length == filteredSubjects.length ? 'Desmarcar Todos' : 'Selecionar Todos'),
+              }),
+              child: Text(
+                _selectedSubjects.length == filteredSubjects.length
+                    ? 'Desmarcar Todos'
+                    : 'Selecionar Todos',
+              ),
             ),
           ],
         ),
@@ -109,7 +175,9 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
         Expanded(
           child: GridView.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: MediaQuery.of(context).size.width > 1024 ? 5 : (MediaQuery.of(context).size.width > 600 ? 3 : 2),
+              crossAxisCount: MediaQuery.of(context).size.width > 1024
+                  ? 5
+                  : (MediaQuery.of(context).size.width > 600 ? 3 : 2),
               childAspectRatio: 2.8,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
@@ -118,16 +186,19 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
             itemBuilder: (context, index) {
               final subject = filteredSubjects[index];
               final isSelected = _selectedSubjects.contains(subject.id);
-              final color = Color(int.parse(subject.color.replaceFirst('#', '0xFF')));
-              
+              final color = Color(
+                int.parse(subject.color.replaceFirst('#', '0xFF')),
+              );
+
               return InkWell(
                 onTap: () => setState(() {
-                if (_selectedSubjects.contains(subject.id)) {
-                _selectedSubjects.remove(subject.id);
-                } else {
-                _selectedSubjects.add(subject.id);
-                }
-                }),                child: Container(
+                  if (_selectedSubjects.contains(subject.id)) {
+                    _selectedSubjects.remove(subject.id);
+                  } else {
+                    _selectedSubjects.add(subject.id);
+                  }
+                }),
+                child: Container(
                   decoration: BoxDecoration(
                     color: isSelected ? color : color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -157,12 +228,19 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Defina os Pesos", style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              "Defina os Pesos",
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             ElevatedButton.icon(
               onPressed: () async {
-                await allSubjectsProvider.calculateAndApplyTopicWeights(_selectedSubjects.toList());
+                await allSubjectsProvider.calculateAndApplyTopicWeights(
+                  _selectedSubjects.toList(),
+                );
                 setState(() {});
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pesos calculados!')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Pesos calculados!')),
+                );
               },
               icon: const Icon(Icons.auto_awesome),
               label: const Text('Calcular Pesos'),
@@ -181,13 +259,24 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
             itemCount: _selectedSubjects.length,
             itemBuilder: (context, index) {
               final subjectId = _selectedSubjects.elementAt(index);
-              final subject = allSubjectsProvider.subjects.firstWhere((s) => s.id == subjectId);
-              _subjectSettings.putIfAbsent(subjectId, () => {'importance': 3, 'knowledge': 3});
-              final color = Color(int.parse(subject.color.replaceFirst('#', '0xFF')));
-              
+              final subject = _subjectsForActivePlan(
+                context,
+                allSubjectsProvider,
+              ).firstWhere((s) => s.id == subjectId);
+              _subjectSettings.putIfAbsent(
+                subjectId,
+                () => {'importance': 3, 'knowledge': 3},
+              );
+              final color = Color(
+                int.parse(subject.color.replaceFirst('#', '0xFF')),
+              );
+
               return Card(
                 elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: color, width: 2)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: color, width: 2),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -198,7 +287,9 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                           Expanded(
                             child: Text(
                               subject.subject,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -206,7 +297,11 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                           IconButton(
                             icon: const Icon(Icons.tune),
                             visualDensity: VisualDensity.compact,
-                            onPressed: () => showDialog(context: context, builder: (context) => TopicWeightsModal(subject: subject)),
+                            onPressed: () => showDialog(
+                              context: context,
+                              builder: (context) =>
+                                  TopicWeightsModal(subject: subject),
+                            ),
                           ),
                         ],
                       ),
@@ -214,15 +309,31 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                       const Text("Importância", style: TextStyle(fontSize: 12)),
                       Flexible(
                         child: Slider(
-                          value: _subjectSettings[subjectId]!['importance']!, min: 1, max: 5, divisions: 4, activeColor: color, 
-                          onChanged: (v) => setState(() => _subjectSettings[subjectId]!['importance'] = v)
+                          value: _subjectSettings[subjectId]!['importance']!,
+                          min: 1,
+                          max: 5,
+                          divisions: 4,
+                          activeColor: color,
+                          onChanged: (v) => setState(
+                            () =>
+                                _subjectSettings[subjectId]!['importance'] = v,
+                          ),
                         ),
                       ),
-                      const Text("Conhecimento", style: TextStyle(fontSize: 12)),
+                      const Text(
+                        "Conhecimento",
+                        style: TextStyle(fontSize: 12),
+                      ),
                       Flexible(
                         child: Slider(
-                          value: _subjectSettings[subjectId]!['knowledge']!, min: 1, max: 5, divisions: 4, activeColor: color, 
-                          onChanged: (v) => setState(() => _subjectSettings[subjectId]!['knowledge'] = v)
+                          value: _subjectSettings[subjectId]!['knowledge']!,
+                          min: 1,
+                          max: 5,
+                          divisions: 4,
+                          activeColor: color,
+                          onChanged: (v) => setState(
+                            () => _subjectSettings[subjectId]!['knowledge'] = v,
+                          ),
                         ),
                       ),
                     ],
@@ -236,13 +347,19 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
     );
   }
 
-  Widget _buildUnifiedConfigurationStep(List<Map<String, dynamic>> workloadLevels, List<Map<String, dynamic>> sessionLevels) {
+  Widget _buildUnifiedConfigurationStep(
+    List<Map<String, dynamic>> workloadLevels,
+    List<Map<String, dynamic>> sessionLevels,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 80),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Configuração Final", style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            "Configuração Final",
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 24),
           _buildConfigSection(
             title: "Carga Horária Semanal",
@@ -269,16 +386,28 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
             label: "Minutos",
           ),
           const SizedBox(height: 24),
-          Text("Dias de Estudo", style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            "Dias de Estudo",
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 12),
           Wrap(
-            spacing: 12, runSpacing: 12,
-            children: _daysOfWeek.map((day) => FilterChip(
-              label: Text(day),
-              selected: _selectedDays.contains(day),
-              onSelected: (s) => setState(() => s ? _selectedDays.add(day) : _selectedDays.remove(day)),
-              selectedColor: Colors.teal.shade200,
-            )).toList()
+            spacing: 12,
+            runSpacing: 12,
+            children: _daysOfWeek
+                .map(
+                  (day) => FilterChip(
+                    label: Text(day),
+                    selected: _selectedDays.contains(day),
+                    onSelected: (s) => setState(
+                      () => s
+                          ? _selectedDays.add(day)
+                          : _selectedDays.remove(day),
+                    ),
+                    selectedColor: Colors.teal.shade200,
+                  ),
+                )
+                .toList(),
           ),
         ],
       ),
@@ -301,14 +430,15 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
           Text(title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           Wrap(
-            spacing: 12, runSpacing: 12,
+            spacing: 12,
+            runSpacing: 12,
             children: [
               ...options.map((opt) {
                 final isSelected = selected == opt['level'];
                 return ChoiceChip(
-                  label: Text(opt['level']),
+                  label: Text(opt['level'] as String),
                   selected: isSelected,
-                  onSelected: (s) => onChanged(opt['level']),
+                  onSelected: (s) => onChanged(opt['level'] as String),
                 );
               }),
               ChoiceChip(
@@ -325,7 +455,10 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                 width: 200,
                 child: TextField(
                   controller: manualController,
-                  decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    labelText: label,
+                    border: const OutlineInputBorder(),
+                  ),
                   keyboardType: TextInputType.number,
                 ),
               ),
@@ -337,33 +470,40 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
 
   // Projeção de horas baseada nos pesos atuais e nível de conhecimento
   List<Map<String, dynamic>> _calculateProjectedDistribution() {
-    final mentoriaProvider = Provider.of<MentoriaProvider>(context, listen: false);
+    final mentoriaProvider = Provider.of<MentoriaProvider>(
+      context,
+      listen: false,
+    );
     final totalHoursMap = {
       'Iniciante': mentoriaProvider.inicianteWorkload.toDouble(),
       'Intermediário': mentoriaProvider.intermediarioWorkload.toDouble(),
       'Avançado': mentoriaProvider.avancadoWorkload.toDouble(),
     };
-    
-    final totalHours = totalHoursMap[_selectedWorkloadLevel] ?? 
+
+    final totalHours =
+        totalHoursMap[_selectedWorkloadLevel] ??
         (double.tryParse(_manualWorkloadController.text) ?? 0.0);
-    
+
     final totalMinutes = totalHours * 60.0;
-    
+
     if (_selectedSubjects.isEmpty || totalMinutes <= 0) {
-        return [{
-            'id': 'placeholder',
-            'name': 'Aguardando matérias',
-            'minutes': 100.0,
-            'sessions': 0,
-            'color': Colors.grey.shade400,
-        }];
+      return [
+        {
+          'id': 'placeholder',
+          'name': 'Aguardando matérias',
+          'minutes': 100.0,
+          'sessions': 0,
+          'color': Colors.grey.shade400,
+        },
+      ];
     }
 
     // Obter min/max session duration baseado no nível selecionado
     int minSession = 30;
     int maxSession = 50;
     if (_selectedSessionLevel == 'Manual') {
-      final manualDuration = int.tryParse(_manualSessionDurationController.text) ?? 60;
+      final manualDuration =
+          int.tryParse(_manualSessionDurationController.text) ?? 60;
       minSession = manualDuration;
       maxSession = manualDuration;
     } else if (_selectedSessionLevel != null) {
@@ -381,43 +521,47 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
 
     double totalPriorityScore = 0;
     final Map<String, double> priorityScores = {};
-    final allSubjects = Provider.of<AllSubjectsProvider>(context, listen: false).subjects;
+    final allSubjects = _subjectsForActivePlan(
+      context,
+      Provider.of<AllSubjectsProvider>(context, listen: false),
+    );
 
     for (var id in _selectedSubjects) {
-        final importance = (_subjectSettings[id]?['importance'] ?? 3.0).toDouble();
-        final knowledge = (_subjectSettings[id]?['knowledge'] ?? 3.0).toDouble();
-        final score = importance * (6.0 - knowledge);
-        priorityScores[id] = score;
-        totalPriorityScore += score;
+      final importance = (_subjectSettings[id]?['importance'] ?? 3.0)
+          .toDouble();
+      final knowledge = (_subjectSettings[id]?['knowledge'] ?? 3.0).toDouble();
+      final score = importance * (6.0 - knowledge);
+      priorityScores[id] = score;
+      totalPriorityScore += score;
     }
 
     if (totalPriorityScore <= 0) totalPriorityScore = 1.0;
 
     final distribution = <Map<String, dynamic>>[];
     for (var id in _selectedSubjects) {
-        final subject = allSubjects.firstWhere((s) => s.id == id);
-        final score = priorityScores[id] ?? 0.0;
-        final idealMinutes = (score / totalPriorityScore) * totalMinutes;
-        
-        // Simular a lógica do PlanningProvider para cálculo de sessões
-        final averageSessionDuration = (minSession + maxSession) / 2.0;
-        int numberOfSessions = (idealMinutes / averageSessionDuration).round();
-        
-        if (numberOfSessions > 0) {
-            int sessionDuration = (idealMinutes / numberOfSessions).round();
-            if (sessionDuration < minSession) sessionDuration = minSession;
-            if (sessionDuration > maxSession) sessionDuration = maxSession;
-            
-            final actualMinutes = (numberOfSessions * sessionDuration).toDouble();
-            
-            distribution.add({
-                'id': subject.id,
-                'name': subject.subject,
-                'minutes': actualMinutes,
-                'sessions': numberOfSessions,
-                'color': Color(int.parse(subject.color.replaceFirst('#', '0xFF'))),
-            });
-        }
+      final subject = allSubjects.firstWhere((s) => s.id == id);
+      final score = priorityScores[id] ?? 0.0;
+      final idealMinutes = (score / totalPriorityScore) * totalMinutes;
+
+      // Simular a lógica do PlanningProvider para cálculo de sessões
+      final averageSessionDuration = (minSession + maxSession) / 2.0;
+      int numberOfSessions = (idealMinutes / averageSessionDuration).round();
+
+      if (numberOfSessions > 0) {
+        int sessionDuration = (idealMinutes / numberOfSessions).round();
+        if (sessionDuration < minSession) sessionDuration = minSession;
+        if (sessionDuration > maxSession) sessionDuration = maxSession;
+
+        final actualMinutes = (numberOfSessions * sessionDuration).toDouble();
+
+        distribution.add({
+          'id': subject.id,
+          'name': subject.subject,
+          'minutes': actualMinutes,
+          'sessions': numberOfSessions,
+          'color': Color(int.parse(subject.color.replaceFirst('#', '0xFF'))),
+        });
+      }
     }
     return distribution;
   }
@@ -489,13 +633,14 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
     List<Map<String, dynamic>> workloadLevels,
     List<Map<String, dynamic>> sessionLevels,
   ) {
-    final filteredSubjects = allSubjectsProvider.uniqueSubjectsByName
-        .where(
-          (subject) => subject.subject.toLowerCase().contains(
-            _subjectSearchQuery.toLowerCase(),
-          ),
-        )
-        .toList();
+    final filteredSubjects =
+        _subjectsForActivePlan(context, allSubjectsProvider)
+            .where(
+              (subject) => subject.subject.toLowerCase().contains(
+                _subjectSearchQuery.toLowerCase(),
+              ),
+            )
+            .toList();
     if (_isManualMode == null) {
       return [
         Step(
@@ -583,7 +728,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                     _manualSelectedSubject = newValue;
                   });
                 },
-                items: allSubjectsProvider.uniqueSubjectsByName
+                items: _subjectsForActivePlan(context, allSubjectsProvider)
                     .map<DropdownMenuItem<Subject>>((subject) {
                       return DropdownMenuItem<Subject>(
                         value: subject,
@@ -877,9 +1022,11 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                       itemCount: _selectedSubjects.length,
                       itemBuilder: (context, index) {
                         final subjectId = _selectedSubjects.elementAt(index);
-                        final subject = allSubjectsProvider.subjects
-                            .cast<Subject?>()
-                            .firstWhere(
+                        final subject =
+                            _subjectsForActivePlan(
+                              context,
+                              allSubjectsProvider,
+                            ).cast<Subject?>().firstWhere(
                               (s) => s?.id == subjectId,
                               orElse: () => null,
                             );
@@ -1426,7 +1573,11 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final mentoriaProvider = Provider.of<MentoriaProvider>(context, listen: false);
+    final mentoriaProvider = Provider.of<MentoriaProvider>(
+      context,
+      listen: false,
+    );
+    final activePlan = Provider.of<ActivePlanProvider>(context).activePlan;
     final List<Map<String, dynamic>> workloadLevels = [
       {
         'level': 'Iniciante',
@@ -1451,7 +1602,8 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
     final List<Map<String, dynamic>> sessionLevels = [
       {
         'level': 'Iniciante',
-        'duration': '${mentoriaProvider.inicianteMinSession} a ${mentoriaProvider.inicianteMaxSession} minutos',
+        'duration':
+            '${mentoriaProvider.inicianteMinSession} a ${mentoriaProvider.inicianteMaxSession} minutos',
         'description':
             'Construção da resistência e do hábito. Maior tempo dedicado à Teoria (≈60%).',
         'min': mentoriaProvider.inicianteMinSession,
@@ -1460,7 +1612,8 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
       },
       {
         'level': 'Intermediário',
-        'duration': '${mentoriaProvider.intermediarioMinSession} a ${mentoriaProvider.intermediarioMaxSession} minutos',
+        'duration':
+            '${mentoriaProvider.intermediarioMinSession} a ${mentoriaProvider.intermediarioMaxSession} minutos',
         'description':
             'Consolidação. Equilíbrio entre Teoria/Revisão (≈40%) e Questões (≈40%).',
         'min': mentoriaProvider.intermediarioMinSession,
@@ -1469,7 +1622,8 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
       },
       {
         'level': 'Avançado',
-        'duration': '${mentoriaProvider.avancadoMinSession} a ${mentoriaProvider.avancadoMaxSession} minutos',
+        'duration':
+            '${mentoriaProvider.avancadoMinSession} a ${mentoriaProvider.avancadoMaxSession} minutos',
         'description':
             'Otimização. Maior parte do tempo dedicada à Prática e Revisão Ativa (Questões e Simulados ≈60−70%).',
         'min': mentoriaProvider.avancadoMinSession,
@@ -1490,7 +1644,17 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                 : 'Modo Guiado',
           ),
         ),
-        body: _isManualMode == null
+        body: activePlan == null
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Selecione um plano de estudos antes de criar um ciclo.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
+            : _isManualMode == null
             ? _buildModeSelection()
             : _isManualMode!
             ? _buildManualMode(Provider.of<AllSubjectsProvider>(context))
@@ -1507,22 +1671,38 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                                 padding: const EdgeInsets.all(24.0),
                                 child: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 300),
-                                  child: _buildCurrentStepContent(context, Provider.of<AllSubjectsProvider>(context), workloadLevels, sessionLevels),
+                                  child: _buildCurrentStepContent(
+                                    context,
+                                    Provider.of<AllSubjectsProvider>(context),
+                                    workloadLevels,
+                                    sessionLevels,
+                                  ),
                                 ),
                               ),
                             ),
                             if (MediaQuery.of(context).size.width > 600)
-                              SizedBox(width: 400, child: _buildSidebar(context)),
+                              SizedBox(
+                                width: 400,
+                                child: _buildSidebar(context),
+                              ),
                           ],
                         ),
-                        if (MediaQuery.of(context).size.width <= 600 && _isSummaryVisible)
-                          Positioned.fill(child: Container(color: Theme.of(context).scaffoldBackgroundColor, child: _buildSidebar(context))),
-                        if (MediaQuery.of(context).size.width <= 600 && !_isSummaryVisible)
+                        if (MediaQuery.of(context).size.width <= 600 &&
+                            _isSummaryVisible)
+                          Positioned.fill(
+                            child: Container(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              child: _buildSidebar(context),
+                            ),
+                          ),
+                        if (MediaQuery.of(context).size.width <= 600 &&
+                            !_isSummaryVisible)
                           Positioned(
                             bottom: 20,
                             right: 20,
                             child: FloatingActionButton(
-                              onPressed: () => setState(() => _isSummaryVisible = true),
+                              onPressed: () =>
+                                  setState(() => _isSummaryVisible = true),
                               child: const Icon(Icons.analytics),
                             ),
                           ),
@@ -1530,10 +1710,15 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
-                      border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                      border: Border(
+                        top: BorderSide(color: Colors.grey.shade300),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -1545,14 +1730,20 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
                           ),
                         const SizedBox(width: 16),
                         ElevatedButton.icon(
-                          onPressed: () => _advanceStep(workloadLevels, sessionLevels),
+                          onPressed: () =>
+                              _advanceStep(workloadLevels, sessionLevels),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                           ),
                           icon: const Icon(Icons.arrow_forward),
-                          label: Text(_currentStep < 2 ? 'Continuar' : 'Gerar Ciclo'),
+                          label: Text(
+                            _currentStep < 2 ? 'Continuar' : 'Gerar Ciclo',
+                          ),
                         ),
                       ],
                     ),
@@ -1570,7 +1761,9 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
       padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        border: MediaQuery.of(context).size.width > 600 ? Border(left: BorderSide(color: Colors.grey.shade300)) : null,
+        border: MediaQuery.of(context).size.width > 600
+            ? Border(left: BorderSide(color: Colors.grey.shade300))
+            : null,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -1580,71 +1773,126 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Resumo', style: Theme.of(context).textTheme.titleLarge),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _isSummaryVisible = false)),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => setState(() => _isSummaryVisible = false),
+                ),
               ],
             ),
             const Divider(),
-            distribution.isNotEmpty ? SizedBox(
-              height: 350,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 0,
-                  centerSpaceRadius: 60,
-                  sections: distribution.map((d) => PieChartSectionData(
-                    value: d['minutes'] as double,
-                    color: d['color'] as Color,
-                    title: d['id'] == 'placeholder' ? "" : "${(d['minutes'] as double? ?? 0.0).toStringAsFixed(0)}m",
-                    radius: 80,
-                    titlePositionPercentageOffset: 0.55,
-                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white),
-                  )).toList(),
-                ),
-              ),
-            ) : const SizedBox.shrink(),
+            distribution.isNotEmpty
+                ? SizedBox(
+                    height: 350,
+                    child: PieChart(
+                      PieChartData(
+                        sectionsSpace: 0,
+                        centerSpaceRadius: 60,
+                        sections: distribution
+                            .map(
+                              (d) => PieChartSectionData(
+                                value: d['minutes'] as double,
+                                color: d['color'] as Color,
+                                title: d['id'] == 'placeholder'
+                                    ? ""
+                                    : "${(d['minutes'] as double? ?? 0.0).toStringAsFixed(0)}m",
+                                radius: 80,
+                                titlePositionPercentageOffset: 0.55,
+                                titleStyle: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
             const SizedBox(height: 16),
             ExpansionTile(
-              title: Text("Resumo das Matérias (${_selectedSubjects.length})", style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                "Resumo das Matérias (${_selectedSubjects.length})",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               childrenPadding: EdgeInsets.zero,
               tilePadding: EdgeInsets.zero,
               children: [
-                 Row(
-                   mainAxisAlignment: MainAxisAlignment.end,
-                   children: [
-                      IconButton(
-                        icon: Icon(_isEditingSubjects ? Icons.check : Icons.edit),
-                        onPressed: () => setState(() => _isEditingSubjects = !_isEditingSubjects),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: Icon(_isEditingSubjects ? Icons.check : Icons.edit),
+                      onPressed: () => setState(
+                        () => _isEditingSubjects = !_isEditingSubjects,
                       ),
-                   ],
-                 ),
-                 ...distribution.map((d) {
-                    final subjectId = d['id'];
-                    if (subjectId == 'placeholder') return const SizedBox.shrink();
-                    
-                    final subject = Provider.of<AllSubjectsProvider>(context, listen: false).subjects.firstWhere((s) => s.id == subjectId);
-                    final importance = _subjectSettings[subjectId]?['importance']?.toInt() ?? 3;
-                    final knowledge = _subjectSettings[subjectId]?['knowledge']?.toInt() ?? 3;
-                    final color = d['color'];
-                    return Card(
-                      color: color.withOpacity(0.1),
-                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
-                      child: ListTile(
-                        visualDensity: VisualDensity.compact,
-                        leading: CircleAvatar(backgroundColor: color, radius: 8),
-                        title: Text(subject.subject, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        subtitle: Text("Imp. $importance, Conf. $knowledge", style: const TextStyle(fontSize: 11)),
-                        trailing: _isEditingSubjects ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(icon: const Icon(Icons.copy, size: 16), onPressed: () => setState(() {
-                                final newId = "${subjectId}_dup_${DateTime.now().millisecondsSinceEpoch}";
-                                _selectedSubjects.add(newId);
-                                _subjectSettings[newId] = Map.from(_subjectSettings[subjectId]!);
-                            })),
-                            IconButton(icon: const Icon(Icons.delete, size: 16, color: Colors.red), onPressed: () => setState(() => _selectedSubjects.remove(subjectId))),
-                          ],
-                        ) : null,
+                    ),
+                  ],
+                ),
+                ...distribution.map((d) {
+                  final subjectId = d['id'];
+                  if (subjectId == 'placeholder')
+                    return const SizedBox.shrink();
+
+                  final subject = Provider.of<AllSubjectsProvider>(
+                    context,
+                    listen: false,
+                  ).subjects.firstWhere((s) => s.id == subjectId);
+                  final importance =
+                      _subjectSettings[subjectId]?['importance']?.toInt() ?? 3;
+                  final knowledge =
+                      _subjectSettings[subjectId]?['knowledge']?.toInt() ?? 3;
+                  final Color color = d['color'] as Color;
+                  return Card(
+                    color: color.withOpacity(0.1),
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 0,
+                    ),
+                    child: ListTile(
+                      visualDensity: VisualDensity.compact,
+                      leading: CircleAvatar(backgroundColor: color, radius: 8),
+                      title: Text(
+                        subject.subject,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
-                    );
+                      subtitle: Text(
+                        "Imp. $importance, Conf. $knowledge",
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      trailing: _isEditingSubjects
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.copy, size: 16),
+                                  onPressed: () => setState(() {
+                                    final newId =
+                                        "${subjectId}_dup_${DateTime.now().millisecondsSinceEpoch}";
+                                    _selectedSubjects.add(newId);
+                                    _subjectSettings[newId] = Map.from(
+                                      _subjectSettings[subjectId]!,
+                                    );
+                                  }),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    size: 16,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _selectedSubjects.remove(subjectId),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : null,
+                    ),
+                  );
                 }).toList(),
               ],
             ),
@@ -1815,7 +2063,7 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
               ),
               onChanged: (Subject? newValue) =>
                   setState(() => _manualSelectedSubject = newValue),
-              items: allSubjectsProvider.uniqueSubjectsByName
+              items: _subjectsForActivePlan(context, allSubjectsProvider)
                   .map<DropdownMenuItem<Subject>>((subject) {
                     return DropdownMenuItem<Subject>(
                       value: subject,
@@ -1995,8 +2243,15 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
     );
   }
 
-  void _saveGuidedCycle(AllSubjectsProvider allSubjectsProvider, List<Map<String, dynamic>> workloadLevels, List<Map<String, dynamic>> sessionLevels) {
-    final mentoriaProvider = Provider.of<MentoriaProvider>(context, listen: false);
+  void _saveGuidedCycle(
+    AllSubjectsProvider allSubjectsProvider,
+    List<Map<String, dynamic>> workloadLevels,
+    List<Map<String, dynamic>> sessionLevels,
+  ) {
+    final mentoriaProvider = Provider.of<MentoriaProvider>(
+      context,
+      listen: false,
+    );
     if ((_selectedWorkloadLevel == null ||
             (_selectedWorkloadLevel == 'Manual' &&
                 _manualWorkloadController.text.isEmpty)) ||
@@ -2013,9 +2268,10 @@ class _CycleCreationScreenState extends State<CycleCreationScreen> {
       context,
       listen: false,
     );
-    final selectedSubjectsData = allSubjectsProvider.subjects
-        .where((s) => _selectedSubjects.contains(s.id))
-        .toList();
+    final selectedSubjectsData = _subjectsForActivePlan(
+      context,
+      allSubjectsProvider,
+    ).where((s) => _selectedSubjects.contains(s.id)).toList();
 
     final int workloadValue;
     if (_selectedWorkloadLevel == 'Manual') {

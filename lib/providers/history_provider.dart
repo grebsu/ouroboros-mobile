@@ -11,6 +11,7 @@ class HistoryProvider with ChangeNotifier {
   final ReviewProvider _reviewProvider;
   final FilterProvider _filterProvider;
   final AuthProvider? _authProvider;
+  String? _activePlanId;
 
   HistoryProvider(
     this._reviewProvider,
@@ -20,6 +21,13 @@ class HistoryProvider with ChangeNotifier {
     _filterProvider.addListener(fetchHistory);
     fetchHistory();
   }
+
+  void updateForPlan(String? planId) {
+    if (_activePlanId == planId) return;
+    _activePlanId = planId;
+    fetchHistory();
+  }
+
 
   List<StudyRecord> _records = [];
   List<StudyRecord> _allStudyRecords = [];
@@ -64,6 +72,14 @@ class HistoryProvider with ChangeNotifier {
     _allStudyRecords = await _dbService.readStudyRecordsForUser(
       _authProvider!.currentUser!.name,
     );
+
+    // Filtrar por plano ativo, se houver um definido
+    if (_activePlanId != null) {
+      _allStudyRecords = _allStudyRecords
+          .where((r) => r.plan_id == _activePlanId)
+          .toList();
+    }
+
     List<Subject> allSubjects = await _dbService.readAllSubjects(
       _authProvider!.currentUser!.name,
     );
